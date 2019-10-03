@@ -12,3 +12,7 @@ makedocs(
     pages = pages,
     checkdocs=:exports
     )
+
+deploydocs(
+    repo = "github.com/qojulia/QuantumOpticsBase.jl.git",
+    )

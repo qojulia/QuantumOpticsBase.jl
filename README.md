@@ -18,8 +18,8 @@
 [gitter-url]: https://gitter.im/QuantumOptics-jl/Lobby
 [gitter-img]: https://img.shields.io/gitter/room/nwjs/nw.js.svg
 
-[docs-url]: https://qojulia.org/documentation/
-[docs-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-url]: https://qojulia.github.io/QuantumOpticsBase.jl/latest
+[docs-img]: https://img.shields.io/badge/docs-latest-blue.svg
 
 [version-url]: https://github.com/qojulia/QuantumOpticsBase.jl/releases
 [version-img]: https://img.shields.io/github/release/qojulia/QuantumOpticsBase.jl.svg
