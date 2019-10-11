@@ -108,7 +108,7 @@ function check_embed_indices(indices::Array)
     length(indices) == 0 && return true
 
     err_str = "Variable `indices` comes in an unexpected form. Expecting `Array{Union{Int, Array{Int, 1}}, 1}`"
-    @assert mapreduce(x -> typeof(x)<:Array || typeof(x)<:Int, &, indices) err_str
+    @assert all(x isa Array || x isa Int for x in indices) err_str
 
     # flatten the indices and check for uniqueness
     # use a custom flatten because it's ≈ 4x  faster than Base.Iterators.flatten
