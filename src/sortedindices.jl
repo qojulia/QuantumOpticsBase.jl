@@ -104,8 +104,8 @@ Determine whether a collection of indices, written as a list of (integers or lis
 This assures that the embedded operators are in non-overlapping subspaces.
 """
 function check_embed_indices(indices::Array)
-    # Check whether `indices` is empty.
-    (length(indices) == 0) ? (return true) : nothing
+    # short circuit return when `indices` is empty.
+    length(indices) == 0 && return true
 
     err_str = "Variable `indices` comes in an unexpected form. Expecting `Array{Union{Int, Array{Int, 1}}, 1}`"
     @assert mapreduce(x -> typeof(x)<:Array || typeof(x)<:Int, &, indices) err_str
