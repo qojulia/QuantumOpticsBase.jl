@@ -104,22 +104,14 @@ Determine whether a collection of indices, written as a list of (integers or lis
 This assures that the embedded operators are in non-overlapping subspaces.
 """
 function check_embed_indices(indices::Array)
-    # Check whether `indices` is empty.
-    (length(indices) == 0) ? (return true) : nothing
+    # short circuit return when `indices` is empty.
+    length(indices) == 0 && return true
 
     err_str = "Variable `indices` comes in an unexpected form. Expecting `Array{Union{Int, Array{Int, 1}}, 1}`"
-    @assert mapreduce(x -> typeof(x)<:Array || typeof(x)<:Int, &, indices) err_str
+    @assert all(x isa Array || x isa Int for x in indices) err_str
 
-    isunique = true
-    # Check that no sub-list contains duplicates.
-    for i in filter(x -> typeof(x) <: Array, indices)
-        isunique &= (length(Set(i)) == length(i))
-    end
-    # Check that there are no duplicates across `indices`
-    for (idx, i) in enumerate(indices[1:end-1])
-        for j in indices[idx+1:end]
-            isunique &= (length(Base.intersect(i, j)) == 0)
-        end
-    end
-    return isunique
+    # flatten the indices and check for uniqueness
+    # use a custom flatten because it's ≈ 4x  faster than Base.Iterators.flatten
+    flatten(arr::Vector) = mapreduce(x -> x isa Vector ? flatten(x) : x, append!, arr, init=[])
+    allunique(flatten(indices))
 end
