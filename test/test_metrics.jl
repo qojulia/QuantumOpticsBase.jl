@@ -90,4 +90,18 @@ rho = rho ⊗ dm(g)
 @test logarithmic_negativity(rho, 1) == logarithmic_negativity(rho, 2) ≈ 1.0
 @test isapprox(logarithmic_negativity(rho, 3), 0.0, atol=1e-15)
 
+q2 = PauliBasis(2)
+CNOT = DenseOperator(q2, q2, diagm(0 => [1,1,0,0], 1 => [0,0,1], -1 => [0,0,1]))
+CNOT_sop = SuperOperator(CNOT)
+CNOT_chi = ChiMatrix(CNOT)
+CNOT_ptm = PauliTransferMatrix(CNOT)
+
+@test avg_gate_fidelity(CNOT_sop, CNOT_sop) == 1
+@test avg_gate_fidelity(CNOT_chi, CNOT_chi) == 1
+@test avg_gate_fidelity(CNOT_ptm, CNOT_ptm) == 1
+
+@test_throws MethodError avg_gate_fidelity(CNOT_sop, CNOT_chi)
+@test_throws MethodError avg_gate_fidelity(CNOT_sop, CNOT_ptm)
+@test_throws MethodError avg_gate_fidelity(CNOT_chi, CNOT_ptm)
+
 end # testset

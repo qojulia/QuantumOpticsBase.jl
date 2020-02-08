@@ -30,7 +30,7 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
                 entropy_vn, fidelity, ptranspose, PPT,
                 negativity, logarithmic_negativity,
         PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
-                ChiMatrix, DenseChiMatrix
+                ChiMatrix, DenseChiMatrix, avg_gate_fidelity
 
 include("sortedindices.jl")
 include("polynomials.jl")
@@ -52,8 +52,8 @@ include("particle.jl")
 include("nlevel.jl")
 include("manybody.jl")
 include("transformations.jl")
-include("metrics.jl")
 include("pauli.jl")
+include("metrics.jl")
 include("printing.jl")
 
 end # module
