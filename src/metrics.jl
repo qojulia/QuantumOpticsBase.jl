@@ -236,3 +236,45 @@ function avg_gate_fidelity(x::T, y::T) where T <: Union{PauliTransferMatrix{B, B
     dim = 2 ^ length(x.basis_l)
     return (tr(transpose(x.data) * y.data) + dim) / (dim^2 + dim)
 end
+
+"""
+    entanglement_entropy(state, partition, [entropy_fun=entropy_vn])
+
+Computes the entanglement entropy of `state` between the list of sites `partition`
+and the rest of the system. The state must be defined in a composite basis.
+
+By default the entropy is computed according to Von-Neumann entropy, but a different
+function can be provided (for example to compute the entanglement-reny entropy).
+"""
+function entanglement_entropy(psi::Ket{B}, partition, entropy_fun=entropy_vn) where B<:CompositeBasis
+    if partition isa Number
+        partition = [partition]
+    end
+
+    # check that sites are within the range
+    @assert all(partition .<= length(psi.basis.bases))
+
+    rho = ptrace(psi, partition)
+    return entropy_fun(rho)
+end
+
+function entanglement_entropy(rho::DenseOperator{B,B}, partition, entropy_fun=entropy_vn) where {B<:CompositeBasis}
+    if partition isa Number
+        partition = [partition]
+    end
+
+    # check that sites is within the range
+    hilb = rho.basis_l
+    @assert all(partition .<= length(hilb.bases))
+
+    # build the doubled hilbert space for the vectorised dm
+    b_doubled = hilb^2
+    rho_vec = Ket(b_doubled, vec(rho.data))
+
+    # normalize it like a ket
+    normalize!(rho_vec)
+
+    return entanglement_entropy(rho_vec,
+                                vcat(partition, partition.+length(hilb.bases)),
+                                entropy_fun)
+end
