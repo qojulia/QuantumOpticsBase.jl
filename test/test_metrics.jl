@@ -90,6 +90,17 @@ rho = rho ⊗ dm(g)
 @test logarithmic_negativity(rho, 1) == logarithmic_negativity(rho, 2) ≈ 1.0
 @test isapprox(logarithmic_negativity(rho, 3), 0.0, atol=1e-15)
 
+# Entanglement Entropy
+b1 = SpinBasis(1//2)
+psi = 1/sqrt(2)*(spinup(b1)⊗spindown(b1) + spindown(b1)⊗spinup(b1))
+rho_ent = dm(psi)
+rho_mix = DenseOperator(rho_ent.basis_l, diagm(ComplexF64[1.0,1.0,1.0,1.0]))
+@test entanglement_entropy(rho_mix, 1) ≈ 0.0
+@test entanglement_entropy(rho_ent, 1, entropy_vn) ≈ 2 * log(2)
+@test entanglement_entropy(rho_ent, 1) ≈ 2 * entanglement_entropy(psi, 1)
+@test_throws ArgumentError entanglement_entropy(rho_mix, (1,2))
+@test_throws ArgumentError entanglement_entropy(rho_mix, 3)
+
 q2 = PauliBasis(2)
 CNOT = DenseOperator(q2, q2, diagm(0 => [1,1,0,0], 1 => [0,0,1], -1 => [0,0,1]))
 CNOT_sop = SuperOperator(CNOT)
