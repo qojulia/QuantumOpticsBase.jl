@@ -111,6 +111,8 @@ op_copy = deepcopy(op)
 normalize!(op_copy)
 @test tr(op) != tr(op_copy)
 @test 1 ≈ tr(op_copy)
+@test op_copy === normalize!(op_copy)
+
 
 # Test partial tr
 op1 = randoperator(b_l)

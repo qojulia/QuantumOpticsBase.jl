@@ -171,6 +171,7 @@ op_copy = deepcopy(op)
 normalize!(op_copy)
 @test tr(op) != tr(op_copy)
 @test 1 ≈ tr(op_copy)
+@test op === normalize!(op)
 
 # Test partial tr of state vectors
 psi1 = 0.1*randstate(b1a)

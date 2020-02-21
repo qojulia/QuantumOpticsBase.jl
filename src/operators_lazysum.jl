@@ -64,7 +64,7 @@ function ptrace(op::LazySum, indices::Vector{Int})
     LazySum(op.factors, D)
 end
 
-normalize!(op::LazySum) = (op.factors /= tr(op); nothing)
+normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
 permutesystems(op::LazySum, perm::Vector{Int}) = LazySum(op.factors, ([permutesystems(op_i, perm) for op_i in op.operators]...,))
 

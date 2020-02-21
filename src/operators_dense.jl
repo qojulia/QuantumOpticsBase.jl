@@ -128,7 +128,7 @@ function ptrace(psi::Bra, indices::Vector{Int})
     return DenseOperator(b_, b_, result)
 end
 
-normalize!(op::DenseOperator) = (rmul!(op.data, 1.0/tr(op)); nothing)
+normalize!(op::DenseOperator) = (rmul!(op.data, 1.0/tr(op)); op)
 
 function expect(op::DenseOperator{B,B}, state::Ket{B}) where B<:Basis
     state.data' * op.data * state.data

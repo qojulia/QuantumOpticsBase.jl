@@ -159,7 +159,7 @@ function ptrace(op::LazyTensor, indices::Vector{Int})
     LazyTensor(b_l, b_r, shiftremove(op.indices, indices), ops, factor)
 end
 
-normalize!(op::LazyTensor) = (op.factor /= tr(op); nothing)
+normalize!(op::LazyTensor) = (op.factor /= tr(op); op)
 
 function permutesystems(op::LazyTensor, perm::Vector{Int})
     b_l = permutesystems(op.basis_l, perm)
