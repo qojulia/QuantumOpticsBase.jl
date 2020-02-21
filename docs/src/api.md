@@ -439,6 +439,10 @@ entropy_vn
 ```
 
 ```@docs
+entropy_renyi
+```
+
+```@docs
 fidelity
 ```
 
@@ -456,6 +460,14 @@ negativity
 
 ```@docs
 logarithmic_negativity
+```
+
+```@docs
+entanglement_entropy
+```
+
+```@docs
+avg_gate_fidelity
 ```
 
 ## [State definitions](@id API: State definitions)
