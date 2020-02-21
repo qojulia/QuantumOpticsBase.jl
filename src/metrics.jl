@@ -236,3 +236,46 @@ function avg_gate_fidelity(x::T, y::T) where T <: Union{PauliTransferMatrix{B, B
     dim = 2 ^ length(x.basis_l)
     return (tr(transpose(x.data) * y.data) + dim) / (dim^2 + dim)
 end
+
+"""
+    entanglement_entropy(state, partition, [entropy_fun=entropy_vn])
+
+Computes the entanglement entropy of `state` between the list of sites `partition`
+and the rest of the system. The state must be defined in a composite basis.
+
+If `state isa AbstractOperator` the operator-space entanglement entropy is
+computed, which has the property
+```julia
+entanglement_entropy(dm(ket)) = 2 * entanglement_entropy(ket)
+```
+
+By default the computed entropy is the Von-Neumann entropy, but a different
+function can be provided (for example to compute the entanglement-renyi entropy).
+"""
+function entanglement_entropy(psi::Ket{B}, partition::Vector{Int}, entropy_fun=entropy_vn) where B<:CompositeBasis
+    # check that sites are within the range
+    @assert all(partition .<= length(psi.basis.bases))
+
+    rho = ptrace(psi, partition)
+    return entropy_fun(rho)
+end
+
+function entanglement_entropy(rho::DenseOperator{B,B}, partition::Vector{Int}, args...) where {B<:CompositeBasis}
+    # check that sites is within the range
+    hilb = rho.basis_l
+    all(partition .<= length(hilb.bases)) || throw(ArgumentError("Indices in partition must be within the bounds of the composite basis."))
+    length(partition) <= length(hilb.bases) || throw(ArgumentError("Partition cannot include the whole system."))
+
+    # build the doubled hilbert space for the vectorised dm, normalized like a Ket.
+    b_doubled = hilb^2
+    rho_vec = normalize!(Ket(b_doubled, vec(rho.data)))
+
+    return entanglement_entropy(rho_vec,
+                                vcat(partition, partition.+length(hilb.bases)),
+                                args...)
+end
+
+entanglement_entropy(state, partition::Number, args...) =
+    entanglement_entropy(state, [partition], args...)
+entanglement_entropy(state, partition, args...) =
+    entanglement_entropy(state, collect(partition), args...)
