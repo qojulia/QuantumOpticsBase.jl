@@ -149,6 +149,26 @@ end
 entropy_vn(psi::StateVector; kwargs...) = entropy_vn(dm(psi); kwargs...)
 
 """
+    entropy_renyi(rho, α::Integer=2)
+
+Renyi α-entropy of a density matrix, where r α≥0, α≂̸1.
+
+The Renyi α-entropy of a density operator is defined as
+
+```math
+S_α(ρ) = 1/(1-α) \\log(Tr(ρ^α))
+```
+"""
+function entropy_renyi(rho::DenseOperator{B,B}, α::Integer=2) where B<:Basis
+    α <  0 && throw(ArgumentError("α-Renyi entropy is defined for α≥0, α≂̸1"))
+    α == 1 && throw(ArgumentError("α-Renyi entropy is defined for α≥0, α≂̸1"))
+
+    return 1/(1-α) * log(tr(rho^α))
+end
+
+entropy_renyi(psi::StateVector, args...) = entropy_renyi(dm(psi), args...)
+
+"""
     fidelity(rho, sigma)
 
 Fidelity of two density operators.

@@ -54,11 +54,18 @@ rho = spinup(b1) ⊗ dagger(coherentstate(b2, 0.1))
 
 @test tracedistance_nh(rho, rho) ≈ 0.
 
-# entropy
+# entropy_vn
 rho_mix = dense(identityoperator(b1))/2.
 @test entropy_vn(rho_mix)/log(2) ≈ 1
 psi = coherentstate(FockBasis(20), 2.0)
 @test isapprox(entropy_vn(psi), 0.0, atol=1e-8)
+
+# entropy_renyi
+rho_mix = dense(identityoperator(b1))/2.
+@test entropy_renyi(rho_mix, 2)/log(2) ≈ 1
+psi = coherentstate(FockBasis(20), 2.0)
+@test isapprox(entropy_renyi(psi), 0.0, atol=1e-8)
+@test_throws ArgumentError entropy_renyi(psi, 1)
 
 # fidelity
 rho = tensor(psi1, dagger(psi1))

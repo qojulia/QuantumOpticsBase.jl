@@ -27,7 +27,7 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
                 manybodyoperator, onebodyexpect, occupation,
         metrics, tracenorm, tracenorm_h, tracenorm_nh,
                 tracedistance, tracedistance_h, tracedistance_nh,
-                entropy_vn, fidelity, ptranspose, PPT,
+                entropy_vn, entropy_renyi, fidelity, ptranspose, PPT,
                 negativity, logarithmic_negativity, entanglement_entropy,
         PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
                 ChiMatrix, DenseChiMatrix, avg_gate_fidelity
