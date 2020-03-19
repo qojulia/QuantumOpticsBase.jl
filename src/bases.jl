@@ -126,7 +126,7 @@ function tensor(b1::Basis, b2::CompositeBasis)
     CompositeBasis(shape, bases)
 end
 tensor(bases::Basis...) = reduce(tensor, bases)
-⊗ = tensor
+const ⊗ = tensor
 
 function ^(b::Basis, N::Int)
     if N < 1
