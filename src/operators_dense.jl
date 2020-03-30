@@ -60,22 +60,22 @@ dense(x::DenseOperator) = copy(x)
 *(a::Number, b::DenseOperator) = DenseOperator(b.basis_l, b.basis_r, complex(a)*b.data)
 function *(op1::AbstractOperator{B1,B2}, op2::DenseOperator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
     result = DenseOperator{B1,B3}(op1.basis_l, op2.basis_r)
-    gemm!(Complex(1.), op1, op2, Complex(0.), result)
+    mul!(result,op1,op2)
     return result
 end
 function *(op1::DenseOperator{B1,B2}, op2::AbstractOperator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
     result = DenseOperator{B1,B3}(op1.basis_l, op2.basis_r)
-    gemm!(Complex(1.), op1, op2, Complex(0.), result)
+    mul!(result,op1,op2)
     return result
 end
 function *(op::AbstractOperator{BL,BR}, psi::Ket{BR}) where {BL<:Basis,BR<:Basis}
     result = Ket{BL}(op.basis_l)
-    gemv!(Complex(1.), op, psi, Complex(0.), result)
+    mul!(result,op,psi)
     return result
 end
 function *(psi::Bra{BL}, op::AbstractOperator{BL,BR}) where {BL<:Basis,BR<:Basis}
     result = Bra{BR}(op.basis_r)
-    gemv!(Complex(1.), psi, op, Complex(0.), result)
+    mul!(result,psi,op)
     return result
 end
 
@@ -264,30 +264,25 @@ end
 end
 
 # Fast in-place multiplication
-gemm!(alpha, a::Matrix{ComplexF64}, b::Matrix{ComplexF64}, beta, result::Matrix{ComplexF64}) = BLAS.gemm!('N', 'N', convert(ComplexF64, alpha), a, b, convert(ComplexF64, beta), result)
-gemv!(alpha, a::Matrix{ComplexF64}, b::Vector{ComplexF64}, beta, result::Vector{ComplexF64}) = BLAS.gemv!('N', convert(ComplexF64, alpha), a, b, convert(ComplexF64, beta), result)
-gemv!(alpha, a::Vector{ComplexF64}, b::Matrix{ComplexF64}, beta, result::Vector{ComplexF64}) = BLAS.gemv!('T', convert(ComplexF64, alpha), b, a, convert(ComplexF64, beta), result)
-
-gemm!(alpha, a::DenseOperator{B1,B2}, b::DenseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis} = gemm!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
-gemv!(alpha, a::DenseOperator{B1,B2}, b::Ket{B2}, beta, result::Ket{B1}) where {B1<:Basis,B2<:Basis} = gemv!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
-gemv!(alpha, a::Bra{B1}, b::DenseOperator{B1,B2}, beta, result::Bra{B2}) where {B1<:Basis,B2<:Basis} = gemv!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
-
+mul!(result::DenseOperator{B1,B3},a::DenseOperator{B1,B2},b::DenseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta)
+mul!(result::Ket{B1},a::DenseOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta)
+mul!(result::Bra{B2},a::Bra{B1},b::DenseOperator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta)
 
 # Multiplication for Operators in terms of their gemv! implementation
-function gemm!(alpha, M::AbstractOperator{B1,B2}, b::DenseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::DenseOperator{B1,B3},M::AbstractOperator{B1,B2},b::DenseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
     for i=1:size(b.data, 2)
         bket = Ket(b.basis_l, b.data[:,i])
         resultket = Ket(M.basis_l, result.data[:,i])
-        gemv!(alpha, M, bket, beta, resultket)
+        mul!(resultket,M,bket,alpha,beta)
         result.data[:,i] = resultket.data
     end
 end
 
-function gemm!(alpha, b::DenseOperator{B1,B2}, M::AbstractOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::DenseOperator{B1,B3},b::DenseOperator{B1,B2},M::AbstractOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
     for i=1:size(b.data, 1)
         bbra = Bra(b.basis_r, vec(b.data[i,:]))
         resultbra = Bra(M.basis_r, vec(result.data[i,:]))
-        gemv!(alpha, bbra, M, beta, resultbra)
+        mul!(resultbra,bbra,M,alpha,beta)
         result.data[i,:] = resultbra.data
     end
 end

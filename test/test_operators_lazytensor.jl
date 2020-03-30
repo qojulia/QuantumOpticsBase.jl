@@ -186,25 +186,25 @@ op_ = 0.1*subop1 ⊗ I2 ⊗ subop3
 state = Ket(b_r, rand(ComplexF64, length(b_r)))
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = deepcopy(result_)
-QuantumOpticsBase.gemv!(complex(1.), op, state, complex(0.), result)
+QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-13 > D(result, op_*state)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemv!(alpha, op, state, beta, result)
+QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-13 > D(result, alpha*op_*state + beta*result_)
 
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
 result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
 result = deepcopy(result_)
-QuantumOpticsBase.gemv!(complex(1.), state, op, complex(0.), result)
+QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-13 > D(result, state*op_)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemv!(alpha, state, op, beta, result)
+QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-13 > D(result, alpha*state*op_ + beta*result_)
 
 # Test gemm
@@ -220,38 +220,38 @@ op_ = 0.1*subop1 ⊗ I2 ⊗ subop3
 state = randoperator(b_r, b_r2)
 result_ = randoperator(b_l, b_r2)
 result = deepcopy(result_)
-QuantumOpticsBase.gemm!(complex(1.), op, state, complex(0.), result)
+QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-12 > D(result, op_*state)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemm!(alpha, op, state, beta, result)
+QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
 state = randoperator(b_l2, b_l)
 result_ = randoperator(b_l2, b_r)
 result = deepcopy(result_)
-QuantumOpticsBase.gemm!(complex(1.), state, op, complex(0.), result)
+QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*op_)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemm!(alpha, state, op, beta, result)
+QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
 
 # Test calling gemv with non-complex factors
 state = Ket(b_r, rand(ComplexF64, length(b_r)))
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = deepcopy(result_)
-QuantumOpticsBase.gemv!(1, op, state, 0, result)
+QuantumOpticsBase.mul!(result,op,state)
 @test 1e-13 > D(result, op_*state)
 
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
 result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
 result = deepcopy(result_)
-QuantumOpticsBase.gemv!(1, state, op, 0, result)
+QuantumOpticsBase.mul!(result,state,op)
 @test 1e-13 > D(result, state*op_)
 
 # Test gemm errors
@@ -259,7 +259,7 @@ test_op = test_lazytensor(b1a, b1a, rand(2, 2))
 test_lazy = LazyTensor(tensor(b1a, b1a), [1, 2], [test_op, test_op])
 test_ket = Ket(tensor(b1a, b1a), rand(4))
 
-@test_throws ArgumentError QuantumOpticsBase.gemv!(alpha, test_lazy, test_ket, beta, copy(test_ket))
-@test_throws ArgumentError QuantumOpticsBase.gemv!(alpha, dagger(test_ket), test_lazy, beta, copy(dagger(test_ket)))
+@test_throws ArgumentError QuantumOpticsBase.mul!(copy(test_ket),test_lazy,test_ket,alpha,beta)
+@test_throws ArgumentError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
 
 end # testset

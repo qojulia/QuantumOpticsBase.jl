@@ -9,7 +9,7 @@ All deriving operator classes have to define the fields
 `basis_l` and `basis_r` defining the left and right side bases.
 
 For fast time evolution also at least the function
-`gemv!(alpha, op::AbstractOperator, x::Ket, beta, result::Ket)` should be
+`mul!(result::Ket,op::AbstractOperator,x::Ket,alpha,beta)` should be
 implemented. Many other generic multiplication functions can be defined in
 terms of this function and are provided automatically.
 """
@@ -327,7 +327,7 @@ one(op::AbstractOperator) = identityoperator(op)
 
 # Fast in-place multiplication
 """
-    gemv!(alpha, a, b, beta, result)
+    mul!(result,a,b,alpha,beta)
 
 Fast in-place multiplication of operators with state vectors. It
 implements the relation `result = beta*result + alpha*a*b`.
@@ -337,7 +337,7 @@ or `b` are state vectors while the other one can be of any operator type.
 gemv!() = error("Not Implemented.")
 
 """
-    gemm!(alpha, a, b, beta, result)
+    mul!(result,a,b,alpha,beta)
 
 Fast in-place multiplication of of operators with DenseOperators. It
 implements the relation `result = beta*result + alpha*a*b`.

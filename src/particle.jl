@@ -482,7 +482,7 @@ dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
 tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r))
 tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
 
-function gemv!(alpha_, M::FFTOperator{B1,B2}, b::Ket{B2}, beta_, result::Ket{B1}) where {B1<:Basis,B2<:Basis}
+function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     N::Int = length(M.basis_r)
@@ -507,7 +507,7 @@ function gemv!(alpha_, M::FFTOperator{B1,B2}, b::Ket{B2}, beta_, result::Ket{B1}
     nothing
 end
 
-function gemv!(alpha_, b::Bra{B1}, M::FFTOperator{B1,B2}, beta_, result::Bra{B2}) where {B1<:Basis,B2<:Basis}
+function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     N::Int = length(M.basis_l)
@@ -532,7 +532,7 @@ function gemv!(alpha_, b::Bra{B1}, M::FFTOperator{B1,B2}, beta_, result::Bra{B2}
     nothing
 end
 
-function gemm!(alpha_, A::DenseOperator{B1,B2}, B::FFTOperators{B2,B3}, beta_, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::DenseOperator{B1,B3},A::DenseOperator{B1,B2},B::FFTOperators{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)
@@ -562,7 +562,7 @@ function gemm!(alpha_, A::DenseOperator{B1,B2}, B::FFTOperators{B2,B3}, beta_, r
     nothing
 end
 
-function gemm!(alpha_, A::FFTOperators{B1,B2}, B::DenseOperator{B2,B3}, beta_, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::DenseOperator{B1,B3},A::FFTOperators{B1,B2},B::DenseOperator{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)

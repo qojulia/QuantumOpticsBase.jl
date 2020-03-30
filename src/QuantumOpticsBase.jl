@@ -1,6 +1,7 @@
 module QuantumOpticsBase
 
 using SparseArrays, LinearAlgebra
+import LinearAlgebra: mul!
 
 export bases, Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,

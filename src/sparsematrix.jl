@@ -2,128 +2,14 @@ import Base: permutedims
 
 const SparseMatrix = SparseMatrixCSC{ComplexF64, Int}
 
-
-function gemm_sp_dense_small(alpha::ComplexF64, M::SparseMatrix, B::Matrix{ComplexF64}, result::Matrix{ComplexF64})
-    if alpha == ComplexF64(1.)
-        @inbounds for colindex = 1:M.n
-            @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                row = M.rowval[i]
-                val = M.nzval[i]
-                @inbounds for j=1:size(B, 2)
-                    result[row, j] += val*B[colindex, j]
-                end
-            end
-        end
-    else
-        @inbounds for colindex = 1:M.n
-            @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                row = M.rowval[i]
-                val = alpha*M.nzval[i]
-                @inbounds for j=1:size(B, 2)
-                    result[row, j] += val*B[colindex, j]
-                end
-            end
-        end
-    end
-end
-
-function gemm_sp_dense_big(alpha::ComplexF64, M::SparseMatrix, B::Matrix{ComplexF64}, result::Matrix{ComplexF64})
-    if alpha == ComplexF64(1.)
-        @inbounds for j=1:size(B, 2)
-            @inbounds for colindex = 1:M.n
-                m2 = B[colindex, j]
-                @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                    row = M.rowval[i]
-                    result[row, j] += M.nzval[i]*m2
-                end
-            end
-        end
-    else
-        @inbounds for j=1:size(B, 2)
-            @inbounds for colindex = 1:M.n
-                m2 = alpha*B[colindex, j]
-                @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                    row = M.rowval[i]
-                    result[row, j] += M.nzval[i]*m2
-                end
-            end
-        end
-    end
-end
-
-function gemm!(alpha::ComplexF64, M::SparseMatrix, B::Matrix{ComplexF64}, beta::ComplexF64, result::Matrix{ComplexF64})
-    if beta == ComplexF64(0.)
+# Simple mul! for Bra*SparseOperator
+function mul!(result::Vector{ComplexF64},v::Vector{ComplexF64},M::SparseMatrix,alpha,beta)
+    if iszero(beta)
         fill!(result, beta)
-    elseif beta != ComplexF64(1.)
+    elseif !isone(beta)
         rmul!(result, beta)
     end
-    if nnz(M) > 1000
-        gemm_sp_dense_big(alpha, M, B, result)
-    else
-        gemm_sp_dense_small(alpha, M, B, result)
-    end
-end
-
-function gemm!(alpha::ComplexF64, B::Matrix{ComplexF64}, M::SparseMatrix, beta::ComplexF64, result::Matrix{ComplexF64})
-    if beta == ComplexF64(0.)
-        fill!(result, beta)
-    elseif beta != ComplexF64(1.)
-        rmul!(result, beta)
-    end
-    dimB = size(result,1)
-    if alpha == ComplexF64(1.)
-        @inbounds for colindex = 1:M.n
-            @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                mi = M.nzval[i]
-                mrowvali = M.rowval[i]
-                @inbounds for j=1:dimB
-                    result[j, colindex] += mi*B[j, mrowvali]
-                end
-            end
-        end
-    else
-        @inbounds for colindex = 1:M.n
-            @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                mi = M.nzval[i]*alpha
-                mrowvali = M.rowval[i]
-                @inbounds for j=1:dimB
-                    result[j, colindex] += mi*B[j, mrowvali]
-                end
-            end
-        end
-    end
-end
-
-function gemv!(alpha::ComplexF64, M::SparseMatrix, v::Vector{ComplexF64}, beta::ComplexF64, result::Vector{ComplexF64})
-    if beta == ComplexF64(0.)
-        fill!(result, beta)
-    elseif beta != ComplexF64(1.)
-        rmul!(result, beta)
-    end
-    if alpha == ComplexF64(1.)
-        @inbounds for colindex = 1:M.n
-            vj = v[colindex]
-            for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                result[M.rowval[i]] += M.nzval[i]*vj
-            end
-        end
-    else
-        @inbounds for colindex = 1:M.n
-            vj = alpha*v[colindex]
-            for i=M.colptr[colindex]:M.colptr[colindex+1]-1
-                result[M.rowval[i]] += M.nzval[i]*vj
-            end
-        end
-    end
-end
-
-function gemv!(alpha::ComplexF64, v::Vector{ComplexF64}, M::SparseMatrix, beta::ComplexF64, result::Vector{ComplexF64})
-    if beta == ComplexF64(0.)
-        fill!(result, beta)
-    elseif beta != ComplexF64(1.)
-        rmul!(result, beta)
-    end
-    if alpha == ComplexF64(1.)
+    if isone(alpha)
         @inbounds for colindex=1:M.n
             for i=M.colptr[colindex]:M.colptr[colindex+1]-1
                 result[colindex] += M.nzval[i]*v[M.rowval[i]]

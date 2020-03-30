@@ -136,10 +136,10 @@ end
 
 
 # Fast in-place multiplication implementations
-gemm!(alpha, M::SparseOperator{B1,B2}, b::DenseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis} = gemm!(convert(ComplexF64, alpha), M.data, b.data, convert(ComplexF64, beta), result.data)
-gemm!(alpha, a::DenseOperator{B1,B2}, M::SparseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis} = gemm!(convert(ComplexF64, alpha), a.data, M.data, convert(ComplexF64, beta), result.data)
-gemv!(alpha, M::SparseOperator{B1,B2}, b::Ket{B2}, beta, result::Ket{B1}) where {B1<:Basis,B2<:Basis} = gemv!(convert(ComplexF64, alpha), M.data, b.data, convert(ComplexF64, beta), result.data)
-gemv!(alpha, b::Bra{B1}, M::SparseOperator{B1,B2}, beta, result::Bra{B2}) where {B1<:Basis,B2<:Basis} = gemv!(convert(ComplexF64, alpha), b.data, M.data, convert(ComplexF64, beta), result.data)
+mul!(result::DenseOperator{B1,B3},M::SparseOperator{B1,B2},b::DenseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = mul!(result.data,M.data,b.data,alpha,beta)
+mul!(result::DenseOperator{B1,B3},a::DenseOperator{B1,B2},M::SparseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = mul!(result.data,a.data,M.data,alpha,beta)
+mul!(result::Ket{B1},M::SparseOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = mul!(result.data,M.data,b.data,alpha,beta)
+mul!(result::Bra{B2},b::Bra{B1},M::SparseOperator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = mul!(result.data,b.data,M.data,alpha,beta)
 
 # Broadcasting
 struct SparseOperatorStyle{BL<:Basis,BR<:Basis} <: DataOperatorStyle{BL,BR} end
