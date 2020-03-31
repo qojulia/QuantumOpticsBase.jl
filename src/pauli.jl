@@ -183,11 +183,11 @@ function pauli_basis_vectors(num_qubits::Int)
 end
 
 """
-    PauliTransferMatrix(sop::DenseSuperOperator)
+    PauliTransferMatrix(sop::DenseSuperOpType)
 
 Convert a superoperator to its representation as a Pauli transfer matrix.
 """
-function PauliTransferMatrix(sop::DenseSuperOperator{B, B, Matrix{ComplexF64}}) where B <: Tuple{PauliBasis, PauliBasis}
+function PauliTransferMatrix(sop::DenseSuperOpType{B, B}) where B <: Tuple{PauliBasis, PauliBasis}
     num_qubits = length(sop.basis_l[1].bases)
     pbv = pauli_basis_vectors(num_qubits)
     sop_dim = 4 ^ num_qubits
@@ -196,8 +196,8 @@ function PauliTransferMatrix(sop::DenseSuperOperator{B, B, Matrix{ComplexF64}}) 
     return DensePauliTransferMatrix(sop.basis_l, sop.basis_r, data)
 end
 
-SuperOperator(unitary::DenseOperator{B, B, Matrix{ComplexF64}}) where B <: PauliBasis = spre(unitary) * spost(unitary')
-SuperOperator(sop::DenseSuperOperator{B, B, Matrix{ComplexF64}}) where B <: Tuple{PauliBasis, PauliBasis} = sop
+SuperOperator(unitary::DenseOpType{B, B}) where B <: PauliBasis = spre(unitary) * spost(unitary')
+SuperOperator(sop::DenseSuperOpType{B, B}) where B <: Tuple{PauliBasis, PauliBasis} = sop
 
 """
     SuperOperator(ptm::DensePauliTransferMatrix)
@@ -214,19 +214,19 @@ function SuperOperator(ptm::DensePauliTransferMatrix{B, B, Matrix{Float64}}) whe
 end
 
 """
-    PauliTransferMatrix(unitary::DenseOperator)
+    PauliTransferMatrix(unitary::DenseOpType)
 
 Convert an operator, presumably a unitary operator, to its representation as a
 Pauli transfer matrix.
 """
-PauliTransferMatrix(unitary::DenseOperator{B, B, Matrix{ComplexF64}}) where B <: PauliBasis = PauliTransferMatrix(SuperOperator(unitary))
+PauliTransferMatrix(unitary::DenseOpType{B, B}) where B <: PauliBasis = PauliTransferMatrix(SuperOperator(unitary))
 
 """
-    ChiMatrix(unitary::DenseOperator)
+    ChiMatrix(unitary::DenseOpType)
 
 Convert an operator, presumably a unitary operator, to its representation as a χ matrix.
 """
-function ChiMatrix(unitary::DenseOperator{B, B, Matrix{ComplexF64}}) where B <: PauliBasis
+function ChiMatrix(unitary::DenseOpType{B, B}) where B <: PauliBasis
     num_qubits = length(unitary.basis_l.bases)
     pbv = pauli_basis_vectors(num_qubits)
     aj = pbv' * reshape(unitary.data, 4 ^ num_qubits)
@@ -234,11 +234,11 @@ function ChiMatrix(unitary::DenseOperator{B, B, Matrix{ComplexF64}}) where B <: 
 end
 
 """
-    ChiMatrix(sop::DenseSuperOperator)
+    ChiMatrix(sop::DenseSuperOpType)
 
 Convert a superoperator to its representation as a Chi matrix.
 """
-function ChiMatrix(sop::DenseSuperOperator{B, B, Matrix{ComplexF64}}) where B <: Tuple{PauliBasis, PauliBasis}
+function ChiMatrix(sop::DenseSuperOpType{B, B}) where B <: Tuple{PauliBasis, PauliBasis}
     num_qubits = length(sop.basis_l)
     sop_dim = 4 ^ num_qubits
     po = pauli_operators(num_qubits)
@@ -286,10 +286,10 @@ function ChiMatrix(ptm::DensePauliTransferMatrix{B, B, Matrix{Float64}}) where B
 end
 
 """Equality for all varieties of superoperators."""
-==(sop1::T, sop2::T) where T<:Union{DensePauliTransferMatrix, DenseSuperOperator, DenseChiMatrix} = sop1.data == sop2.data
-==(sop1::Union{DensePauliTransferMatrix, DenseSuperOperator, DenseChiMatrix}, sop2::Union{DensePauliTransferMatrix, DenseSuperOperator, DenseChiMatrix}) = false
+==(sop1::T, sop2::T) where T<:Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix} = sop1.data == sop2.data
+==(sop1::Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}, sop2::Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}) = false
 
 """Approximate equality for all varieties of superoperators."""
-function isapprox(sop1::T, sop2::T; kwargs...) where T<:Union{DensePauliTransferMatrix, DenseSuperOperator, DenseChiMatrix}
+function isapprox(sop1::T, sop2::T; kwargs...) where T<:Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}
     return isapprox(sop1.data, sop2.data; kwargs...)
 end

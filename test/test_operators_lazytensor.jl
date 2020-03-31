@@ -105,14 +105,14 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(op1/7, op1_/7)
 
 # Test identityoperator
-Idense = identityoperator(DenseOperator, b_r)
+Idense = identityoperator(DenseOpType, b_r)
 id = identityoperator(LazyTensor, b_r)
 @test isa(id, LazyTensor)
 @test dense(id) == Idense
 @test 1e-11 > D(id*x1, x1)
 @test id == identityoperator(LazyTensor, b1b) ⊗ identityoperator(LazyTensor, b2b) ⊗ identityoperator(LazyTensor, b3b)
 
-Idense = identityoperator(DenseOperator, b_l)
+Idense = identityoperator(DenseOpType, b_l)
 id = identityoperator(LazyTensor, b_l)
 @test isa(id, LazyTensor)
 @test dense(id) == Idense

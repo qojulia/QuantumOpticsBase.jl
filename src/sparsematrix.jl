@@ -1,8 +1,6 @@
 import Base: permutedims
 
-const SparseMatrix = SparseMatrixCSC{ComplexF64, Int}
-
-function gemm_sp_dense_small(alpha, M::SparseMatrix, B::Matrix{ComplexF64}, result::Matrix{ComplexF64})
+function gemm_sp_dense_small(alpha, M::SparseMatrixCSC, B::Matrix, result::Matrix)
     if isone(alpha)
         @inbounds for colindex = 1:M.n
             @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
@@ -26,7 +24,7 @@ function gemm_sp_dense_small(alpha, M::SparseMatrix, B::Matrix{ComplexF64}, resu
     end
 end
 
-function gemm_sp_dense_big(alpha, M::SparseMatrix, B::Matrix{ComplexF64}, result::Matrix{ComplexF64})
+function gemm_sp_dense_big(alpha, M::SparseMatrixCSC, B::Matrix, result::Matrix)
     if isone(alpha)
         @inbounds for j=1:size(B, 2)
             @inbounds for colindex = 1:M.n
@@ -50,7 +48,7 @@ function gemm_sp_dense_big(alpha, M::SparseMatrix, B::Matrix{ComplexF64}, result
     end
 end
 
-function gemm!(alpha, M::SparseMatrix, B::Matrix{ComplexF64}, beta, result::Matrix{ComplexF64})
+function gemm!(alpha, M::SparseMatrixCSC, B::Matrix, beta, result::Matrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -63,7 +61,7 @@ function gemm!(alpha, M::SparseMatrix, B::Matrix{ComplexF64}, beta, result::Matr
     end
 end
 
-function gemm!(alpha, B::Matrix{ComplexF64}, M::SparseMatrix, beta, result::Matrix{ComplexF64})
+function gemm!(alpha, B::Matrix, M::SparseMatrixCSC, beta, result::Matrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -93,7 +91,7 @@ function gemm!(alpha, B::Matrix{ComplexF64}, M::SparseMatrix, beta, result::Matr
     end
 end
 
-function gemv!(alpha, M::SparseMatrix, v::Vector{ComplexF64}, beta, result::Vector{ComplexF64})
+function gemv!(alpha, M::SparseMatrixCSC, v::Vector, beta, result::Vector)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -116,7 +114,7 @@ function gemv!(alpha, M::SparseMatrix, v::Vector{ComplexF64}, beta, result::Vect
     end
 end
 
-function gemv!(alpha, v::Vector{ComplexF64}, M::SparseMatrix, beta, result::Vector{ComplexF64})
+function gemv!(alpha, v::Vector, M::SparseMatrixCSC, beta, result::Vector)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -149,7 +147,7 @@ function ptrace(x, shape_nd::Vector{Int}, indices::Vector{Int})
     shape_nd_after = ([i ∈ indices || i-N ∈ indices ? 1 : shape_nd[i] for i=1:2*N]...,)
     shape_2d_after = (prod(shape_nd_after[1:N]), prod(shape_nd_after[N+1:end]))
     I_nd_after_max = CartesianIndex(shape_nd_after...)
-    y = spzeros(ComplexF64, shape_2d_after...)
+    y = spzeros(eltype(x), shape_2d_after...)
     for I in eachindex(x)
         I_nd = sub2sub(shape_2d, shape_nd, I)
         if I_nd.I[indices] != I_nd.I[indices .+ N]
@@ -164,7 +162,7 @@ end
 function permutedims(x, shape, perm)
     shape = (shape...,)
     shape_perm = ([shape[i] for i in perm]...,)
-    y = spzeros(ComplexF64, x.m, x.n)
+    y = spzeros(eltype(x), x.m, x.n)
     for I in eachindex(x)
         linear_index = LinearIndices((x.m, x.n))[I.I...]
         cartesian_index = CartesianIndices(shape)[linear_index]

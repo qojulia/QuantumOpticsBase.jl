@@ -108,7 +108,20 @@ end
 
 show(stream::IO, x::AbstractOperator) = summary(stream, x)
 
-function show(stream::IO, x::DenseOperator)
+function show(stream::IO, x::DataOperator)
+    summary(stream, x)
+    print(stream, "\n")
+    if !_std_order
+        if !haskey(stream, :compact)
+            stream = IOContext(stream, :compact => true)
+        end
+        show(stream, x.data)
+    else
+        error("Standard-Order printing not implemented for data of type $(typeof(x.data))!")
+    end
+end
+
+function show(stream::IO, x::DenseOpType)
     summary(stream, x)
     print(stream, "\n")
     if !_std_order
@@ -121,7 +134,7 @@ function show(stream::IO, x::DenseOperator)
     end
 end
 
-function show(stream::IO, x::SparseOperator)
+function show(stream::IO, x::SparseOpType)
     summary(stream, x)
     if nnz(x.data) == 0
         print(stream, "\n    []")

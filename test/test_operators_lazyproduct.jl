@@ -78,7 +78,7 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(op1/7, op1_/7)
 
 # Test identityoperator
-Idense = identityoperator(DenseOperator, b_l)
+Idense = identityoperator(DenseOpType, b_l)
 id = identityoperator(LazyProduct, b_l)
 @test isa(id, LazyProduct)
 @test dense(id) == Idense

@@ -55,7 +55,7 @@ Base.adjoint(a::AbstractOperator) = dagger(a)
 conj(a::AbstractOperator) = arithmetic_unary_error("Complex conjugate", a)
 conj!(a::AbstractOperator) = conj(a::AbstractOperator)
 
-dense(a::AbstractOperator) = arithmetic_unary_error("Conversion to dense", a)
+# dense(a::AbstractOperator) = arithmetic_unary_error("Conversion to dense", a)
 
 transpose(a::AbstractOperator) = arithmetic_unary_error("Transpose", a)
 

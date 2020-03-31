@@ -269,7 +269,7 @@ abstract type FFTOperator{BL<:Basis, BR<:Basis, T} <: AbstractOperator{BL,BR} en
 Operator performing a fast fourier transformation when multiplied with a state
 that is a Ket or an Operator.
 """
-mutable struct FFTOperators{BL<:Basis,BR<:Basis,T<:Array{ComplexF64},P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
+mutable struct FFTOperators{BL<:Basis,BR<:Basis,T<:Array,P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
     basis_l::BL
     basis_r::BR
     fft_l!::P1
@@ -295,7 +295,7 @@ end
 Operator that can only perform fast fourier transformations on Kets.
 This is much more memory efficient when only working with Kets.
 """
-mutable struct FFTKets{BL<:Basis,BR<:Basis,T<:Array{ComplexF64},P1,P2} <: FFTOperator{BL, BR, T}
+mutable struct FFTKets{BL<:Basis,BR<:Basis,T<:Array,P1,P2} <: FFTOperator{BL, BR, T}
     basis_l::BL
     basis_r::BR
     fft_l!::P1
@@ -474,7 +474,7 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index::V
     end
 end
 
-dense(op::FFTOperators) = op*identityoperator(DenseOperator, op.basis_r)
+DenseOperator(op::FFTOperators) = op*identityoperator(DenseOpType, op.basis_r)
 
 dagger(op::FFTOperators) = transform(op.basis_r, op.basis_l)
 dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
@@ -532,11 +532,11 @@ function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) whe
     nothing
 end
 
-function mul!(result::DenseOperator{B1,B3},A::DenseOperator{B1,B2},B::FFTOperators{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)
-        data = Matrix{ComplexF64}(undef, size(result.data, 1), size(result.data, 2))
+        data = similar(T, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
     end
@@ -562,11 +562,11 @@ function mul!(result::DenseOperator{B1,B3},A::DenseOperator{B1,B2},B::FFTOperato
     nothing
 end
 
-function mul!(result::DenseOperator{B1,B3},A::FFTOperators{B1,B2},B::DenseOperator{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)
-        data = Matrix{ComplexF64}(undef, size(result.data, 1), size(result.data, 2))
+        data = similar(T, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
     end

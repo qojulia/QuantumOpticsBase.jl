@@ -97,19 +97,19 @@ conj!(tmp)
 @test tmp == conj(op1) && conj(tmp.data) == op1.data
 
 # Test identityoperator
-Idense = identityoperator(DenseOperator, b_r)
-I = identityoperator(SparseOperator, b_r)
-@test isa(I, SparseOperator)
+Idense = identityoperator(DenseOpType, b_r)
+I = identityoperator(SparseOpType, b_r)
+@test isa(I, SparseOpType)
 @test dense(I) == Idense
 @test 1e-11 > D(I*x1, x1)
-@test I == identityoperator(SparseOperator, b1b) ⊗ identityoperator(SparseOperator, b2b) ⊗ identityoperator(SparseOperator, b3b)
+@test I == identityoperator(SparseOpType, b1b) ⊗ identityoperator(SparseOpType, b2b) ⊗ identityoperator(SparseOpType, b3b)
 
-Idense = identityoperator(DenseOperator, b_l)
-I = identityoperator(SparseOperator, b_l)
-@test isa(I, SparseOperator)
+Idense = identityoperator(DenseOpType, b_l)
+I = identityoperator(SparseOpType, b_l)
+@test isa(I, SparseOpType)
 @test dense(I) == Idense
 @test 1e-11 > D(xbra1*I, xbra1)
-@test I == identityoperator(SparseOperator, b1a) ⊗ identityoperator(SparseOperator, b2a) ⊗ identityoperator(SparseOperator, b3a)
+@test I == identityoperator(SparseOpType, b1a) ⊗ identityoperator(SparseOpType, b2a) ⊗ identityoperator(SparseOpType, b3a)
 
 
 # Test tr and normalize
@@ -350,8 +350,8 @@ bnlevel = NLevelBasis(2)
 @test_throws DimensionMismatch op1 .+ op2
 @test op1 .+ op1 == op1 + op1
 op1 .= DenseOperator(op1)
-@test isa(op1, SparseOperator)
-@test isa(op1 .+ DenseOperator(op1), DenseOperator)
+@test isa(op1, SparseOpType)
+# @test isa(op1 .+ DenseOperator(op1), DenseOpType) # Broadcasting of sparse .+ dense matrix results in sparse
 op3 = sprandop(FockBasis(1),FockBasis(2))
 @test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
 @test_throws QuantumOpticsBase.IncompatibleBases op1 .= op3

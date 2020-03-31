@@ -226,8 +226,8 @@ QuantumOpticsBase.mul!(psi_,LazyProduct(Txp,id,Tpx),psi0_bx,Complex(1.),Complex(
 # Test dense FFT operator
 Txp_dense = DenseOperator(Txp)
 Tpx_dense = DenseOperator(Tpx)
-@test isa(Txp_dense, DenseOperator)
-@test isa(Tpx_dense, DenseOperator)
+@test isa(Txp_dense, DenseOpType)
+@test isa(Tpx_dense, DenseOpType)
 @test 1e-5 > D(Txp_dense*rho0_pp*Tpx_dense, rho0_xx)
 
 # Test FFT in 2D
@@ -274,7 +274,7 @@ psi_x_fft = dagger(tensor(psi0_p...))*Tpx
 psi_x_fft2 = tensor((dagger.(psi0_p).*Tpx_sub)...)
 @test norm(psi_p_fft - psi_p_fft2) < 1e-15
 
-difference = (dense(Txp) - identityoperator(DenseOperator, Txp.basis_l)*Txp).data
+difference = (dense(Txp) - identityoperator(DenseOpType, Txp.basis_l)*Txp).data
 @test isapprox(difference, zero(difference); atol=1e-12)
 @test_throws AssertionError transform(tensor(basis_position...), tensor(basis_position...))
 @test_throws QuantumOpticsBase.IncompatibleBases transform(SpinBasis(1//2)^2, SpinBasis(1//2)^2)

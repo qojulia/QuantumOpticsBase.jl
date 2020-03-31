@@ -9,20 +9,18 @@ in respect to a certain basis. These coefficients are stored in the
 `data` field and the basis is defined in the `basis`
 field.
 """
-abstract type StateVector{B<:Basis,T<:Vector{ComplexF64}} end
+abstract type StateVector{B<:Basis,T} end
 
 """
     Bra(b::Basis[, data])
 
 Bra state defined by coefficients in respect to the basis.
 """
-mutable struct Bra{B<:Basis,T<:Vector{ComplexF64}} <: StateVector{B,T}
+mutable struct Bra{B<:Basis,T} <: StateVector{B,T}
     basis::B
     data::T
-    function Bra{B,T}(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}}
-        if length(b) != length(data)
-            throw(DimensionMismatch())
-        end
+    function Bra{B,T}(b::B, data::T) where {B<:Basis,T}
+        (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
         new(b, data)
     end
 end
@@ -32,19 +30,17 @@ end
 
 Ket state defined by coefficients in respect to the given basis.
 """
-mutable struct Ket{B<:Basis,T<:Vector{ComplexF64}} <: StateVector{B,T}
+mutable struct Ket{B<:Basis,T} <: StateVector{B,T}
     basis::B
     data::T
-    function Ket{B,T}(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}}
-        if length(b) != length(data)
-            throw(DimensionMismatch())
-        end
+    function Ket{B,T}(b::B, data::T) where {B<:Basis,T}
+        (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
         new(b, data)
     end
 end
 
-Bra{B}(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}} = Bra{B,T}(b, data)
-Ket{B}(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}} = Ket{B,T}(b, data)
+Bra{B}(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
+Ket{B}(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
 
 Bra(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}} = Bra{B,T}(b, data)
 Ket(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}} = Ket{B,T}(b, data)
@@ -61,8 +57,8 @@ copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
 length(a::StateVector) = length(a.basis)::Int
 basis(a::StateVector) = a.basis
 
-==(x::T, y::T) where {T<:Ket} = samebases(x, y) && x.data==y.data
-==(x::T, y::T) where {T<:Bra} = samebases(x, y) && x.data==y.data
+==(x::Ket{B}, y::Ket{B}) where {B<:Basis} = (samebases(x, y) && x.data==y.data)
+==(x::Bra{B}, y::Bra{B}) where {B<:Basis} = (samebases(x, y) && x.data==y.data)
 ==(x::Ket, y::Ket) = false
 ==(x::Bra, y::Bra) = false
 
@@ -79,12 +75,14 @@ basis(a::StateVector) = a.basis
 
 -(a::T) where {T<:StateVector} = T(a.basis, -a.data)
 
-*(a::Bra{B,D}, b::Ket{B,D}) where {B<:Basis,D<:Vector{ComplexF64}} = transpose(a.data)*b.data
+*(a::Bra{B,D}, b::Ket{B,D}) where {B<:Basis,D} = transpose(a.data)*b.data
 *(a::Bra, b::Ket) = throw(IncompatibleBases())
-*(a::Number, b::T) where {T<:StateVector} = T(b.basis, a*b.data)
-*(a::T, b::Number) where {T<:StateVector} = T(a.basis, b*a.data)
+*(a::Number, b::Ket) = Ket(b.basis, a*b.data)
+*(a::Number, b::Bra) = Bra(b.basis, a*b.data)
+*(a::StateVector, b::Number) = b*a
 
-/(a::T, b::Number) where {T<:StateVector} = T(a.basis, a.data/b)
+/(a::Ket, b::Number) = Ket(a.basis, a.data ./ b)
+/(a::Bra, b::Number) = Bra(a.basis, a.data ./ b)
 
 
 """
@@ -115,12 +113,14 @@ tensor(states::Vector{T}) where T<:StateVector = reduce(tensor, states)
 Norm of the given bra or ket state.
 """
 norm(x::StateVector) = norm(x.data)
+
 """
     normalize(x::StateVector)
 
 Return the normalized state so that `norm(x)` is one.
 """
 normalize(x::StateVector) = x/norm(x)
+
 """
     normalize!(x::StateVector)
 
@@ -175,13 +175,15 @@ function check_multiplicable(a::Bra, b::Ket)
     end
 end
 
-samebases(a::T, b::T) where {T<:StateVector} = samebases(a.basis, b.basis)::Bool
+samebases(a::Ket{B}, b::Ket{B}) where {B} = samebases(a.basis, b.basis)::Bool
+samebases(a::Bra{B}, b::Bra{B}) where {B} = samebases(a.basis, b.basis)::Bool
 
 # Array-like functions
 Base.size(x::StateVector) = size(x.data)
 @inline Base.axes(x::StateVector) = axes(x.data)
 Base.ndims(x::StateVector) = 1
 Base.ndims(::Type{<:StateVector}) = 1
+Base.eltype(x::StateVector) = eltype(x.data)
 
 # Broadcasting
 Base.broadcastable(x::StateVector) = x
