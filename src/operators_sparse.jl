@@ -136,10 +136,10 @@ end
 
 
 # Fast in-place multiplication implementations
-mul!(result::DenseOperator{B1,B3},M::SparseOperator{B1,B2},b::DenseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = mul!(result.data,M.data,b.data,alpha,beta)
-mul!(result::DenseOperator{B1,B3},a::DenseOperator{B1,B2},M::SparseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = mul!(result.data,a.data,M.data,alpha,beta)
-mul!(result::Ket{B1},M::SparseOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = mul!(result.data,M.data,b.data,alpha,beta)
-mul!(result::Bra{B2},b::Bra{B1},M::SparseOperator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = mul!(result.data,b.data,M.data,alpha,beta)
+mul!(result::DenseOperator{B1,B3},M::SparseOperator{B1,B2},b::DenseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = gemm!(alpha,M.data,b.data,beta,result.data)#mul!(result.data,M.data,b.data,alpha,beta)
+mul!(result::DenseOperator{B1,B3},a::DenseOperator{B1,B2},M::SparseOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = gemm!(alpha,a.data,M.data,beta,result.data)#mul!(result.data,a.data,M.data,alpha,beta)
+mul!(result::Ket{B1},M::SparseOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = gemv!(alpha,M.data,b.data,beta,result.data)#mul!(result.data,M.data,b.data,alpha,beta)
+mul!(result::Bra{B2},b::Bra{B1},M::SparseOperator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = gemv!(alpha,b.data,M.data,beta,result.data)#mul!(result.data,b.data,M.data,alpha,beta)
 
 # Broadcasting
 struct SparseOperatorStyle{BL<:Basis,BR<:Basis} <: DataOperatorStyle{BL,BR} end
