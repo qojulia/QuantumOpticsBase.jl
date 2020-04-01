@@ -32,6 +32,7 @@ const DenseOpType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Matrix}
 Dense array implementation of Operator. Converts any given data to `Matrix{ComplexF64}`.
 """
 DenseOperator(basis_l::Basis,basis_r::Basis,data::T) where T = Operator(basis_l,basis_r,Matrix{ComplexF64}(data))
+DenseOperator(basis_l::Basis,basis_r::Basis,data::Matrix{ComplexF64}) = Operator(basis_l,basis_r,data)
 DenseOperator(b::Basis, data) = DenseOperator(b, b, data)
 DenseOperator(b1::Basis, b2::Basis) = DenseOperator(b1, b2, zeros(ComplexF64, length(b1), length(b2)))
 DenseOperator(b::Basis) = DenseOperator(b, b)
@@ -129,16 +130,16 @@ function ptrace(psi::Ket, indices::Vector{Int})
     b = basis(psi)
     b_ = ptrace(b, indices)
     rank = length(b.shape)
-    result = _ptrace_ket(Val{rank}, psi.data, b.shape, indices)
-    return DenseOperator(b_, b_, result)
+    result = _ptrace_ket(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
+    return Operator(b_, b_, result)
 end
 function ptrace(psi::Bra, indices::Vector{Int})
     check_ptrace_arguments(psi, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
     rank = length(b.shape)
-    result = _ptrace_bra(Val{rank}, psi.data, b.shape, indices)
-    return DenseOperator(b_, b_, result)
+    result = _ptrace_bra(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
+    return Operator(b_, b_, result)
 end
 
 normalize!(op::Operator) = (rmul!(op.data, 1.0/tr(op)); op)

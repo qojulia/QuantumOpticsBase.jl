@@ -12,6 +12,7 @@ The matrix is stored as the julia built-in type `SparseMatrixCSC`
 in the `data` field.
 """
 SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, SparseMatrixCSC{ComplexF64,Int}(data))
+SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC{ComplexF64,Int}) = Operator(b1, b2, data)
 SparseOperator(b::Basis, data) = SparseOperator(b, b, data)
 SparseOperator(op::DataOperator) = SparseOperator(op.basis_l, op.basis_r, op.data)
 
@@ -32,7 +33,7 @@ function ptrace(op::SparseOpType, indices::Vector{Int})
     data = ptrace(op.data, shape, indices)
     b_l = ptrace(op.basis_l, indices)
     b_r = ptrace(op.basis_r, indices)
-    SparseOperator(b_l, b_r, data)
+    Operator(b_l, b_r, data)
 end
 
 function expect(op::SparseOpType{B1,B2}, state::Operator{B2,B2}) where {B1<:Basis,B2<:Basis}
