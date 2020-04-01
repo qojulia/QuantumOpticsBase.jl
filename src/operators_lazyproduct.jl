@@ -86,10 +86,10 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where
 end
 
 function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    tmp1 = Operator(a.operators[end].basis_l,b.basis_r,similar(T,length(a.operators[end].basis_l),length(b.basis_r)))
+    tmp1 = Operator(a.operators[end].basis_l,b.basis_r,similar(result.data,length(a.operators[end].basis_l),length(b.basis_r)))
     mul!(tmp1,a.operators[end],b,a.factor,0)
     for i=length(a.operators)-1:-1:2
-        tmp2 = Operator(a.operators[i].basis_l, b.basis_r, similar(T,length(a.operators[i].basis_l),length(b.basis_r)))
+        tmp2 = Operator(a.operators[i].basis_l, b.basis_r, similar(result.data,length(a.operators[i].basis_l),length(b.basis_r)))
         mul!(tmp2,a.operators[i],tmp1)
         tmp1 = tmp2
     end
@@ -97,10 +97,10 @@ function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3}
 end
 
 function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    tmp1 = Operator(a.basis_l,b.operators[1].basis_r,similar(T,length(a.basis_l),length(b.operators[1].basis_r)))
+    tmp1 = Operator(a.basis_l,b.operators[1].basis_r,similar(result.data,length(a.basis_l),length(b.operators[1].basis_r)))
     mul!(tmp1,a,b.operators[1],b.factor,0)
     for i=2:length(b.operators)-1
-        tmp2 = Operator(a.basis_l,b.operators[i].basis_r,similar(T,length(a.basis_l),length(b.operators[i].basis_r)))
+        tmp2 = Operator(a.basis_l,b.operators[i].basis_r,similar(result.data,length(a.basis_l),length(b.operators[i].basis_r)))
         mul!(tmp2,tmp1,b.operators[i])
         tmp1 = tmp2
     end

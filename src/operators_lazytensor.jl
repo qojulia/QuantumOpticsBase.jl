@@ -196,7 +196,7 @@ function _gemm_recursive_dense_lazy(i_k::Int, N_k::Int, K::Int, J::Int, val::Num
                     _gemm_recursive_dense_lazy(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
                 end
             end
-        elseif isa(h_i, DenseOpType)
+        elseif isa(h_i, DataOperator)
             h_i_data = h_i.data
             Nk = size(h_i_data, 2)
             Nj = size(h_i_data, 1)
@@ -245,7 +245,7 @@ function _gemm_recursive_lazy_dense(i_k::Int, N_k::Int, K::Int, J::Int, val::Num
                     _gemm_recursive_lazy_dense(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
                 end
             end
-        elseif isa(h_i, DenseOpType)
+        elseif isa(h_i, DataOperator)
             h_i_data = h_i.data
             Nk = size(h_i_data, 2)
             Nj = size(h_i_data, 1)

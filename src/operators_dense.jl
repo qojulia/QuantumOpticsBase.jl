@@ -37,7 +37,7 @@ DenseOperator(b1::Basis, b2::Basis) = DenseOperator(b1, b2, zeros(ComplexF64, le
 DenseOperator(b::Basis) = DenseOperator(b, b)
 DenseOperator(op::DataOperator) = DenseOperator(op.basis_l,op.basis_r,Matrix{ComplexF64}(op.data))
 
-Base.copy(x::T) where T<:DataOperator = T(x.basis_l, x.basis_r, copy(x.data))
+Base.copy(x::Operator) = Operator(x.basis_l, x.basis_r, copy(x.data))
 
 """
     dense(op::AbstractOperator)
@@ -53,7 +53,7 @@ dense(x::AbstractOperator) = DenseOperator(x)
 +(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL<:Basis,BR<:Basis} = Operator(a.basis_l, a.basis_r, a.data+b.data)
 +(a::Operator, b::Operator) = throw(IncompatibleBases())
 
--(a::T) where T<:Operator = T(a.basis_l, a.basis_r, -a.data)
+-(a::Operator) = Operator(a.basis_l, a.basis_r, -a.data)
 -(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL<:Basis,BR<:Basis} = Operator(a.basis_l, a.basis_r, a.data-b.data)
 -(a::Operator, b::Operator) = throw(IncompatibleBases())
 
@@ -66,22 +66,22 @@ dense(x::AbstractOperator) = DenseOperator(x)
 *(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, b*a.data)
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
 function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(T,length(op1.basis_l),length(op2.basis_r)))
+    result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(op2.data,length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
 function *(op1::Operator{B1,B2,T}, op2::AbstractOperator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(T,length(op1.basis_l),length(op2.basis_r)))
+    result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(op1.data,length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
 function *(op::AbstractOperator{BL,BR}, psi::Ket{BR,T}) where {BL<:Basis,BR<:Basis,T}
-    result = Ket{BL,T}(op.basis_l,similar(T,length(op.basis_l)))
+    result = Ket{BL,T}(op.basis_l,similar(psi.data,length(op.basis_l)))
     mul!(result,op,psi)
     return result
 end
 function *(psi::Bra{BL,T}, op::AbstractOperator{BL,BR}) where {BL<:Basis,BR<:Basis,T}
-    result = Bra{BR,T}(op.basis_r, similar(T,length(op.basis_r)))
+    result = Bra{BR,T}(op.basis_r, similar(psi.data,length(op.basis_r)))
     mul!(result,psi,op)
     return result
 end
@@ -110,11 +110,11 @@ tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data)
 
 tr(op::Operator{B,B}) where B<:Basis = tr(op.data)
 
-function ptrace(a::DenseOpType, indices::Vector{Int})
+function ptrace(a::DataOperator, indices::Vector{Int})
     check_ptrace_arguments(a, indices)
     rank = length(a.basis_l.shape)
     result = _ptrace(Val{rank}, a.data, a.basis_l.shape, a.basis_r.shape, indices)
-    return DenseOperator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
+    return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
 
 function ptrace(psi::Ket, indices::Vector{Int})
@@ -203,7 +203,7 @@ function _strides(shape::Vector{Int})
 end
 
 # Dense operator version
-@generated function _ptrace(::Type{Val{RANK}}, a::Matrix,
+@generated function _ptrace(::Type{Val{RANK}}, a,
                             shape_l::Vector{Int}, shape_r::Vector{Int},
                             indices::Vector{Int}) where RANK
     return quote

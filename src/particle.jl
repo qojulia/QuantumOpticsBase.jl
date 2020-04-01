@@ -536,7 +536,7 @@ function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)
-        data = similar(T, size(result.data, 1), size(result.data, 2))
+        data = similar(result.data, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
     end
@@ -566,7 +566,7 @@ function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)
-        data = similar(T, size(result.data, 1), size(result.data, 2))
+        data = similar(result.data, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
     end
