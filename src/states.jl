@@ -9,17 +9,17 @@ in respect to a certain basis. These coefficients are stored in the
 `data` field and the basis is defined in the `basis`
 field.
 """
-abstract type StateVector{B<:Basis,T} end
+abstract type StateVector{B<:Basis,T<:AbstractVector} end
 
 """
     Bra(b::Basis[, data])
 
 Bra state defined by coefficients in respect to the basis.
 """
-mutable struct Bra{B<:Basis,T} <: StateVector{B,T}
+mutable struct Bra{B<:Basis,T<:AbstractVector} <: StateVector{B,T}
     basis::B
     data::T
-    function Bra{B,T}(b::B, data::T) where {B<:Basis,T}
+    function Bra{B,T}(b::B, data::T) where {B<:Basis,T<:AbstractVector}
         (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
         new(b, data)
     end
@@ -30,10 +30,10 @@ end
 
 Ket state defined by coefficients in respect to the given basis.
 """
-mutable struct Ket{B<:Basis,T} <: StateVector{B,T}
+mutable struct Ket{B<:Basis,T<:AbstractVector} <: StateVector{B,T}
     basis::B
     data::T
-    function Ket{B,T}(b::B, data::T) where {B<:Basis,T}
+    function Ket{B,T}(b::B, data::T) where {B<:Basis,T<:AbstractVector}
         (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
         new(b, data)
     end
@@ -42,16 +42,13 @@ end
 Bra{B}(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
 Ket{B}(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
 
-Bra(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}} = Bra{B,T}(b, data)
-Ket(b::B, data::T) where {B<:Basis,T<:Vector{ComplexF64}} = Ket{B,T}(b, data)
+Bra(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
+Ket(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
 
 Bra{B}(b::B) where B<:Basis = Bra{B}(b, zeros(ComplexF64, length(b)))
 Ket{B}(b::B) where B<:Basis = Ket{B}(b, zeros(ComplexF64, length(b)))
 Bra(b::Basis) = Bra(b, zeros(ComplexF64, length(b)))
 Ket(b::Basis) = Ket(b, zeros(ComplexF64, length(b)))
-
-Ket(b::Basis, data) = Ket(b, convert(Vector{ComplexF64}, data))
-Bra(b::Basis, data) = Bra(b, convert(Vector{ComplexF64}, data))
 
 copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
 length(a::StateVector) = length(a.basis)::Int
@@ -75,7 +72,7 @@ basis(a::StateVector) = a.basis
 
 -(a::T) where {T<:StateVector} = T(a.basis, -a.data)
 
-*(a::Bra{B,D}, b::Ket{B,D}) where {B<:Basis,D} = transpose(a.data)*b.data
+*(a::Bra{B}, b::Ket{B}) where {B<:Basis} = transpose(a.data)*b.data
 *(a::Bra, b::Ket) = throw(IncompatibleBases())
 *(a::Number, b::Ket) = Ket(b.basis, a*b.data)
 *(a::Number, b::Bra) = Bra(b.basis, a*b.data)
@@ -126,7 +123,7 @@ normalize(x::StateVector) = x/norm(x)
 
 In-place normalization of the given bra or ket so that `norm(x)` is one.
 """
-normalize!(x::StateVector) = (rmul!(x.data, 1.0/norm(x)); x)
+normalize!(x::StateVector) = (normalize!(x.data); x)
 
 function permutesystems(state::T, perm::Vector{Int}) where T<:Ket
     @assert length(state.basis.bases) == length(perm)
