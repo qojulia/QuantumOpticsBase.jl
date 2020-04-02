@@ -89,17 +89,8 @@ end
 
 /(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, a.data ./ b)
 
-# TODO: use lazy adjoint/transpose
-function dagger(x::Operator)
-    data = similar(x.data, length(x.basis_r), length(x.basis_l))
-    data[:] = x.data'
-    Operator(x.basis_r, x.basis_l, data)
-end
-function transpose(op::Operator)
-    data = similar(op.data, length(op.basis_r), length(op.basis_l))
-    data[:] = transpose(op.data)
-    Operator(op.basis_r, op.basis_l, data)
-end
+dagger(x::Operator) = Operator(x.basis_r,x.basis_l,adjoint(x.data))
+transpose(x::Operator) = Operator(x.basis_r,x.basis_l,transpose(x.data))
 ishermitian(A::DataOperator) = false
 ishermitian(A::DataOperator{B,B}) where B<:Basis = ishermitian(A.data)
 
