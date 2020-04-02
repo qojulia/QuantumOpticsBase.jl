@@ -19,6 +19,10 @@ SparseOperator(op::DataOperator) = SparseOperator(op.basis_l, op.basis_r, op.dat
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, spzeros(ComplexF64, length(b1), length(b2)))
 SparseOperator(b::Basis) = SparseOperator(b, b)
 
+# Specialized dagger and transpose for sparse operators
+dagger(op::SparseOpType) = SparseOperator(op.basis_l, op.basis_r, convert(SparseMatrixCSC{ComplexF64,Int}, op.data'))
+transpose(op::SparseOpType) = SparseOperator(op.basis_l, op.basis_r, convert(SparseMatrixCSC{ComplexF64,Int}, transpose(op.data)))
+
 """
     sparse(op::AbstractOperator)
 
