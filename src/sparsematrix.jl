@@ -48,16 +48,43 @@ function gemm_sp_dense_big(alpha, M::SparseMatrixCSC, B::Matrix, result::Matrix)
     end
 end
 
+function gemm_dense_adj_sp(alpha, B::Matrix, M::SparseMatrixCSC, result::Matrix)
+    if isone(alpha)
+        @inbounds for colindex = 1:M.n
+            @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
+                row = M.rowval[i]
+                val = conj(M.nzval[i])
+                @inbounds for j=1:size(B, 1)
+                    result[j, row] += val*B[j, colindex]
+                end
+            end
+        end
+    else
+        @inbounds for colindex = 1:M.n
+            @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
+                row = M.rowval[i]
+                val = alpha*conj(M.nzval[i])
+                @inbounds for j=1:size(B, 1)
+                    result[j, row] += val*B[j, colindex]
+                end
+            end
+        end
+    end
+end
+
+
 function gemm!(alpha, M::SparseMatrixCSC, B::Matrix, beta, result::Matrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
         rmul!(result, beta)
     end
-    if nnz(M) > 1000
+    if nnz(M) > 550
         gemm_sp_dense_big(alpha, M, B, result)
-    else
+    elseif nnz(M) < 4000
         gemm_sp_dense_small(alpha, M, B, result)
+    else # mul! faster for very large matrices
+        mul!(result,M,B,alpha)
     end
 end
 
@@ -89,6 +116,15 @@ function gemm!(alpha, B::Matrix, M::SparseMatrixCSC, beta, result::Matrix)
             end
         end
     end
+end
+
+function gemm!(alpha, B::Matrix, M::Adjoint{T,<:SparseMatrixCSC{T}}, beta, result::Matrix) where T
+    if iszero(beta)
+        fill!(result, beta)
+    elseif !isone(beta)
+        rmul!(result, beta)
+    end
+    gemm_dense_adj_sp(alpha, B, M.parent, result)
 end
 
 function gemv!(alpha, M::SparseMatrixCSC, v::Vector, beta, result::Vector)
