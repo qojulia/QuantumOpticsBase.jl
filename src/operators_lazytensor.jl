@@ -185,7 +185,7 @@ function _gemm_recursive_dense_lazy(i_k::Int, N_k::Int, K::Int, J::Int, val::Num
     end
     if i_k in indices
         h_i = suboperator(h, i_k)
-        if isa(h_i, SparseOpType)
+        if isa(h_i, SparseOpPureType)
             h_i_data = h_i.data
             @inbounds for k=1:h_i_data.n
                 K_ = K + strides_k[i_k]*(k-1)
@@ -234,7 +234,7 @@ function _gemm_recursive_lazy_dense(i_k::Int, N_k::Int, K::Int, J::Int, val::Num
     end
     if i_k in indices
         h_i = suboperator(h, i_k)
-        if isa(h_i, SparseOpType)
+        if isa(h_i, SparseOpPureType) # TODO: adjoint sparse matrices
             h_i_data = h_i.data
             @inbounds for k=1:h_i_data.n
                 K_ = K + strides_k[i_k]*(k-1)

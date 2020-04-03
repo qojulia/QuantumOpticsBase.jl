@@ -243,8 +243,9 @@ function manybodyoperator_1(basis::ManyBodyBasis, op::Operator)
     end
     return result
 end
+manybodyoperator_1(basis::ManyBodyBasis, op::AdjointOperator) = dagger(manybodyoperator_1(basis,dagger(op)))
 
-function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOpType)
+function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOpPureType)
     N = length(basis)
     S = length(basis.onebodybasis)
     result = SparseOperator(basis)
@@ -373,8 +374,9 @@ function onebodyexpect_1(op::Operator, state::Operator)
     end
     result
 end
+onebodyexpect_1(op::AdjointOperator, state::Operator) = conj(onebodyexpect_1(dagger(op), state))
 
-function onebodyexpect_1(op::SparseOpType, state::Ket)
+function onebodyexpect_1(op::SparseOpPureType, state::Ket)
     N = length(state.basis)
     S = length(state.basis.onebodybasis)
     result = complex(0.)
@@ -395,7 +397,7 @@ function onebodyexpect_1(op::SparseOpType, state::Ket)
     result
 end
 
-function onebodyexpect_1(op::SparseOpType, state::Operator)
+function onebodyexpect_1(op::SparseOpPureType, state::Operator)
     N = length(state.basis_l)
     S = length(state.basis_l.onebodybasis)
     result = complex(0.)

@@ -24,7 +24,10 @@ Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
 Base.size(op::Operator) = size(op.data)
 
-const DenseOpType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Matrix}
+const DenseOpPureType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Matrix}
+const DenseOpAdjType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint{<:Number,<:Matrix}}
+const DenseOpType{BL<:Basis,BR<:Basis} = Union{DenseOpPureType{BL,BR},DenseOpAdjType{BL,BR}}
+const AdjointOperator{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint}
 
 """
     DenseOperator(b1[, b2, data])
@@ -93,6 +96,7 @@ dagger(x::Operator) = Operator(x.basis_r,x.basis_l,adjoint(x.data))
 transpose(x::Operator) = Operator(x.basis_r,x.basis_l,transpose(x.data))
 ishermitian(A::DataOperator) = false
 ishermitian(A::DataOperator{B,B}) where B<:Basis = ishermitian(A.data)
+Base.collect(A::Operator) = Operatator(A.basis_l, A.basis_r, collect(A.data))
 
 tensor(a::Operator, b::Operator) = Operator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(b.data, a.data))
 
@@ -115,6 +119,7 @@ function ptrace(a::DataOperator, indices::Vector{Int})
     result = _ptrace(Val{rank}, a.data, a.basis_l.shape, a.basis_r.shape, indices)
     return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
+ptrace(op::AdjointOperator, indices::Vector{Int}) = dagger(ptrace(op, indices))
 
 function ptrace(psi::Ket, indices::Vector{Int})
     check_ptrace_arguments(psi, indices)
@@ -146,6 +151,7 @@ function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1<:
     end
     result
 end
+expect(op::AdjointOperator{B1,B2}, state::Operator{B2,B2}) where {B1<:Basis,B2<:Basis} = conj(expect(op', state))
 
 function exp(op::T) where {B<:Basis,T<:DenseOpType{B,B}}
     return DenseOperator(op.basis_l, op.basis_r, exp(op.data))
@@ -159,6 +165,7 @@ function permutesystems(a::Operator{B1,B2}, perm::Vector{Int}) where {B1<:Compos
     data = reshape(data, length(a.basis_l), length(a.basis_r))
     return Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), data)
 end
+permutesystems(a::AdjointOperator{B1,B2}, perm::Vector{Int}) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
 
 identityoperator(::Type{T}, b1::Basis, b2::Basis) where {BL,BR,dType,T<:DenseOpType} = Operator(b1, b2, Matrix{ComplexF64}(I, length(b1), length(b2)))
 
