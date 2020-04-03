@@ -298,6 +298,24 @@ beta = complex(2.1)
 QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
 
+state = randoperator(b1, b3)
+result_ = randoperator(b2, b3)
+result = deepcopy(result_)
+result = deepcopy(result_)
+alpha = complex(1.5)
+beta = complex(2.1)
+QuantumOpticsBase.mul!(result,op',state,alpha,beta) # gemm! with lazy adjoint sparse
+@test 1e-12 > D(result, alpha*op_'*state + beta*result_)
+
+state = randoperator(b1, b2)
+result_ = randoperator(b1, b1)
+result = deepcopy(result_)
+result = deepcopy(result_)
+alpha = complex(1.5)
+beta = complex(2.1)
+QuantumOpticsBase.mul!(result,state,op',alpha,beta) # gemm! with lazy adjoint sparse
+@test 1e-12 > D(result, alpha*state*op_' + beta*result_)
+
 # Test gemm big version
 b1 = GenericBasis(50)
 b2 = GenericBasis(60)
@@ -329,6 +347,15 @@ alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+
+state = randoperator(b1, b2)
+result_ = randoperator(b1, b1)
+result = deepcopy(result_)
+result = deepcopy(result_)
+alpha = complex(1.5)
+beta = complex(2.1)
+QuantumOpticsBase.mul!(result,state,op',alpha,beta) # gemm! with lazy adjoint sparse
+@test 1e-11 > D(result, alpha*state*op_' + beta*result_)
 
 # Test remaining uncovered code
 @test_throws DimensionMismatch SparseOperator(b1, b2, zeros(10, 10))
