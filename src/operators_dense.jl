@@ -276,9 +276,10 @@ end
 end
 
 # Fast in-place multiplication
-mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta)
-mul!(result::Ket{B1},a::Operator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta)
-mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta)
+mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
+mul!(result::Ket{B1},a::Operator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
+mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
+rmul!(op::Operator, x) = (rmul!(op.data, x); op)
 
 # Multiplication for Operators in terms of their gemv! implementation
 function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
