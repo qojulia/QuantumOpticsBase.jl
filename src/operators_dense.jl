@@ -22,7 +22,8 @@ Operator(b::Basis,data) = Operator(b,b,data)
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
-Base.size(op::Operator, args...) = size(op.data, args...)
+Base.size(op::Operator) = size(op.data)
+Base.size(op::Operator, d::Int) = size(op.data, d)
 
 const DenseOpPureType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Matrix}
 const DenseOpAdjType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint{<:Number,<:Matrix}}
@@ -307,7 +308,8 @@ function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,
 end
 
 # Broadcasting
-Base.size(A::DataOperator, args...) = size(A.data, args...)
+Base.size(A::DataOperator) = size(A.data)
+Base.size(A::DataOperator, d::Int) = size(A.data, d)
 @inline Base.axes(A::DataOperator) = axes(A.data)
 Base.broadcastable(A::DataOperator) = A
 
