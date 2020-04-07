@@ -22,7 +22,7 @@ Operator(b::Basis,data) = Operator(b,b,data)
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
-Base.size(op::Operator) = size(op.data)
+Base.size(op::Operator, args...) = size(op.data, args...)
 
 const DenseOpPureType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Matrix}
 const DenseOpAdjType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint{<:Number,<:Matrix}}
