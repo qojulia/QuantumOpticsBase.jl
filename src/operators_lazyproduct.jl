@@ -33,6 +33,7 @@ LazyProduct(operators::AbstractOperator...) = LazyProduct((operators...,))
 LazyProduct() = throw(ArgumentError("LazyProduct needs at least one operator!"))
 
 Base.copy(x::T) where T<:LazyProduct = T(([copy(op) for op in x.operators]...,), x.factor)
+Base.eltype(x::LazyProduct) = promote_type(eltype(x.factor), eltype.(x.operators)...)
 
 dense(op::LazyProduct) = op.factor*prod(dense.(op.operators))
 dense(op::LazyProduct{B1,B2,F,T}) where {B1<:Basis,B2<:Basis,F,T<:Tuple{AbstractOperator}} = op.factor*dense(op.operators[1])

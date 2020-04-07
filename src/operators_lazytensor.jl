@@ -54,6 +54,7 @@ LazyTensor(basis_l::Basis, basis_r::Basis, index::Int, operator::AbstractOperato
 LazyTensor(basis::Basis, index::Int, operators::AbstractOperator, factor::Number=1.) = LazyTensor(basis, basis, index, operators, factor)
 
 Base.copy(x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, copy(x.indices), [copy(op) for op in x.operators], x.factor)
+Base.eltype(x::LazyTensor) = promote_type(eltype(x.factor), eltype.(x.operators)...)
 
 """
     suboperator(op::LazyTensor, index)

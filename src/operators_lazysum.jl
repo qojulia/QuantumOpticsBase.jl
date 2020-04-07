@@ -32,6 +32,7 @@ LazySum(factors::Vector{T}, operators::Vector{T2}) where {T<:Number,B1<:Basis,B2
 LazySum() = throw(ArgumentError("LazySum needs at least one operator!"))
 
 Base.copy(x::T) where T<:LazySum = T(copy(x.factors), ([copy(op) for op in x.operators]...,))
+Base.eltype(x::LazySum) = promote_type(eltype(x.factors), eltype.(x.operators)...)
 
 dense(op::LazySum) = sum(op.factors .* dense.(op.operators))
 dense(op::LazySum{B1,B2,F,T}) where {B1<:Basis,B2<:Basis,F,T<:Tuple{AbstractOperator{B1,B2}}} = op.factors[1] * dense(op.operators[1])

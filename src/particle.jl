@@ -263,6 +263,8 @@ Abstract type for all implementations of FFT operators.
 """
 abstract type FFTOperator{BL<:Basis, BR<:Basis, T} <: AbstractOperator{BL,BR} end
 
+Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_after))
+
 """
     FFTOperators
 

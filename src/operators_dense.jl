@@ -307,7 +307,7 @@ function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,
 end
 
 # Broadcasting
-Base.size(A::DataOperator) = size(A.data)
+Base.size(A::DataOperator, args...) = size(A.data, args...)
 @inline Base.axes(A::DataOperator) = axes(A.data)
 Base.broadcastable(A::DataOperator) = A
 
