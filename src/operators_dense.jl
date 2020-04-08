@@ -278,12 +278,6 @@ end
 
 # Fast in-place multiplication
 mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
-function mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},b::DenseOpType{B2,B3},alpha::Number,beta::Number) where {B1<:Basis,B2<:Basis,B3<:Basis}
-    LinearAlgebra.mul!(result.data,a.data,b.data,convert(ComplexF64, alpha),convert(ComplexF64, beta))
-    return result
-end
-mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},b::DenseOpType{B2,B3},alpha::Union{Bool,ComplexF64},beta::Union{Bool,ComplexF64}) where {B1<:Basis,B2<:Basis,B3<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
-
 mul!(result::Ket{B1},a::Operator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
 mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
 rmul!(op::Operator, x) = (rmul!(op.data, x); op)
