@@ -1,4 +1,5 @@
 import Base: ==, +, -, *, /, Broadcast
+import Adapt
 using Base.Cartesian
 
 """
@@ -24,6 +25,9 @@ Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
 Base.size(op::Operator) = size(op.data)
 Base.size(op::Operator, d::Int) = size(op.data, d)
+
+# Convert data to CuArray with cu(::Operator)
+Adapt.adapt_structure(to, x::Operator) = Operator(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))
 
 const DenseOpPureType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Matrix}
 const DenseOpAdjType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint{<:Number,<:Matrix}}
