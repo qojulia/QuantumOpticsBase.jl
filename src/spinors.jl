@@ -83,18 +83,15 @@ end
 Compute the direct sum of two operators. The result is an operator on the
 corresponding [`SumBasis`](@ref).
 """
-directsum(a::DataOperator, b::DataOperator) = DenseOperator(directsum(a.basis_l, b.basis_l), directsum(a.basis_r, b.basis_r), hcat([a.data; zeros(size(b))], [zeros(size(a)); b.data]))
-directsum(a::SparseOperator,b::SparseOperator) = SparseOperator(directsum(a.basis_l, b.basis_l), directsum(a.basis_r, b.basis_r), hcat([a.data; zeros(size(b))], [zeros(size(a)); b.data]))
+directsum(a::DataOperator, b::DataOperator) = Operator(directsum(a.basis_l, b.basis_l), directsum(a.basis_r, b.basis_r), hcat([a.data; zeros(size(b))], [zeros(size(a)); b.data]))
 directsum(a::AbstractOperator...) = reduce(directsum, a)
-
-const DirectSumOperator = DataOperator{<:SumBasis,<:SumBasis}
 
 """
     setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i::Int, j::Int)
 
 Set the data of `op` corresponding to the block `(i,j)` equal to the data of `val`.
 """
-function setblock!(op::DirectSumOperator, val::DataOperator, i::Int, j::Int)
+function setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i::Int, j::Int)
     (bases_l,bases_r) = op.basis_l.bases, op.basis_r.bases
     check_samebases(bases_l[i], val.basis_l)
     check_samebases(bases_r[j], val.basis_r)
@@ -105,23 +102,16 @@ function setblock!(op::DirectSumOperator, val::DataOperator, i::Int, j::Int)
 end
 
 """
-    getblock(op::DataOperator{<:SumBasis,<:SumBasis}, i::int, j::Int)
+    getblock(op::Operator{<:SumBasis,<:SumBasis}, i::int, j::Int)
 
 Get the sub-basis operator corresponding to the block `(i,j)` of `op`.
 """
-function getblock(op::SparseOperator{BL,BR}, i::Int, j::Int) where {BL<:SumBasis,BR<:SumBasis}
+function getblock(op::DataOperator{BL,BR}, i::Int, j::Int) where {BL<:SumBasis,BR<:SumBasis}
     (bases_l,bases_r) = op.basis_l.bases, op.basis_r.bases
     inds_i = cumsum([0;length.(bases_l[1:i])...])
     inds_j = cumsum([0;length.(bases_r[1:j])...])
     data = op.data[inds_i[i]+1:inds_i[i+1],inds_j[j]+1:inds_j[j+1]]
-    return SparseOperator(bases_l[i],bases_r[j], data)
-end
-function getblock(op::DenseOperator{BL,BR}, i::Int, j::Int) where {BL<:SumBasis,BR<:SumBasis}
-    (bases_l,bases_r) = op.basis_l.bases, op.basis_r.bases
-    inds_i = cumsum([0;length.(bases_l[1:i])...])
-    inds_j = cumsum([0;length.(bases_r[1:j])...])
-    data = op.data[inds_i[i]+1:inds_i[i+1],inds_j[j]+1:inds_j[j+1]]
-    return DenseOperator(bases_l[i],bases_r[j], data)
+    return Operator(bases_l[i],bases_r[j], data)
 end
 
 """
@@ -146,8 +136,8 @@ transform(b1::SumBasis,b2::SumBasis; kwargs...) = LazyDirectSum([transform(b1.ba
 directsum(op1::FFTOperator, op2::FFTOperator) = LazyDirectSum(op1,op2)
 
 
-# gemv! implementation
-function gemv!(alpha_, M::LazyDirectSum{B1,B2}, b::Ket{B2}, beta_, result::Ket{B1}) where {B1<:SumBasis,B2<:SumBasis}
+# Fast in-place multiplication
+function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) where {B1<:SumBasis,B2<:SumBasis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     bases_r = b.basis.bases
@@ -156,12 +146,12 @@ function gemv!(alpha_, M::LazyDirectSum{B1,B2}, b::Ket{B2}, beta_, result::Ket{B
     for i=1:length(index)-1
         tmpket = Ket(bases_r[i], b.data[index[i]+1:index[i+1]])
         tmpresult = Ket(bases_l[i], result.data[index[i]+1:index[i+1]])
-        gemv!(alpha, M.operators[i], tmpket, beta, tmpresult)
+        mul!(tmpresult,M.operators[i],tmpket,alpha,beta)
         result.data[index[i]+1:index[i+1]] = tmpresult.data
     end
     return nothing
 end
-function gemv!(alpha_, b::Bra{B1}, M::LazyDirectSum{B1,B2}, beta_, result::Bra{B2}) where {B1<:SumBasis,B2<:SumBasis}
+function mul!(result::Bra{B2},b::Bra{B1},M::LazyDirectSum{B1,B2},alpha_,beta_) where {B1<:SumBasis,B2<:SumBasis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     bases_l = b.basis.bases
@@ -170,7 +160,7 @@ function gemv!(alpha_, b::Bra{B1}, M::LazyDirectSum{B1,B2}, beta_, result::Bra{B
     for i=1:length(index)-1
         tmpbra = Bra(bases_l[i], b.data[index[i]+1:index[i+1]])
         tmpresult = Bra(bases_r[i], result.data[index[i]+1:index[i+1]])
-        gemv!(alpha, tmpbra, M.operators[i], beta, tmpresult)
+        mul!(tmpresult,tmpbra,M.operators[i],alpha,beta)
         result.data[index[i]+1:index[i+1]] = tmpresult.data
     end
     return nothing
