@@ -1,7 +1,7 @@
 """
     SumBasis(b1, b2...)
 
-Similar to [`CompositeBasis`](@ref) but for the [`directsum`][@ref] (⊕)
+Similar to [`CompositeBasis`](@ref) but for the [`directsum`](@ref) (⊕)
 """
 mutable struct SumBasis{S,B<:Tuple{Vararg{Basis}}} <: Basis
     shape::S
