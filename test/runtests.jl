@@ -29,6 +29,7 @@ names = [
     "test_superoperators.jl",
 
     "test_pauli.jl",
+    "test_spinors.jl",
 
     "test_printing.jl"
 ]

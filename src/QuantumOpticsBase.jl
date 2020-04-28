@@ -30,7 +30,8 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
                 entropy_vn, entropy_renyi, fidelity, ptranspose, PPT,
                 negativity, logarithmic_negativity, entanglement_entropy,
         PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
-                ChiMatrix, DenseChiMatrix, avg_gate_fidelity
+                ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
+        SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!
 
 include("sortedindices.jl")
 include("polynomials.jl")
@@ -54,6 +55,7 @@ include("manybody.jl")
 include("transformations.jl")
 include("pauli.jl")
 include("metrics.jl")
+include("spinors.jl")
 include("printing.jl")
 
 end # module

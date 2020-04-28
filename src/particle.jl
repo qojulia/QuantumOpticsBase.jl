@@ -474,7 +474,7 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index::V
     end
 end
 
-dense(op::FFTOperators) = op*identityoperator(DenseOperator, op.basis_r)
+dense(op::FFTOperator) = op*identityoperator(DenseOperator, op.basis_r)
 
 dagger(op::FFTOperators) = transform(op.basis_r, op.basis_l)
 dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)

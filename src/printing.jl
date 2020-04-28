@@ -73,6 +73,17 @@ function show(stream::IO, x::ManyBodyBasis)
     write(stream, "ManyBody(onebodybasis=$(x.onebodybasis), states:$(length(x.occupations)))")
 end
 
+function show(stream::IO, x::SumBasis)
+    write(stream, "[")
+    for i in 1:length(x.bases)
+        show(stream, x.bases[i])
+        if i != length(x.bases)
+            write(stream, " ⊕ ")
+        end
+    end
+    write(stream, "]")
+end
+
 summary(io::IO, x::Ket) = print(io, "Ket(dim=$(length(x.basis)))\n  basis: $(x.basis)\n")
 function show(stream::IO, x::Ket)
     summary(stream, x)
@@ -144,7 +155,7 @@ function show(stream::IO, x::LazyTensor)
     print(stream, "\n  indices: $s")
 end
 
-function show(stream::IO, x::Union{LazySum, LazyProduct})
+function show(stream::IO, x::Union{LazySum, LazyProduct, LazyDirectSum})
     summary(stream, x)
     print(stream, "\n  operators: $(length(x.operators))")
 end
