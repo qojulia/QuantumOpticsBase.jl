@@ -407,6 +407,27 @@ manybodyoperator
 onebodyexpect
 ```
 
+## [Direct sum](@id API: Direct-sum)
+
+```@docs
+SumBasis
+```
+
+```@docs
+directsum
+```
+
+```@docs
+LazyDirectSum
+```
+
+```@docs
+getblock
+```
+
+```@docs
+setblock!
+```
 
 ## [Metrics](@id API: Metrics)
 
