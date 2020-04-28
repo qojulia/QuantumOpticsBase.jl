@@ -294,6 +294,7 @@ function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,
         mul!(resultket,M,bket,alpha,beta)
         result.data[:,i] = resultket.data
     end
+    return result
 end
 
 function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
@@ -303,6 +304,7 @@ function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,
         mul!(resultbra,bbra,M,alpha,beta)
         result.data[i,:] = resultbra.data
     end
+    return result
 end
 
 # Broadcasting

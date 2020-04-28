@@ -73,6 +73,7 @@ function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where
         tmp1 = tmp2
     end
     mul!(result,a.operators[1],tmp1,alpha,beta)
+    return result
 end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis}
@@ -84,6 +85,7 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where
         tmp1 = tmp2
     end
     mul!(result,tmp1,b.operators[end],alpha,beta)
+    return result
 end
 
 function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
@@ -95,6 +97,7 @@ function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3}
         tmp1 = tmp2
     end
     mul!(result,a.operators[1],tmp1,alpha,beta)
+    return result
 end
 
 function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
@@ -106,4 +109,5 @@ function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3}
         tmp1 = tmp2
     end
     mul!(result,tmp1,b.operators[end],alpha,beta)
+    return result
 end

@@ -296,17 +296,19 @@ function gemm(alpha::Number, h::LazyTensor, op::Matrix, beta::Number, result::Ma
     _gemm_recursive_lazy_dense(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-mul!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2},op::DenseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = gemm(alpha, h, op.data, beta, result.data)
-mul!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = gemm(alpha, op.data, h, beta, result.data)
+mul!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2},op::DenseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm(alpha, h, op.data, beta, result.data); result)
+mul!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm(alpha, op.data, h, beta, result.data); result)
 
 function mul!(result::Ket{B1},a::LazyTensor{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis}
     b_data = reshape(b.data, length(b.data), 1)
     result_data = reshape(result.data, length(result.data), 1)
     gemm(alpha, a, b_data, beta, result_data)
+    result
 end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis}
     a_data = reshape(a.data, 1, length(a.data))
     result_data = reshape(result.data, 1, length(result.data))
     gemm(alpha, a_data, b, beta, result_data)
+    result
 end

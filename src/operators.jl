@@ -324,29 +324,6 @@ identityoperator(op::T) where {T<:AbstractOperator} = identityoperator(T, op.bas
 one(b::Basis) = identityoperator(b)
 one(op::AbstractOperator) = identityoperator(op)
 
-
-# Fast in-place multiplication
-"""
-    mul!(result,a,b,alpha,beta)
-
-Fast in-place multiplication of operators with state vectors. It
-implements the relation `result = beta*result + alpha*a*b`.
-Here, `alpha` and `beta` are complex numbers, while `result` and either `a`
-or `b` are state vectors while the other one can be of any operator type.
-"""
-gemv!() = error("Not Implemented.")
-
-"""
-    mul!(result,a,b,alpha,beta)
-
-Fast in-place multiplication of of operators with DenseOperators. It
-implements the relation `result = beta*result + alpha*a*b`.
-Here, `alpha` and `beta` are complex numbers, while `result` and either `a`
-or `b` are dense operators while the other one can be of any operator type.
-"""
-gemm!() = error("Not Implemented.")
-
-
 # Helper functions to check validity of arguments
 function check_ptrace_arguments(a::AbstractOperator, indices::Vector{Int})
     if !isa(a.basis_l, CompositeBasis) || !isa(a.basis_r, CompositeBasis)

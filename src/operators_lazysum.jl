@@ -78,6 +78,7 @@ function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1
     for i=2:length(a.operators)
         mul!(result,a.operators[i],b,alpha*a.factors[i],1)
     end
+    return result
 end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis}
@@ -85,6 +86,7 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1
     for i=2:length(b.operators)
         mul!(result,a,b.operators[i],alpha*b.factors[i],1)
     end
+    return result
 end
 
 function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
@@ -92,10 +94,12 @@ function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha
     for i=2:length(a.operators)
         mul!(result,a.operators[i],b,alpha*a.factors[i],1)
     end
+    return result
 end
 function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
     mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
     for i=2:length(b.operators)
         mul!(result,a,b.operators[i],alpha*b.factors[i],1)
     end
+    return result
 end

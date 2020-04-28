@@ -506,7 +506,7 @@ function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha_,beta_) whe
             result.data[i] = beta*result.data[i] + alpha * psi_.data[i] * M.mul_after[i]
         end
     end
-    nothing
+    result
 end
 
 function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
@@ -531,7 +531,7 @@ function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) whe
             result.data[i] = beta*result.data[i] + alpha * conj(psi_.data[i]) * M.mul_before[i]
         end
     end
-    nothing
+    result
 end
 
 function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
@@ -561,7 +561,7 @@ function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3
         rmul!(result.data, beta)
         result.data += data
     end
-    nothing
+    result
 end
 
 function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
@@ -589,5 +589,5 @@ function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3
         rmul!(result.data, beta)
         result.data += data
     end
-    nothing
+    result
 end

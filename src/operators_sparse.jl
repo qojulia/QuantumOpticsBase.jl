@@ -72,7 +72,7 @@ function diagonaloperator(b::Basis, diag::Vector{T}) where T <: Number
 end
 
 # Fast in-place multiplication implementations
-mul!(result::DenseOpType{B1,B3},M::SparseOpType{B1,B2},b::DenseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm!(alpha,M.data,b.data,beta,result.data); result)#mul!(result.data,M.data,b.data,alpha,beta)
-mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},M::SparseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm!(alpha,a.data,M.data,beta,result.data); result)#mul!(result.data,a.data,M.data,alpha,beta)
-mul!(result::Ket{B1},M::SparseOpPureType{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (gemv!(alpha,M.data,b.data,beta,result.data); result)#mul!(result.data,M.data,b.data,alpha,beta)
-mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (gemv!(alpha,b.data,M.data,beta,result.data); result)#mul!(result.data,b.data,M.data,alpha,beta)
+mul!(result::DenseOpType{B1,B3},M::SparseOpType{B1,B2},b::DenseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm!(alpha,M.data,b.data,beta,result.data); result)
+mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},M::SparseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm!(alpha,a.data,M.data,beta,result.data); result)
+mul!(result::Ket{B1},M::SparseOpPureType{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (gemv!(alpha,M.data,b.data,beta,result.data); result)
+mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (gemv!(alpha,b.data,M.data,beta,result.data); result)

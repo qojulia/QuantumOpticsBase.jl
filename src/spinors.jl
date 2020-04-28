@@ -149,7 +149,7 @@ function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) w
         mul!(tmpresult,M.operators[i],tmpket,alpha,beta)
         result.data[index[i]+1:index[i+1]] = tmpresult.data
     end
-    return nothing
+    return result
 end
 function mul!(result::Bra{B2},b::Bra{B1},M::LazyDirectSum{B1,B2},alpha_,beta_) where {B1<:SumBasis,B2<:SumBasis}
     alpha = convert(ComplexF64, alpha_)
@@ -163,5 +163,5 @@ function mul!(result::Bra{B2},b::Bra{B1},M::LazyDirectSum{B1,B2},alpha_,beta_) w
         mul!(tmpresult,tmpbra,M.operators[i],alpha,beta)
         result.data[index[i]+1:index[i+1]] = tmpresult.data
     end
-    return nothing
+    return result
 end
