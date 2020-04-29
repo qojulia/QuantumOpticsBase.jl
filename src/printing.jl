@@ -145,7 +145,7 @@ function show(stream::IO, x::DenseOpType)
     end
 end
 
-function show(stream::IO, x::SparseOpType)
+function show(stream::IO, x::SparseOpPureType)
     summary(stream, x)
     if nnz(x.data) == 0
         print(stream, "\n    []")

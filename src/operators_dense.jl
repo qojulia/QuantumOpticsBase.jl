@@ -101,7 +101,7 @@ dagger(x::Operator) = Operator(x.basis_r,x.basis_l,adjoint(x.data))
 transpose(x::Operator) = Operator(x.basis_r,x.basis_l,transpose(x.data))
 ishermitian(A::DataOperator) = false
 ishermitian(A::DataOperator{B,B}) where B<:Basis = ishermitian(A.data)
-Base.collect(A::Operator) = Operatator(A.basis_l, A.basis_r, collect(A.data))
+Base.collect(A::Operator) = Operator(A.basis_l, A.basis_r, collect(A.data))
 
 tensor(a::Operator, b::Operator) = Operator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(b.data, a.data))
 
@@ -156,7 +156,6 @@ function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1<:
     end
     result
 end
-expect(op::AdjointOperator{B1,B2}, state::Operator{B2,B2}) where {B1<:Basis,B2<:Basis} = conj(expect(op', state))
 
 function exp(op::T) where {B<:Basis,T<:DenseOpType{B,B}}
     return DenseOperator(op.basis_l, op.basis_r, exp(op.data))

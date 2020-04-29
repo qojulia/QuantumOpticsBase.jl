@@ -361,20 +361,19 @@ end
 function onebodyexpect_1(op::Operator, state::Operator)
     N = length(state.basis_l)
     S = length(state.basis_l.onebodybasis)
-    result = complex(0.)
+    result = complex(zero(promote_type(eltype(op),eltype(state))))
     occupations = state.basis_l.occupations
     @inbounds for s=1:N, t=1:N
         value = state.data[t,s]
         for i=1:S, j=1:S
             C = coefficient(occupations[s], occupations[t], [i], [j])
-            if C != 0.
+            if !iszero(C)
                 result += C*op.data[i,j]*value
             end
         end
     end
     result
 end
-onebodyexpect_1(op::AdjointOperator, state::Operator) = conj(onebodyexpect_1(dagger(op), state))
 
 function onebodyexpect_1(op::SparseOpPureType, state::Ket)
     N = length(state.basis)
