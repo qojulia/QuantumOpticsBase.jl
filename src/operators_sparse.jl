@@ -130,7 +130,7 @@ identityoperator(b::Basis) = identityoperator(b, b)
 Create a diagonal operator of type [`SparseOperator`](@ref).
 """
 function diagonaloperator(b::Basis, diag::Vector{T}) where T <: Number
-  @assert 1 <= length(diag) <= prod(b.shape)
+  @assert 1 <= length(diag) <= length(b)
   SparseOperator(b, sparse(Diagonal(convert(Vector{ComplexF64}, diag))))
 end
 

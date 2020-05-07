@@ -99,8 +99,7 @@ transpose(op::DenseOperator{BL,BR,T}) where {BL<:Basis,BR<:Basis,T<:Matrix{Compl
 
 Outer product ``|x⟩⟨y|`` of the given states.
 """
-tensor(a::Ket, b::Bra) = DenseOperator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
-
+tensor(a::Ket, b::Bra) = DenseOperator(a.basis, b.basis, reshape(kron(b.data, a.data), length(a.basis), length(b.basis)))
 
 tr(op::DenseOperator{B,B}) where B<:Basis = tr(op.data)
 

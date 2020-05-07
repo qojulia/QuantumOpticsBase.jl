@@ -74,7 +74,7 @@ struct CompositeBasis{S,B<:Tuple{Vararg{Basis}}} <: Basis
     end
 end
 CompositeBasis(shape::Vector{<:Int}, bases::B) where B<:Tuple{Vararg{Basis}} = CompositeBasis{B}(shape, bases)
-CompositeBasis(bases::B) where B<:Tuple{Vararg{Basis}} = CompositeBasis{B}(Int[prod(b.shape) for b in bases], bases)
+CompositeBasis(bases::B) where B<:Tuple{Vararg{Basis}} = CompositeBasis{B}(Int[length(b) for b in bases], bases)
 CompositeBasis(shape::Vector{Int}, bases::Vector{B}) where B<:Basis = (tmp = (bases...,); CompositeBasis{typeof(tmp)}(shape, tmp))
 CompositeBasis(bases::Vector{B}) where B<:Basis = CompositeBasis((bases...,))
 CompositeBasis(bases::Basis...) = CompositeBasis((bases...,))
@@ -99,7 +99,7 @@ Create a [`CompositeBasis`](@ref) from the given bases.
 Any given CompositeBasis is expanded so that the resulting CompositeBasis never
 contains another CompositeBasis.
 """
-tensor(b1::Basis, b2::Basis) = CompositeBasis(Int[prod(b1.shape); prod(b2.shape)], (b1, b2))
+tensor(b1::Basis, b2::Basis) = CompositeBasis(Int[length(b1); length(b2)], (b1, b2))
 tensor(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(Int[b1.shape; b2.shape], (b1.bases..., b2.bases...))
 function tensor(b1::CompositeBasis, b2::Basis)
     N = length(b1.bases)
@@ -109,7 +109,7 @@ function tensor(b1::CompositeBasis, b2::Basis)
         shape[i] = b1.shape[i]
         bases[i] = b1.bases[i]
     end
-    shape[end] = prod(b2.shape)
+    shape[end] = length(b2)
     bases[end] = b2
     CompositeBasis(shape, bases)
 end
@@ -121,7 +121,7 @@ function tensor(b1::Basis, b2::CompositeBasis)
         shape[i+1] = b2.shape[i]
         bases[i+1] = b2.bases[i]
     end
-    shape[1] = prod(b1.shape)
+    shape[1] = length(b1)
     bases[1] = b1
     CompositeBasis(shape, bases)
 end
