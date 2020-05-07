@@ -114,7 +114,7 @@ conj!(a::Operator) = (conj!(a.data); a)
 
 Outer product ``|x⟩⟨y|`` of the given states.
 """
-tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
+tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), length(a.basis), length(b.basis)))
 
 tr(op::Operator{B,B}) where B<:Basis = tr(op.data)
 
