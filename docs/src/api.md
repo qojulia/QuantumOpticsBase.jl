@@ -42,6 +42,10 @@ DataOperator
 ```
 
 ```@docs
+Operator
+```
+
+```@docs
 DenseOperator
 ```
 
@@ -189,15 +193,11 @@ permutesystems
 
 ```@docs
 exp(op::AbstractOperator)
-exp(op::DenseSuperOperator)
 ```
 
 ```@docs
-QuantumOpticsBase.gemv!
-```
-
-```@docs
-QuantumOpticsBase.gemm!
+QuantumOpticsBase.mul!(Y::DataOperator,A::AbstractOperator,B::DataOperator,alpha,beta)
+QuantumOpticsBase.mul!(Y::StateVector,A::AbstractOperator,B::StateVector,alpha,beta)
 ```
 
 * Conversion of operators

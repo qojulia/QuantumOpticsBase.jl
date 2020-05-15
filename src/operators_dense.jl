@@ -279,7 +279,15 @@ end
     end
 end
 
-# Fast in-place multiplication
+"""
+    mul!(Y::DataOperator,A::AbstractOperator,B::DataOperator,alpha,beta) -> Y
+    mul!(Y::StateVector,A::AbstractOperator,B::StateVector,alpha,beta) -> Y
+
+Fast in-place multiplication of operators/state vectors. Updates `Y` as
+`Y = alpha*A*B + beta*Y`. In most cases, the call gets forwarded to
+Julia's 5-arg mul! implementation on the underlying data.
+See also [`LinearAlgebra.mul!`](@ref).
+"""
 mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
 mul!(result::Ket{B1},a::Operator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
 mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
