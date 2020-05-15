@@ -31,6 +31,8 @@ names = [
     "test_pauli.jl",
     "test_spinors.jl",
 
+    "test_abstractdata.jl",
+
     "test_printing.jl"
 ]
 

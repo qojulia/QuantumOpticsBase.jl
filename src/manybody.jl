@@ -229,7 +229,7 @@ function manybodyoperator(basis::ManyBodyBasis, op::T) where T<:AbstractOperator
     result
 end
 
-function manybodyoperator_1(basis::ManyBodyBasis, op::DenseOperator)
+function manybodyoperator_1(basis::ManyBodyBasis, op::Operator)
     N = length(basis)
     S = length(basis.onebodybasis)
     result = DenseOperator(basis)
@@ -243,8 +243,9 @@ function manybodyoperator_1(basis::ManyBodyBasis, op::DenseOperator)
     end
     return result
 end
+manybodyoperator_1(basis::ManyBodyBasis, op::AdjointOperator) = dagger(manybodyoperator_1(basis,dagger(op)))
 
-function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOperator)
+function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOpPureType)
     N = length(basis)
     S = length(basis.onebodybasis)
     result = SparseOperator(basis)
@@ -264,7 +265,7 @@ function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOperator)
     return result
 end
 
-function manybodyoperator_2(basis::ManyBodyBasis, op::DenseOperator)
+function manybodyoperator_2(basis::ManyBodyBasis, op::Operator)
     N = length(basis)
     S = length(basis.onebodybasis)
     @assert S^2 == length(op.basis_l)
@@ -281,7 +282,7 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::DenseOperator)
     return result
 end
 
-function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOperator)
+function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOpType)
     N = length(basis)
     S = length(basis.onebodybasis)
     result = SparseOperator(basis)
@@ -340,7 +341,7 @@ function onebodyexpect(op::AbstractOperator, state::AbstractOperator)
 end
 onebodyexpect(op::AbstractOperator, states::Vector) = [onebodyexpect(op, state) for state=states]
 
-function onebodyexpect_1(op::DenseOperator, state::Ket)
+function onebodyexpect_1(op::Operator, state::Ket)
     N = length(state.basis)
     S = length(state.basis.onebodybasis)
     result = complex(0.)
@@ -357,16 +358,16 @@ function onebodyexpect_1(op::DenseOperator, state::Ket)
     result
 end
 
-function onebodyexpect_1(op::DenseOperator, state::DenseOperator)
+function onebodyexpect_1(op::Operator, state::Operator)
     N = length(state.basis_l)
     S = length(state.basis_l.onebodybasis)
-    result = complex(0.)
+    result = complex(zero(promote_type(eltype(op),eltype(state))))
     occupations = state.basis_l.occupations
     @inbounds for s=1:N, t=1:N
         value = state.data[t,s]
         for i=1:S, j=1:S
             C = coefficient(occupations[s], occupations[t], [i], [j])
-            if C != 0.
+            if !iszero(C)
                 result += C*op.data[i,j]*value
             end
         end
@@ -374,7 +375,7 @@ function onebodyexpect_1(op::DenseOperator, state::DenseOperator)
     result
 end
 
-function onebodyexpect_1(op::SparseOperator, state::Ket)
+function onebodyexpect_1(op::SparseOpPureType, state::Ket)
     N = length(state.basis)
     S = length(state.basis.onebodybasis)
     result = complex(0.)
@@ -395,7 +396,7 @@ function onebodyexpect_1(op::SparseOperator, state::Ket)
     result
 end
 
-function onebodyexpect_1(op::SparseOperator, state::DenseOperator)
+function onebodyexpect_1(op::SparseOpPureType, state::Operator)
     N = length(state.basis_l)
     S = length(state.basis_l.onebodybasis)
     result = complex(0.)

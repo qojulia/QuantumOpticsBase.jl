@@ -149,17 +149,17 @@ x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
-I = identityoperator(DenseOperator, b_r)
-@test isa(I, DenseOperator)
-@test identityoperator(SparseOperator, b_r) == sparse(I)
+I = identityoperator(DenseOpType, b_r)
+@test isa(I, DenseOpType)
+@test identityoperator(SparseOpType, b_r) == sparse(I)
 @test 1e-11 > D(I*x1, x1)
-@test I == identityoperator(DenseOperator, b1b) ⊗ identityoperator(DenseOperator, b2b) ⊗ identityoperator(DenseOperator, b3b)
+@test I == identityoperator(DenseOpType, b1b) ⊗ identityoperator(DenseOpType, b2b) ⊗ identityoperator(DenseOpType, b3b)
 
-I = identityoperator(DenseOperator, b_l)
-@test isa(I, DenseOperator)
-@test identityoperator(SparseOperator, b_l) == sparse(I)
+I = identityoperator(DenseOpType, b_l)
+@test isa(I, DenseOpType)
+@test identityoperator(SparseOpType, b_l) == sparse(I)
 @test 1e-11 > D(xbra1*I, xbra1)
-@test I == identityoperator(DenseOperator, b1a) ⊗ identityoperator(DenseOperator, b2a) ⊗ identityoperator(DenseOperator, b3a)
+@test I == identityoperator(DenseOpType, b1a) ⊗ identityoperator(DenseOpType, b2a) ⊗ identityoperator(DenseOpType, b3a)
 
 # Test tr and normalize
 op = DenseOperator(GenericBasis(3), [1 3 2;5 2 2;-1 2 5])
@@ -302,19 +302,19 @@ alpha = complex(0.7, 1.5)
 beta = complex(0.3, 2.1)
 
 rket_ = deepcopy(rket)
-QuantumOpticsBase.gemv!(complex(1.0), op, xket, complex(0.), rket_)
+QuantumOpticsBase.mul!(rket_,op,xket,complex(1.0),complex(0.))
 @test 0 ≈ D(rket_, op*xket)
 
 rket_ = deepcopy(rket)
-QuantumOpticsBase.gemv!(alpha, op, xket, beta, rket_)
+QuantumOpticsBase.mul!(rket_,op,xket,alpha,beta)
 @test 1e-13 > D(rket_, alpha*op*xket + beta*rket)
 
 rbra_ = deepcopy(rbra)
-QuantumOpticsBase.gemv!(complex(1.0), xbra, op, complex(0.), rbra_)
+QuantumOpticsBase.mul!(rbra_,xbra,op,complex(1.0),complex(0.))
 @test 0 ≈ D(rbra_, xbra*op)
 
 rbra_ = deepcopy(rbra)
-QuantumOpticsBase.gemv!(alpha, xbra, op, beta, rbra_)
+QuantumOpticsBase.mul!(rbra_,xbra,op,alpha,beta)
 @test 1e-13 > D(rbra_, alpha*xbra*op + beta*rbra)
 
 # # Test gemm
@@ -328,11 +328,11 @@ alpha = complex(0.7, 1.5)
 beta = complex(0.3, 2.1)
 
 r_ = deepcopy(r)
-QuantumOpticsBase.gemm!(complex(1.0), op1, op2, complex(0.), r_)
+QuantumOpticsBase.mul!(r_,op1,op2,complex(1.0),complex(0.))
 @test 1e-13 > D(r_, op1*op2)
 
 r_ = deepcopy(r)
-QuantumOpticsBase.gemm!(alpha, op1, op2, beta, r_)
+QuantumOpticsBase.mul!(r_,op1,op2,alpha,beta)
 @test 1e-10 > D(r_, alpha*op1*op2 + beta*r)
 
 dat = rand(prod(b_r.shape))

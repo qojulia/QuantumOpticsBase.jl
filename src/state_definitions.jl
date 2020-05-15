@@ -32,7 +32,8 @@ end
 Coherent thermal state ``D(α)exp(-H/T)/Tr[exp(-H/T)]D^†(α)``.
 """
 function coherentthermalstate(basis::B,H::AbstractOperator{B,B},T::Real,alpha::Number) where B<:FockBasis
-    return displace(basis,alpha)*thermalstate(H,T)*dagger(displace(basis,alpha))
+    D = displace(basis,alpha)
+    return D*thermalstate(H,T)*dagger(D)
 end
 
 """
@@ -40,8 +41,8 @@ end
 
 Returns the phase-average of ``ρ`` containing only the diagonal elements.
 """
-function phase_average(rho::DenseOperator)
-    return DenseOperator(basis(rho),diagm(0 => diag(rho.data)))
+function phase_average(rho::Operator)
+    return Operator(basis(rho),diagm(0 => diag(rho.data)))
 end
 
 """
@@ -49,6 +50,6 @@ end
 
 Passive state ``π`` of ``ρ``. IncreasingEigenenergies=true means that higher indices correspond to higher energies.
 """
-function passive_state(rho::DenseOperator,IncreasingEigenenergies::Bool=true)
+function passive_state(rho::DenseOpType,IncreasingEigenenergies::Bool=true)
     return DenseOperator(basis(rho),diagm(0 => sort!(abs.(eigvals(rho.data)),rev=IncreasingEigenenergies)))
 end

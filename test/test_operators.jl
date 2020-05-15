@@ -42,7 +42,7 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 @test_throws ArgumentError tr(op_test)
 @test_throws ArgumentError ptrace(op_test, [1])
 @test_throws ArgumentError ishermitian(op_test)
-@test_throws ArgumentError dense(op_test)
+@test_throws MethodError dense(op_test)
 @test_throws ArgumentError sparse(op_test)
 @test_throws ArgumentError transpose(op_test)
 
@@ -61,7 +61,7 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 @test_throws ArgumentError permutesystems(op_test, [1, 2])
 
 @test embed(b, b, [1,2], op) == embed(b, [1,2], op)
-@test embed(b, Dict{Vector{Int}, SparseOperator}()) == identityoperator(b)
+@test embed(b, Dict{Vector{Int}, SparseOpType}()) == identityoperator(b)
 @test_throws QuantumOpticsBase.IncompatibleBases embed(b1⊗b2, [2], [op1])
 
 b_comp = b⊗b
@@ -110,9 +110,6 @@ op_cnot = DenseOperator(b2⊗b2, cnot)
 OP_cnot = embed(b8, [1,3], op_cnot)
 @test ptrace(OP_cnot, [2])/2. == op_cnot
 @test_throws AssertionError embed(b2⊗b2, [1,1], op_cnot)
-
-@test_throws ErrorException QuantumOpticsBase.QuantumOpticsBase.gemm!()
-@test_throws ErrorException QuantumOpticsBase.QuantumOpticsBase.gemv!()
 
 @test_throws ArgumentError exp(sparse(op1))
 

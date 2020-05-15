@@ -33,6 +33,7 @@ LazyProduct(operators::AbstractOperator...) = LazyProduct((operators...,))
 LazyProduct() = throw(ArgumentError("LazyProduct needs at least one operator!"))
 
 Base.copy(x::T) where T<:LazyProduct = T(([copy(op) for op in x.operators]...,), x.factor)
+Base.eltype(x::LazyProduct) = promote_type(eltype(x.factor), eltype.(x.operators)...)
 
 dense(op::LazyProduct) = op.factor*prod(dense.(op.operators))
 dense(op::LazyProduct{B1,B2,F,T}) where {B1<:Basis,B2<:Basis,F,T<:Tuple{AbstractOperator}} = op.factor*dense(op.operators[1])
@@ -63,46 +64,50 @@ identityoperator(::Type{LazyProduct}, b1::Basis, b2::Basis) = LazyProduct(identi
 
 
 # Fast in-place multiplication
-function gemv!(alpha, a::LazyProduct{B1,B2}, b::Ket{B2}, beta, result::Ket{B1}) where {B1<:Basis,B2<:Basis}
+function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis}
     tmp1 = Ket(a.operators[end].basis_l)
-    gemv!(a.factor, a.operators[end], b, 0, tmp1)
+    mul!(tmp1,a.operators[end],b,a.factor,0)
     for i=length(a.operators)-1:-1:2
         tmp2 = Ket(a.operators[i].basis_l)
-        gemv!(1, a.operators[i], tmp1, 0, tmp2)
+        mul!(tmp2,a.operators[i],tmp1)
         tmp1 = tmp2
     end
-    gemv!(alpha, a.operators[1], tmp1, beta, result)
+    mul!(result,a.operators[1],tmp1,alpha,beta)
+    return result
 end
 
-function gemv!(alpha, a::Bra{B1}, b::LazyProduct{B1,B2}, beta, result::Bra{B2}) where {B1<:Basis,B2<:Basis}
+function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis}
     tmp1 = Bra(b.operators[1].basis_r)
-    gemv!(b.factor, a, b.operators[1], 0, tmp1)
+    mul!(tmp1,a,b.operators[1],b.factor,0)
     for i=2:length(b.operators)-1
         tmp2 = Bra(b.operators[i].basis_r)
-        gemv!(1, tmp1, b.operators[i], 0, tmp2)
+        mul!(tmp2,tmp1,b.operators[i])
         tmp1 = tmp2
     end
-    gemv!(alpha, tmp1, b.operators[end], beta, result)
+    mul!(result,tmp1,b.operators[end],alpha,beta)
+    return result
 end
 
-function gemm!(alpha, a::LazyProduct{B1,B2}, b::DenseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
-    tmp1 = DenseOperator(a.operators[end].basis_l,b.basis_r)
-    gemm!(a.factor, a.operators[end], b, 0, tmp1)
+function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
+    tmp1 = Operator(a.operators[end].basis_l,b.basis_r,similar(result.data,length(a.operators[end].basis_l),length(b.basis_r)))
+    mul!(tmp1,a.operators[end],b,a.factor,0)
     for i=length(a.operators)-1:-1:2
-        tmp2 = DenseOperator(a.operators[i].basis_l, b.basis_r)
-        gemm!(1, a.operators[i], tmp1, 0, tmp2)
+        tmp2 = Operator(a.operators[i].basis_l, b.basis_r, similar(result.data,length(a.operators[i].basis_l),length(b.basis_r)))
+        mul!(tmp2,a.operators[i],tmp1)
         tmp1 = tmp2
     end
-    gemm!(alpha, a.operators[1], tmp1, beta, result)
+    mul!(result,a.operators[1],tmp1,alpha,beta)
+    return result
 end
 
-function gemm!(alpha, a::DenseOperator{B1,B2}, b::LazyProduct{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
-    tmp1 = DenseOperator(a.basis_l,b.operators[1].basis_r)
-    gemm!(b.factor, a, b.operators[1], 0, tmp1)
+function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
+    tmp1 = Operator(a.basis_l,b.operators[1].basis_r,similar(result.data,length(a.basis_l),length(b.operators[1].basis_r)))
+    mul!(tmp1,a,b.operators[1],b.factor,0)
     for i=2:length(b.operators)-1
-        tmp2 = DenseOperator(a.basis_l,b.operators[i].basis_r)
-        gemm!(1, tmp1, b.operators[i], 0, tmp2)
+        tmp2 = Operator(a.basis_l,b.operators[i].basis_r,similar(result.data,length(a.basis_l),length(b.operators[i].basis_r)))
+        mul!(tmp2,tmp1,b.operators[i])
         tmp1 = tmp2
     end
-    gemm!(alpha, tmp1, b.operators[end], beta, result)
+    mul!(result,tmp1,b.operators[end],alpha,beta)
+    return result
 end

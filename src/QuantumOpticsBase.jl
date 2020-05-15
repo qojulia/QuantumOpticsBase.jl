@@ -1,6 +1,7 @@
 module QuantumOpticsBase
 
 using SparseArrays, LinearAlgebra
+import LinearAlgebra: mul!, rmul!
 
 export bases, Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,
@@ -8,13 +9,13 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
                 dagger, normalize, normalize!,
         operators, AbstractOperator, DataOperator, expect, variance,
             identityoperator, ptrace, embed, dense, tr, sparse,
-        operators_dense, DenseOperator, projector, dm,
-        operators_sparse, SparseOperator, diagonaloperator,
+        operators_dense, Operator, DenseOperator, DenseOpType, projector, dm,
+        operators_sparse, SparseOperator, diagonaloperator, SparseOpType,
         operators_lazysum, LazySum,
         operators_lazyproduct, LazyProduct,
         operators_lazytensor, LazyTensor,
-        superoperators, SuperOperator, DenseSuperOperator, SparseSuperOperator,
-                spre, spost, liouvillian,
+        superoperators, SuperOperator, DenseSuperOperator, DenseSuperOpType,
+                SparseSuperOperator, SparseSuperOpType, spre, spost, liouvillian,
         fock, FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!, displace,
         randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,

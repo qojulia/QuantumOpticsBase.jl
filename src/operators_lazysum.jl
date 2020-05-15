@@ -32,6 +32,7 @@ LazySum(factors::Vector{T}, operators::Vector{T2}) where {T<:Number,B1<:Basis,B2
 LazySum() = throw(ArgumentError("LazySum needs at least one operator!"))
 
 Base.copy(x::T) where T<:LazySum = T(copy(x.factors), ([copy(op) for op in x.operators]...,))
+Base.eltype(x::LazySum) = promote_type(eltype(x.factors), eltype.(x.operators)...)
 
 dense(op::LazySum) = sum(op.factors .* dense.(op.operators))
 dense(op::LazySum{B1,B2,F,T}) where {B1<:Basis,B2<:Basis,F,T<:Tuple{AbstractOperator{B1,B2}}} = op.factors[1] * dense(op.operators[1])
@@ -72,29 +73,33 @@ identityoperator(::Type{LazySum}, b1::Basis, b2::Basis) = LazySum(identityoperat
 
 
 # Fast in-place multiplication
-function gemv!(alpha, a::LazySum{B1,B2}, b::Ket{B2}, beta, result::Ket{B1}) where {B1<:Basis,B2<:Basis}
-    gemv!(alpha*a.factors[1], a.operators[1], b, beta, result)
+function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis}
+    mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
     for i=2:length(a.operators)
-        gemv!(alpha*a.factors[i], a.operators[i], b, 1, result)
+        mul!(result,a.operators[i],b,alpha*a.factors[i],1)
     end
+    return result
 end
 
-function gemv!(alpha, a::Bra{B1}, b::LazySum{B1,B2}, beta, result::Bra{B2}) where {B1<:Basis,B2<:Basis}
-    gemv!(alpha*b.factors[1], a, b.operators[1], beta, result)
+function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis}
+    mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
     for i=2:length(b.operators)
-        gemv!(alpha*b.factors[i], a, b.operators[i], 1, result)
+        mul!(result,a,b.operators[i],alpha*b.factors[i],1)
     end
+    return result
 end
 
-function gemm!(alpha, a::LazySum{B1,B2}, b::DenseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
-    gemm!(alpha*a.factors[1], a.operators[1], b, beta, result)
+function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
+    mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
     for i=2:length(a.operators)
-        gemm!(alpha*a.factors[i], a.operators[i], b, 1, result)
+        mul!(result,a.operators[i],b,alpha*a.factors[i],1)
     end
+    return result
 end
-function gemm!(alpha, a::DenseOperator{B1,B2}, b::LazySum{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
-    gemm!(alpha*b.factors[1], a, b.operators[1], beta, result)
+function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
+    mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
     for i=2:length(b.operators)
-        gemm!(alpha*b.factors[i], a, b.operators[i], 1, result)
+        mul!(result,a,b.operators[i],alpha*b.factors[i],1)
     end
+    return result
 end

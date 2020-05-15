@@ -20,7 +20,7 @@ s_ = dense(s)
 s_.data[1,1] = 1
 @test s.data[1,1] == 0
 s_sparse = sparse(s_)
-@test isa(s_sparse, SparseSuperOperator)
+@test isa(s_sparse, SparseSuperOpType)
 @test s_sparse.data[1,1] == 1
 
 s = SparseSuperOperator((b1, b2), (b3, b4))
@@ -28,7 +28,7 @@ s_ = sparse(s)
 s_.data[1,1] = 1
 @test s.data[1,1] == 0
 s_dense = dense(s_)
-@test isa(s_dense, DenseSuperOperator)
+@test isa(s_dense, DenseSuperOpType)
 @test s_dense.data[1,1] == 1
 
 # Test length
@@ -50,68 +50,68 @@ s1 = SparseSuperOperator((b1, b2), (b3, b4))
 s2 = SparseSuperOperator((b3, b4), (b1, b2))
 
 x = d1*d2
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == x.basis_r == (b1, b2)
 
 x = s1*s2
-@test isa(x, SparseSuperOperator)
+@test isa(x, SparseSuperOpType)
 @test x.basis_l == x.basis_r == (b1, b2)
 
 x = d1*s2
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == x.basis_r == (b1, b2)
 
 x = s1*d2
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == x.basis_r == (b1, b2)
 
 x = d1*3
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = 2.5*s1
-@test isa(x, SparseSuperOperator)
+@test isa(x, SparseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = d1 + d1
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = s1 + s1
-@test isa(x, SparseSuperOperator)
+@test isa(x, SparseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = d1 + s1
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = d1 - d1
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = s1 - s1
-@test isa(x, SparseSuperOperator)
+@test isa(x, SparseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = d1 - s1
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = -d1
-@test isa(x, DenseSuperOperator)
+@test isa(x, DenseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
 x = -s1
-@test isa(x, SparseSuperOperator)
+@test isa(x, SparseSuperOpType)
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
@@ -183,7 +183,7 @@ rates = diagm(0 => [1.0, 1.0])
 # Test broadcasting
 @test L .+ L == L + L
 Ldense = dense(L)
-@test isa(L .+ Ldense, DenseSuperOperator)
+# @test isa(L .+ Ldense, DenseSuperOpType) # Broadcasting of sparse .+ dense returns sparse
 L_ = copy(L)
 L .+= L
 @test L == 2*L_
@@ -193,7 +193,7 @@ Ldense_ = dense(L_)
 Ldense .+= Ldense
 @test Ldense == 2*Ldense_
 Ldense .+= L
-@test isa(Ldense, DenseSuperOperator)
+@test isa(Ldense, DenseSuperOpType)
 @test isapprox(Ldense.data, 5*Ldense_.data)
 @test_throws ErrorException cos.(Ldense)
 @test_throws ErrorException cos.(L)

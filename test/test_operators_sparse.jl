@@ -97,19 +97,19 @@ conj!(tmp)
 @test tmp == conj(op1) && conj(tmp.data) == op1.data
 
 # Test identityoperator
-Idense = identityoperator(DenseOperator, b_r)
-I = identityoperator(SparseOperator, b_r)
-@test isa(I, SparseOperator)
+Idense = identityoperator(DenseOpType, b_r)
+I = identityoperator(SparseOpType, b_r)
+@test isa(I, SparseOpType)
 @test dense(I) == Idense
 @test 1e-11 > D(I*x1, x1)
-@test I == identityoperator(SparseOperator, b1b) ⊗ identityoperator(SparseOperator, b2b) ⊗ identityoperator(SparseOperator, b3b)
+@test I == identityoperator(SparseOpType, b1b) ⊗ identityoperator(SparseOpType, b2b) ⊗ identityoperator(SparseOpType, b3b)
 
-Idense = identityoperator(DenseOperator, b_l)
-I = identityoperator(SparseOperator, b_l)
-@test isa(I, SparseOperator)
+Idense = identityoperator(DenseOpType, b_l)
+I = identityoperator(SparseOpType, b_l)
+@test isa(I, SparseOpType)
 @test dense(I) == Idense
 @test 1e-11 > D(xbra1*I, xbra1)
-@test I == identityoperator(SparseOperator, b1a) ⊗ identityoperator(SparseOperator, b2a) ⊗ identityoperator(SparseOperator, b3a)
+@test I == identityoperator(SparseOpType, b1a) ⊗ identityoperator(SparseOpType, b2a) ⊗ identityoperator(SparseOpType, b3a)
 
 
 # Test tr and normalize
@@ -245,25 +245,25 @@ xbra = dagger(xket)
 state = randstate(b_r)
 result_ = randstate(b_l)
 result = deepcopy(result_)
-QuantumOpticsBase.gemv!(complex(1.0), op, state, complex(0.), result)
+QuantumOpticsBase.mul!(result,op,state,complex(1.0),complex(0.))
 @test 1e-13 > D(result, op_*state)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemv!(alpha, op, state, beta, result)
+QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-13 > D(result, alpha*op_*state + beta*result_)
 
 state = dagger(randstate(b_l))
 result_ = dagger(randstate(b_r))
 result = deepcopy(result_)
-QuantumOpticsBase.gemv!(complex(1.0), state, op, complex(0.), result)
+QuantumOpticsBase.mul!(result,state,op,complex(1.0),complex(0.))
 @test 1e-13 > D(result, state*op_)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemv!(alpha, state, op, beta, result)
+QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-13 > D(result, alpha*state*op_ + beta*result_)
 
 # Test gemm small version
@@ -277,26 +277,44 @@ op_ = dense(op)
 state = randoperator(b2, b3)
 result_ = randoperator(b1, b3)
 result = deepcopy(result_)
-QuantumOpticsBase.gemm!(complex(1.), op, state, complex(0.), result)
+QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-12 > D(result, op_*state)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemm!(alpha, op, state, beta, result)
+QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
 state = randoperator(b3, b1)
 result_ = randoperator(b3, b2)
 result = deepcopy(result_)
-QuantumOpticsBase.gemm!(complex(1.), state, op, complex(0.), result)
+QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*op_)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemm!(alpha, state, op, beta, result)
+QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
+
+state = randoperator(b1, b3)
+result_ = randoperator(b2, b3)
+result = deepcopy(result_)
+result = deepcopy(result_)
+alpha = complex(1.5)
+beta = complex(2.1)
+QuantumOpticsBase.mul!(result,op',state,alpha,beta) # gemm! with lazy adjoint sparse
+@test 1e-12 > D(result, alpha*op_'*state + beta*result_)
+
+state = randoperator(b1, b2)
+result_ = randoperator(b1, b1)
+result = deepcopy(result_)
+result = deepcopy(result_)
+alpha = complex(1.5)
+beta = complex(2.1)
+QuantumOpticsBase.mul!(result,state,op',alpha,beta) # gemm! with lazy adjoint sparse
+@test 1e-12 > D(result, alpha*state*op_' + beta*result_)
 
 # Test gemm big version
 b1 = GenericBasis(50)
@@ -309,26 +327,35 @@ op_ = dense(op)
 state = randoperator(b2, b3)
 result_ = randoperator(b1, b3)
 result = deepcopy(result_)
-QuantumOpticsBase.gemm!(complex(1.), op, state, complex(0.), result)
+QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-11 > D(result, op_*state)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemm!(alpha, op, state, beta, result)
+QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
 state = randoperator(b3, b1)
 result_ = randoperator(b3, b2)
 result = deepcopy(result_)
-QuantumOpticsBase.gemm!(complex(1.), state, op, complex(0.), result)
+QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-11 > D(result, state*op_)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
-QuantumOpticsBase.gemm!(alpha, state, op, beta, result)
+QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+
+state = randoperator(b1, b2)
+result_ = randoperator(b1, b1)
+result = deepcopy(result_)
+result = deepcopy(result_)
+alpha = complex(1.5)
+beta = complex(2.1)
+QuantumOpticsBase.mul!(result,state,op',alpha,beta) # gemm! with lazy adjoint sparse
+@test 1e-11 > D(result, alpha*state*op_' + beta*result_)
 
 # Test remaining uncovered code
 @test_throws DimensionMismatch SparseOperator(b1, b2, zeros(10, 10))
@@ -350,8 +377,8 @@ bnlevel = NLevelBasis(2)
 @test_throws DimensionMismatch op1 .+ op2
 @test op1 .+ op1 == op1 + op1
 op1 .= DenseOperator(op1)
-@test isa(op1, SparseOperator)
-@test isa(op1 .+ DenseOperator(op1), DenseOperator)
+@test isa(op1, SparseOpType)
+# @test isa(op1 .+ DenseOperator(op1), DenseOpType) # Broadcasting of sparse .+ dense matrix results in sparse
 op3 = sprandop(FockBasis(1),FockBasis(2))
 @test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
 @test_throws QuantumOpticsBase.IncompatibleBases op1 .= op3

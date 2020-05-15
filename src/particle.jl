@@ -263,13 +263,15 @@ Abstract type for all implementations of FFT operators.
 """
 abstract type FFTOperator{BL<:Basis, BR<:Basis, T} <: AbstractOperator{BL,BR} end
 
+Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_after))
+
 """
     FFTOperators
 
 Operator performing a fast fourier transformation when multiplied with a state
 that is a Ket or an Operator.
 """
-mutable struct FFTOperators{BL<:Basis,BR<:Basis,T<:Array{ComplexF64},P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
+mutable struct FFTOperators{BL<:Basis,BR<:Basis,T<:Array,P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
     basis_l::BL
     basis_r::BR
     fft_l!::P1
@@ -295,7 +297,7 @@ end
 Operator that can only perform fast fourier transformations on Kets.
 This is much more memory efficient when only working with Kets.
 """
-mutable struct FFTKets{BL<:Basis,BR<:Basis,T<:Array{ComplexF64},P1,P2} <: FFTOperator{BL, BR, T}
+mutable struct FFTKets{BL<:Basis,BR<:Basis,T<:Array,P1,P2} <: FFTOperator{BL, BR, T}
     basis_l::BL
     basis_r::BR
     fft_l!::P1
@@ -474,7 +476,7 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index::V
     end
 end
 
-dense(op::FFTOperator) = op*identityoperator(DenseOperator, op.basis_r)
+DenseOperator(op::FFTOperator) = op*identityoperator(DenseOpType, op.basis_r)
 
 dagger(op::FFTOperators) = transform(op.basis_r, op.basis_l)
 dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
@@ -482,7 +484,7 @@ dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
 tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r))
 tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
 
-function gemv!(alpha_, M::FFTOperator{B1,B2}, b::Ket{B2}, beta_, result::Ket{B1}) where {B1<:Basis,B2<:Basis}
+function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     N::Int = length(M.basis_r)
@@ -504,10 +506,10 @@ function gemv!(alpha_, M::FFTOperator{B1,B2}, b::Ket{B2}, beta_, result::Ket{B1}
             result.data[i] = beta*result.data[i] + alpha * psi_.data[i] * M.mul_after[i]
         end
     end
-    nothing
+    result
 end
 
-function gemv!(alpha_, b::Bra{B1}, M::FFTOperator{B1,B2}, beta_, result::Bra{B2}) where {B1<:Basis,B2<:Basis}
+function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     N::Int = length(M.basis_l)
@@ -529,14 +531,14 @@ function gemv!(alpha_, b::Bra{B1}, M::FFTOperator{B1,B2}, beta_, result::Bra{B2}
             result.data[i] = beta*result.data[i] + alpha * conj(psi_.data[i]) * M.mul_before[i]
         end
     end
-    nothing
+    result
 end
 
-function gemm!(alpha_, A::DenseOperator{B1,B2}, B::FFTOperators{B2,B3}, beta_, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)
-        data = Matrix{ComplexF64}(undef, size(result.data, 1), size(result.data, 2))
+        data = similar(result.data, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
     end
@@ -559,14 +561,14 @@ function gemm!(alpha_, A::DenseOperator{B1,B2}, B::FFTOperators{B2,B3}, beta_, r
         rmul!(result.data, beta)
         result.data += data
     end
-    nothing
+    result
 end
 
-function gemm!(alpha_, A::FFTOperators{B1,B2}, B::DenseOperator{B2,B3}, beta_, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     if beta != Complex(0.)
-        data = Matrix{ComplexF64}(undef, size(result.data, 1), size(result.data, 2))
+        data = similar(result.data, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
     end
@@ -587,5 +589,5 @@ function gemm!(alpha_, A::FFTOperators{B1,B2}, B::DenseOperator{B2,B3}, beta_, r
         rmul!(result.data, beta)
         result.data += data
     end
-    nothing
+    result
 end

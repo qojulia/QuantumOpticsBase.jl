@@ -9,7 +9,7 @@ All deriving operator classes have to define the fields
 `basis_l` and `basis_r` defining the left and right side bases.
 
 For fast time evolution also at least the function
-`gemv!(alpha, op::AbstractOperator, x::Ket, beta, result::Ket)` should be
+`mul!(result::Ket,op::AbstractOperator,x::Ket,alpha,beta)` should be
 implemented. Many other generic multiplication functions can be defined in
 terms of this function and are provided automatically.
 """
@@ -55,7 +55,7 @@ Base.adjoint(a::AbstractOperator) = dagger(a)
 conj(a::AbstractOperator) = arithmetic_unary_error("Complex conjugate", a)
 conj!(a::AbstractOperator) = conj(a::AbstractOperator)
 
-dense(a::AbstractOperator) = arithmetic_unary_error("Conversion to dense", a)
+# dense(a::AbstractOperator) = arithmetic_unary_error("Conversion to dense", a)
 
 transpose(a::AbstractOperator) = arithmetic_unary_error("Transpose", a)
 
@@ -324,29 +324,6 @@ identityoperator(op::T) where {T<:AbstractOperator} = identityoperator(T, op.bas
 one(b::Basis) = identityoperator(b)
 one(op::AbstractOperator) = identityoperator(op)
 
-
-# Fast in-place multiplication
-"""
-    gemv!(alpha, a, b, beta, result)
-
-Fast in-place multiplication of operators with state vectors. It
-implements the relation `result = beta*result + alpha*a*b`.
-Here, `alpha` and `beta` are complex numbers, while `result` and either `a`
-or `b` are state vectors while the other one can be of any operator type.
-"""
-gemv!() = error("Not Implemented.")
-
-"""
-    gemm!(alpha, a, b, beta, result)
-
-Fast in-place multiplication of of operators with DenseOperators. It
-implements the relation `result = beta*result + alpha*a*b`.
-Here, `alpha` and `beta` are complex numbers, while `result` and either `a`
-or `b` are dense operators while the other one can be of any operator type.
-"""
-gemm!() = error("Not Implemented.")
-
-
 # Helper functions to check validity of arguments
 function check_ptrace_arguments(a::AbstractOperator, indices::Vector{Int})
     if !isa(a.basis_l, CompositeBasis) || !isa(a.basis_r, CompositeBasis)
@@ -380,3 +357,6 @@ check_samebases(a::AbstractOperator) = check_samebases(a.basis_l, a.basis_r)
 multiplicable(a::AbstractOperator, b::Ket) = multiplicable(a.basis_r, b.basis)
 multiplicable(a::Bra, b::AbstractOperator) = multiplicable(a.basis, b.basis_l)
 multiplicable(a::AbstractOperator, b::AbstractOperator) = multiplicable(a.basis_r, b.basis_l)
+
+Base.size(op::AbstractOperator) = prod(length(op.basis_l),length(op.basis_r))
+Base.size(op::AbstractOperator, i::Int) = (i==1 ? length(op.basis_l) : length(op.basis_r))

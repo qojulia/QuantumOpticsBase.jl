@@ -87,8 +87,8 @@ idx = LinearIndices(shape)[1, 4, 3]
 
 # Norm
 bf = FockBasis(1)
-bra = Bra(bf, [3im, -4])
-ket = Ket(bf, [-4im, 3])
+bra = Bra(bf, [3.0im, -4])
+ket = Ket(bf, [-4.0im, 3])
 @test 5 ≈ norm(bra)
 @test 5 ≈ norm(ket)
 

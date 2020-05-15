@@ -12,7 +12,7 @@ T(ρ) = Tr\\{\\sqrt{ρ^† ρ}\\}.
 Depending if `rho` is hermitian either [`tracenorm_h`](@ref) or
 [`tracenorm_nh`](@ref) is called.
 """
-function tracenorm(rho::DenseOperator{B,B}) where B<:Basis
+function tracenorm(rho::DenseOpType)
     ishermitian(rho) ? tracenorm_h(rho) : tracenorm_nh(rho)
 end
 function tracenorm(rho::T) where T<:AbstractOperator
@@ -32,7 +32,7 @@ T(ρ) = Tr\\{\\sqrt{ρ^† ρ}\\} = \\sum_i |λ_i|
 
 where ``λ_i`` are the eigenvalues of `rho`.
 """
-function tracenorm_h(rho::DenseOperator{B,B}) where B<:Basis
+function tracenorm_h(rho::DenseOpType{B,B}) where B<:Basis
     s = eigvals(Hermitian(rho.data))
     sum(abs.(s))
 end
@@ -57,8 +57,8 @@ It uses the identity
 
 where ``σ_i`` are the singular values of `rho`.
 """
-tracenorm_nh(rho::DenseOperator) = sum(svdvals(rho.data))
-function tracenorm_nh(rho::T) where T<:AbstractOperator
+tracenorm_nh(rho::DenseOpType) = sum(svdvals(rho.data))
+function tracenorm_nh(rho::AbstractOperator)
     throw(ArgumentError("tracenorm_nh not implemented for $(typeof(rho)). Use dense operators instead."))
 end
 
@@ -77,7 +77,7 @@ T(ρ,σ) = \\frac{1}{2} Tr\\{\\sqrt{(ρ - σ)^† (ρ - σ)}\\}.
 It calls [`tracenorm`](@ref) which in turn either uses [`tracenorm_h`](@ref)
 or [`tracenorm_nh`](@ref) depending if ``ρ-σ`` is hermitian or not.
 """
-tracedistance(rho::T, sigma::T) where T<:DenseOperator = 0.5*tracenorm(rho - sigma)
+tracedistance(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B<:Basis} = 0.5*tracenorm(rho - sigma)
 function tracedistance(rho::AbstractOperator, sigma::AbstractOperator)
     throw(ArgumentError("tracedistance not implemented for $(typeof(rho)) and $(typeof(sigma)). Use dense operators instead."))
 end
@@ -95,7 +95,7 @@ T(ρ,σ) = \\frac{1}{2} Tr\\{\\sqrt{(ρ - σ)^† (ρ - σ)}\\} = \\frac{1}{2} \
 
 where ``λ_i`` are the eigenvalues of `rho` - `sigma`.
 """
-tracedistance_h(rho::T, sigma::T) where {B<:Basis,T<:DenseOperator{B,B}}= 0.5*tracenorm_h(rho - sigma)
+tracedistance_h(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B<:Basis}= 0.5*tracenorm_h(rho - sigma)
 function tracedistance_h(rho::AbstractOperator, sigma::AbstractOperator)
     throw(ArgumentError("tracedistance_h not implemented for $(typeof(rho)) and $(typeof(sigma)). Use dense operators instead."))
 end
@@ -117,7 +117,7 @@ It uses the identity
 
 where ``σ_i`` are the singular values of `rho` - `sigma`.
 """
-tracedistance_nh(rho::T, sigma::T) where {T<:DenseOperator} = 0.5*tracenorm_nh(rho - sigma)
+tracedistance_nh(rho::DenseOpType{B1,B2}, sigma::DenseOpType{B1,B2}) where {B1<:Basis,B2<:Basis} = 0.5*tracenorm_nh(rho - sigma)
 function tracedistance_nh(rho::AbstractOperator, sigma::AbstractOperator)
     throw(ArgumentError("tracedistance_nh not implemented for $(typeof(rho)) and $(typeof(sigma)). Use dense operators instead."))
 end
@@ -141,7 +141,7 @@ natural logarithm and ``0\\log(0) ≡ 0``.
 * `rho`: Density operator of which to calculate Von Neumann entropy.
 * `tol=1e-15`: Tolerance for rounding errors in the computed eigenvalues.
 """
-function entropy_vn(rho::DenseOperator{B,B}; tol::Float64=1e-15) where B<:Basis
+function entropy_vn(rho::DenseOpType{B,B}; tol::Float64=1e-15) where B<:Basis
     evals::Vector{ComplexF64} = eigvals(rho.data)
     evals[abs.(evals) .< tol] .= 0.0im
     sum([d == 0.0im ? 0.0im : -d*log(d) for d=evals])
@@ -159,7 +159,7 @@ The Renyi α-entropy of a density operator is defined as
 S_α(ρ) = 1/(1-α) \\log(Tr(ρ^α))
 ```
 """
-function entropy_renyi(rho::DenseOperator{B,B}, α::Integer=2) where B<:Basis
+function entropy_renyi(rho::DenseOpType{B,B}, α::Integer=2) where B<:Basis
     α <  0 && throw(ArgumentError("α-Renyi entropy is defined for α≥0, α≂̸1"))
     α == 1 && throw(ArgumentError("α-Renyi entropy is defined for α≥0, α≂̸1"))
 
@@ -181,7 +181,7 @@ F(ρ, σ) = Tr\\left(\\sqrt{\\sqrt{ρ}σ\\sqrt{ρ}}\\right),
 
 where ``\\sqrt{ρ}=\\sum_n\\sqrt{λ_n}|ψ⟩⟨ψ|``.
 """
-fidelity(rho::T, sigma::T) where {B<:Basis,T<:DenseOperator{B,B}} = tr(sqrt(sqrt(rho.data)*sigma.data*sqrt(rho.data)))
+fidelity(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B<:Basis} = tr(sqrt(sqrt(rho.data)*sigma.data*sqrt(rho.data)))
 
 
 """
@@ -189,7 +189,7 @@ fidelity(rho::T, sigma::T) where {B<:Basis,T<:DenseOperator{B,B}} = tr(sqrt(sqrt
 
 Partial transpose of rho with respect to subspace specified by index.
 """
-function ptranspose(rho::DenseOperator{B,B}, index::Int=1) where B<:CompositeBasis
+function ptranspose(rho::DenseOpType{B,B}, index::Int=1) where B<:CompositeBasis
 
     # Define permutation
     N = length(rho.basis_l.bases)
@@ -216,7 +216,7 @@ end
 
 Peres-Horodecki criterion of partial transpose.
 """
-PPT(rho::DenseOperator{B,B}, index::Int) where B<:CompositeBasis = all(real.(eigvals(ptranspose(rho, index).data)) .>= 0.0)
+PPT(rho::DenseOpType{B,B}, index::Int) where B<:CompositeBasis = all(real.(eigvals(ptranspose(rho, index).data)) .>= 0.0)
 
 
 """
@@ -231,7 +231,7 @@ N(ρ) = \\|ρᵀ\\|,
 ```
 where `ρᵀ` is the partial transpose.
 """
-negativity(rho::DenseOperator{B,B}, index::Int) where B<:CompositeBasis = 0.5*(tracenorm(ptranspose(rho, index)) - 1.0)
+negativity(rho::DenseOpType{B,B}, index::Int) where B<:CompositeBasis = 0.5*(tracenorm(ptranspose(rho, index)) - 1.0)
 
 
 """
@@ -244,7 +244,7 @@ N(ρ) = \\log₂\\|ρᵀ\\|,
 ```
 where `ρᵀ` is the partial transpose.
 """
-logarithmic_negativity(rho::DenseOperator{B,B}, index::Int) where B<:CompositeBasis = log(2, tracenorm(ptranspose(rho, index)))
+logarithmic_negativity(rho::DenseOpType{B,B}, index::Int) where B<:CompositeBasis = log(2, tracenorm(ptranspose(rho, index)))
 
 
 """
@@ -280,7 +280,7 @@ function entanglement_entropy(psi::Ket{B}, partition::Vector{Int}, entropy_fun=e
     return entropy_fun(rho)
 end
 
-function entanglement_entropy(rho::DenseOperator{B,B}, partition::Vector{Int}, args...) where {B<:CompositeBasis}
+function entanglement_entropy(rho::DenseOpType{B,B}, partition::Vector{Int}, args...) where {B<:CompositeBasis}
     # check that sites is within the range
     hilb = rho.basis_l
     all(partition .<= length(hilb.bases)) || throw(ArgumentError("Indices in partition must be within the bounds of the composite basis."))
