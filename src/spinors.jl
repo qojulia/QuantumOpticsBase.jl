@@ -83,7 +83,20 @@ end
 Compute the direct sum of two operators. The result is an operator on the
 corresponding [`SumBasis`](@ref).
 """
-directsum(a::DataOperator, b::DataOperator) = Operator(directsum(a.basis_l, b.basis_l), directsum(a.basis_r, b.basis_r), hcat([a.data; zeros(size(b))], [zeros(size(a)); b.data]))
+function directsum(a::DataOperator, b::DataOperator)
+    dType = promote_type(eltype(a),eltype(b))
+    data = zeros(dType, size(a,1)+size(b,1), size(a,2)+size(b,2))
+    data[1:size(a,1),1:size(a,2)] = a.data
+    data[size(a,1)+1:end, size(a,2)+1:end] = b.data
+    return Operator(directsum(a.basis_l, b.basis_l), directsum(a.basis_r, b.basis_r), data)
+end
+function directsum(a::SparseOpType, b::SparseOpType)
+    dType = promote_type(eltype(a),eltype(b))
+    data = spzeros(dType, size(a,1)+size(b,1), size(a,2)+size(b,2))
+    data[1:size(a,1),1:size(a,2)] = a.data
+    data[size(a,1)+1:end, size(a,2)+1:end] = b.data
+    return Operator(directsum(a.basis_l, b.basis_l), directsum(a.basis_r, b.basis_r), data)
+end
 directsum(a::AbstractOperator...) = reduce(directsum, a)
 
 """
@@ -124,12 +137,24 @@ mutable struct LazyDirectSum{BL<:SumBasis, BR<:SumBasis, T<:Tuple{Vararg{Abstrac
     basis_r::BR
     operators::T
 end
+
+# Methods
 LazyDirectSum(op1::AbstractOperator, op2::AbstractOperator) = LazyDirectSum(directsum(op1.basis_l,op2.basis_l),directsum(op1.basis_r,op2.basis_r),(op1,op2))
+LazyDirectSum(op1::LazyDirectSum, op2::AbstractOperator) = LazyDirectSum(directsum(op1.basis_l,op2.basis_l),directsum(op1.basis_r,op2.basis_r),(op1.operators...,op2))
+LazyDirectSum(op1::AbstractOperator, op2::LazyDirectSum) = LazyDirectSum(directsum(op1.basis_l,op2.basis_l),directsum(op1.basis_r,op2.basis_r),(op1,op2.operators...))
+LazyDirectSum(op1::LazyDirectSum, op2::LazyDirectSum) = LazyDirectSum(directsum(op1.basis_l,op2.basis_l),directsum(op1.basis_r,op2.basis_r),(op1.operators...,op2.operators...))
 LazyDirectSum(op::AbstractOperator...) = reduce(LazyDirectSum, op)
+
+# Algebra
 dense(x::LazyDirectSum) = directsum(dense.(x.operators)...)
 *(op1::LazyDirectSum{B1,B2},op2::LazyDirectSum{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}= LazyDirectSum(op1.basis_l,op2.basis_r,Tuple(op1.operators[i]*op2.operators[i] for i=1:length(op1.operators)))
 -(op::LazyDirectSum) = LazyDirectSum([-op.operators[1];op.operators[2:end]]...)
 +(op1::LazyDirectSum{B1,B2},op2::LazyDirectSum{B1,B2}) where {B1<:Basis,B2<:Basis} = LazyDirectSum((op1.operators .+ op2.operators)...)
+dagger(op::LazyDirectSum) = LazyDirectSum(op.basis_r, op.basis_l, dagger.(op.operators))
+
+directsum(op1::AbstractOperator,op2::LazyDirectSum) = LazyDirectSum(op1,op2)
+directsum(op1::LazyDirectSum,op2::AbstractOperator) = LazyDirectSum(op1,op2)
+directsum(op1::LazyDirectSum,op2::LazyDirectSum) = LazyDirectSum(op1,op2)
 
 # Use lazy sum for FFTOperator
 transform(b1::SumBasis,b2::SumBasis; kwargs...) = LazyDirectSum([transform(b1.bases[i],b2.bases[i];kwargs...) for i=1:length(b1.bases)]...)

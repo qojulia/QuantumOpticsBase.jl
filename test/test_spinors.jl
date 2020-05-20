@@ -1,8 +1,56 @@
 using QuantumOpticsBase
 using Test
-
+using Random
 
 @testset "spinors" begin
+
+Random.seed!(0)
+
+D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
+
+b1a = GenericBasis(2)
+b1b = GenericBasis(3)
+b2a = GenericBasis(1)
+b2b = GenericBasis(4)
+b3a = GenericBasis(1)
+b3b = GenericBasis(5)
+
+b_l = b1a⊕b2a⊕b3a
+b_r = b1b⊕b2b⊕b3b
+
+op1a = randoperator(b1a, b1b)
+op1b = randoperator(b1a, b1b)
+op2a = randoperator(b2a, b2b)
+op2b = randoperator(b2a, b2b)
+op3a = randoperator(b3a, b3b)
+op123 = op1a ⊕ op2a ⊕ op3a
+@test op123.basis_l == b_l
+@test op123.basis_r == b_r
+
+# Associativity
+@test 1e-13 > D((op1a ⊕ op2a) ⊕ op3a, op1a ⊕ (op2a ⊕ op3a))
+@test 1e-13 > D(op1a ⊕ op2a ⊕ op3a, op1a ⊕ (op2a ⊕ op3a))
+
+# Mixed-product property
+@test 1e-13 > D((op1a ⊕ op2a) * dagger(op1b ⊕ op2b), (op1a*dagger(op1b)) ⊕ (op2a*dagger(op2b)))
+
+# Transpose
+@test 1e-13 > D(dagger(op1a ⊕ op2a), dagger(op1a) ⊕ dagger(op2a))
+@test 1e-13 > D(dagger(op1a ⊕ op2a), dagger(op1a) ⊕ dagger(op2a))
+
+# Sparse version
+@test isa(sparse(op1a)⊕sparse(op2a)⊕sparse(op3a), SparseOpType)
+
+# Test lazy implementation
+L = LazyDirectSum(op1a,op2a)
+@test 1e-13 > D(op1a⊕op2a, L)
+@test 1e-13 > D(2*(op1a⊕op2a), L+L)
+@test isa(L ⊕ op3a, LazyDirectSum)
+@test 1e-13 > D(op1a ⊕ op2a ⊕ op3a, L ⊕ op3a)
+@test 1e-13 > D((op1a⊕op2a)*dagger(op1a⊕op2a), L*L')
+
+
+### Test example
 
 # Define x-space
 Nunitcells=2
