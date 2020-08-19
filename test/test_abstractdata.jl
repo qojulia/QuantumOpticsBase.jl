@@ -29,12 +29,11 @@ function randtestoperator(args...)
     return Operator(op_.basis_l,op_.basis_r,TestData(copy(op_.data)))
 end
 
-
-@testset "abstract-data" begin
-
 D(a::DataOperator,b::DataOperator,tol=1e-14) = isapprox(a.data,b.data,atol=tol)
 D(a::StateVector,b::StateVector,tol=1e-14) = isapprox(a.data,b.data,atol=tol)
 D(a::AbstractOperator,b::AbstractOperator,tol=1e-12) = (tol > abs(tracedistance_nh(dense(a), dense(b))))
+
+@testset "abstract-data" begin
 
 Random.seed!(0)
 
@@ -104,7 +103,7 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test D((xbra1+0.3*xbra2)*(op1+op2), xbra1*op1 + 0.3*xbra2*op1 + xbra1*op2 + 0.3*xbra2*op2)
 
 @test D(op1*dagger(0.3*op2), 0.3*dagger(op2*dagger(op1)))
-@test D((op1 + op2)*dagger(0.3*op3), 0.3*op1*dagger(op3) + 0.3*op2*dagger(op3))
+@test D((op1 + op2)*dagger(0.3*op3), 0.3*op1*dagger(op3) + 0.3*op2*dagger(op3), 1e-12)
 @test D(0.3*(op1*dagger(op2)), op1*(0.3*dagger(op2)))
 
 tmp = copy(op1)

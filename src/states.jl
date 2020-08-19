@@ -59,6 +59,11 @@ basis(a::StateVector) = a.basis
 ==(x::Ket, y::Ket) = false
 ==(x::Bra, y::Bra) = false
 
+Base.isapprox(x::Ket{B}, y::Ket{B}; kwargs...) where {B<:Basis} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
+Base.isapprox(x::Bra{B}, y::Bra{B}; kwargs...) where {B<:Basis} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
+Base.isapprox(x::Ket, y::Ket; kwargs...) = false
+Base.isapprox(x::Bra, y::Bra; kwargs...) = false
+
 # Arithmetic operations
 +(a::Ket{B}, b::Ket{B}) where {B<:Basis} = Ket(a.basis, a.data+b.data)
 +(a::Bra{B}, b::Bra{B}) where {B<:Basis} = Bra(a.basis, a.data+b.data)

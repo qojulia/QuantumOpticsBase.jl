@@ -57,6 +57,8 @@ dense(x::AbstractOperator) = DenseOperator(x)
 
 ==(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL<:Basis,BR<:Basis} = (samebases(x,y) && x.data==y.data)
 ==(x::DataOperator, y::DataOperator) = false
+Base.isapprox(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}; kwargs...) where {BL<:Basis,BR<:Basis} = (samebases(x,y) && isapprox(x.data, y.data; kwargs...))
+Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = false
 
 # Arithmetic operations
 +(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL<:Basis,BR<:Basis} = Operator(a.basis_l, a.basis_r, a.data+b.data)

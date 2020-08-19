@@ -65,8 +65,8 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 @test_throws QuantumOpticsBase.IncompatibleBases embed(b1⊗b2, [2], [op1])
 
 b_comp = b⊗b
-@test embed(b_comp, [1,[3,4]], [op1,op]) == dense(op1 ⊗ one(b2) ⊗ op)
-@test embed(b_comp, [[1,2],4], [op,op2]) == dense(op ⊗ one(b1) ⊗ op2)
+@test isapprox(embed(b_comp, [1,[3,4]], [op1,op]), dense(op1 ⊗ one(b2) ⊗ op))
+@test isapprox(embed(b_comp, [[1,2],4], [op,op2]), dense(op ⊗ one(b1) ⊗ op2))
 @test_throws QuantumOpticsBase.IncompatibleBases embed(b_comp, [[1,2],3], [op,op2])
 @test_throws QuantumOpticsBase.IncompatibleBases embed(b_comp, [[1,3],4], [op,op2])
 
@@ -102,7 +102,7 @@ m12 = reshape([Bra(b_comp, bv(0,idx,jdx,0)) * embed_op * Ket(b_comp, bv(1,kdx,ld
 b_comp = b_comp⊗b_comp
 OP_test1 = dense(tensor([op1,one(b2),op,one(b1),one(b2),op1,one(b2)]...))
 OP_test2 = embed(b_comp, [1,[3,4],7], [op1,op,op1])
-@test isapprox(OP_test1.data, OP_test2.data)
+@test isapprox(OP_test1, OP_test2)
 
 b8 = b2⊗b2⊗b2
 cnot = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0]
