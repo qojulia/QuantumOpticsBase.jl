@@ -32,6 +32,24 @@ u2 = Ket[1.5*fockstate(b, 1), fockstate(b, 1) + fockstate(b, 2)]
 bu2_orth = QuantumOpticsBase.orthonormalize(SubspaceBasis(u))
 @test bu2_orth.basisstates == bu.basisstates
 
+# Test sparse version
+T1 = projector(bu, b; sparse=true)
+T2 = projector(bv, b; sparse=true)
+T12 = projector(bu, bv; sparse=true)
+
+@test isa(T1, SparseOpType)
+
+state_u = Ket(bu, [0, 1])
+state_v = Ket(bv, [1., 0])
+
+@test T1*state == state_u
+@test T2*state == state_v
+
+state_v = Ket(bv, [1, -1])
+state_u = Ket(bu, [-1, 1])
+
+@test T12*state_v == state_u
+
 # Test errors
 b2 = FockBasis(4)
 @test_throws ArgumentError SubspaceBasis(b2, u)

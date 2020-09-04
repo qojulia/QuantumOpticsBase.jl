@@ -53,37 +53,47 @@ end
 
 
 """
-    projector(b1, b2)
+    projector(b1, b2; sparse=false)
 
 Projection operator between subspaces and superspaces or between two subspaces.
 """
-function projector(b1::SubspaceBasis, b2::SubspaceBasis)
+function projector(b1::SubspaceBasis, b2::SubspaceBasis; kwargs...)
     if b1.superbasis != b2.superbasis
         throw(ArgumentError("Both subspace bases have to have the same superbasis."))
     end
-    T1 = projector(b1, b1.superbasis)
-    T2 = projector(b2.superbasis, b2)
+    T1 = projector(b1, b1.superbasis; kwargs...)
+    T2 = projector(b2.superbasis, b2; kwargs...)
     return T1*T2
 end
 
-function projector(b1::SubspaceBasis, b2::Basis)
+function projector(b1::SubspaceBasis, b2::Basis; sparse=false)
     if b1.superbasis != b2
         throw(ArgumentError("Second basis has to be the superbasis of the first one."))
     end
-    data = zeros(ComplexF64, length(b1), length(b2))
+    T = promote_type(eltype.(b1.basisstates)...)
+    if sparse
+        data = spzeros(T, length(b1), length(b2))
+    else
+        data = zeros(T, length(b1), length(b2))
+    end
     for (i, state) = enumerate(b1.basisstates)
         data[i,:] = state.data
     end
-    return DenseOperator(b1, b2, data)
+    return Operator(b1, b2, data)
 end
 
-function projector(b1::Basis, b2::SubspaceBasis)
+function projector(b1::Basis, b2::SubspaceBasis; sparse=false)
     if b1 != b2.superbasis
         throw(ArgumentError("First basis has to be the superbasis of the second one."))
     end
-    data = zeros(ComplexF64, length(b1), length(b2))
+    T = promote_type(eltype.(b2.basisstates)...)
+    if sparse
+        data = spzeros(T, length(b1), length(b2))
+    else
+        data = zeros(T, length(b1), length(b2))
+    end
     for (i, state) = enumerate(b2.basisstates)
         data[:,i] = state.data
     end
-    return DenseOperator(b1, b2, data)
+    return Operator(b1, b2, data)
 end
