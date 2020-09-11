@@ -173,7 +173,7 @@ function permutesystems(a::Operator{B1,B2}, perm::Vector{Int}) where {B1<:Compos
 end
 permutesystems(a::AdjointOperator{B1,B2}, perm::Vector{Int}) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
 
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where {BL,BR,dType,T<:DenseOpType} = Operator(b1, b2, Matrix{ComplexF64}(I, length(b1), length(b2)))
+identityoperator(::Type{T}, b1::Basis, b2::Basis) where {BL,BR,dType,T<:DenseOpType} = Operator(b1, b2, Matrix{eltype(T)}(I, length(b1), length(b2)))
 
 """
     projector(a::Ket, b::Bra)

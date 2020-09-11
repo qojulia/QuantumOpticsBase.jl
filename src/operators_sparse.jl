@@ -14,7 +14,7 @@ Sparse array implementation of Operator.
 The matrix is stored as the julia built-in type `SparseMatrixCSC`
 in the `data` field.
 """
-SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, SparseMatrixCSC{ComplexF64,Int}(data))
+SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, sparse(data))
 SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC{ComplexF64,Int}) = Operator(b1, b2, data)
 SparseOperator(b::Basis, data) = SparseOperator(b, b, data)
 SparseOperator(op::DataOperator) = SparseOperator(op.basis_l, op.basis_r, op.data)
@@ -57,7 +57,7 @@ function permutesystems(rho::SparseOpPureType{B1,B2}, perm::Vector{Int}) where {
     SparseOperator(permutesystems(rho.basis_l, perm), permutesystems(rho.basis_r, perm), data)
 end
 
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where {T<:DataOperator} = SparseOperator(b1, b2, sparse(ComplexF64(1)*I, length(b1), length(b2)))
+identityoperator(::Type{T}, b1::Basis, b2::Basis) where {T<:DataOperator} = SparseOperator(b1, b2, sparse(I, length(b1), length(b2)))
 identityoperator(b1::Basis, b2::Basis) = identityoperator(DataOperator, b1, b2)
 identityoperator(b::Basis) = identityoperator(b, b)
 
