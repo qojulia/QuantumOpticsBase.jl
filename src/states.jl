@@ -45,10 +45,10 @@ Ket{B}(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
 Bra(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
 Ket(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
 
-Bra{B}(b::B) where B<:Basis = Bra{B}(b, zeros(ComplexF64, length(b)))
-Ket{B}(b::B) where B<:Basis = Ket{B}(b, zeros(ComplexF64, length(b)))
-Bra(b::Basis) = Bra(b, zeros(ComplexF64, length(b)))
-Ket(b::Basis) = Ket(b, zeros(ComplexF64, length(b)))
+Bra{B}(b::B; type::Type=ComplexF64) where B<:Basis = Bra{B}(b, zeros(type, length(b)))
+Ket{B}(b::B; type::Type=ComplexF64) where B<:Basis = Ket{B}(b, zeros(type, length(b)))
+Bra(b::Basis; type::Type=ComplexF64) = Bra(b, zeros(type, length(b)))
+Ket(b::Basis; type::Type=ComplexF64) = Ket(b, zeros(type, length(b)))
 
 copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
 length(a::StateVector) = length(a.basis)::Int
@@ -156,16 +156,16 @@ Basis vector specified by `index` as ket state.
 For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
-function basisstate(b::Basis, indices::Vector{Int})
+function basisstate(b::Basis, indices::Vector{Int}, type = ComplexF64)
     @assert length(b.shape) == length(indices)
-    x = zeros(ComplexF64, length(b))
-    x[LinearIndices(tuple(b.shape...))[indices...]] = Complex(1.)
+    x = zeros(type, length(b))
+    x[LinearIndices(tuple(b.shape...))[indices...]] = type(1.)
     Ket(b, x)
 end
 
-function basisstate(b::Basis, index::Int)
-    data = zeros(ComplexF64, length(b))
-    data[index] = Complex(1.)
+function basisstate(b::Basis, index::Int, type = ComplexF64)
+    data = zeros(type, length(b))
+    data[index] = type(1.)
     Ket(b, data)
 end
 
