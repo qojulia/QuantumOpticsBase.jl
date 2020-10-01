@@ -27,7 +27,7 @@ function LazySum(factors::F, operators::T) where {BL<:Basis,BR<:Basis,F<:Vector{
     end
     LazySum{BL,BR,F,T}(factors, operators)
 end
-LazySum(operators::AbstractOperator...) = LazySum(ones(ComplexF64, length(operators)), (operators...,))
+LazySum(operators::AbstractOperator...) = LazySum(ones(promote_type(eltype.(operators)...), length(operators)), (operators...,))
 LazySum(factors::Vector{T}, operators::Vector{T2}) where {T<:Number,B1<:Basis,B2<:Basis,T2<:AbstractOperator{B1,B2}} = LazySum(complex(factors), (operators...,))
 LazySum() = throw(ArgumentError("LazySum needs at least one operator!"))
 
