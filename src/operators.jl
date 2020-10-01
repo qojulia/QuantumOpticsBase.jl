@@ -1,5 +1,5 @@
 import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!, transpose
-import LinearAlgebra: tr, ishermitian
+import LinearAlgebra: tr, ishermitian, issymmetric
 import SparseArrays: sparse
 
 """
@@ -65,6 +65,14 @@ transpose(a::AbstractOperator) = arithmetic_unary_error("Transpose", a)
 Check if an operator is Hermitian.
 """
 ishermitian(op::AbstractOperator) = arithmetic_unary_error(ishermitian, op)
+
+
+"""
+    issymmetric(op::AbstractOperator)
+
+Check if an operator is symmetric.
+"""
+issymmetric(op::AbstractOperator) = arithmetic_unary_error(issymmetric, op)
 
 
 """

@@ -103,6 +103,10 @@ dagger(x::Operator) = Operator(x.basis_r,x.basis_l,adjoint(x.data))
 transpose(x::Operator) = Operator(x.basis_r,x.basis_l,transpose(x.data))
 ishermitian(A::DataOperator) = false
 ishermitian(A::DataOperator{B,B}) where B<:Basis = ishermitian(A.data)
+
+issymmetric(A::DataOperator) = false
+issymmetric(A::DataOperator{B,B}) where B<:Basis = issymmetric(A.data)
+
 Base.collect(A::Operator) = Operator(A.basis_l, A.basis_r, collect(A.data))
 
 tensor(a::Operator, b::Operator) = Operator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(b.data, a.data))
