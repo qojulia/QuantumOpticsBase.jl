@@ -103,3 +103,13 @@ function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha
     end
     return result
 end
+
+function LinearAlgebra.ishermitian(op::LazySum)
+    (all(isreal.(op.factors))&& all(ishermitian.(op.operators))) || 
+    all(ishermitian.(op.factors .*op.operators))
+end
+
+function LinearAlgebra.issymmetric(op::LazySum)
+    (all(isreal.(op.factors))&& all(issymmetric.(op.operators))) || 
+    all(issymmetric.(op.factors .*op.operators))
+end
