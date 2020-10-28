@@ -19,7 +19,7 @@ SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC{ComplexF64,Int}) = Op
 SparseOperator(b::Basis, data) = SparseOperator(b, b, data)
 SparseOperator(op::DataOperator) = SparseOperator(op.basis_l, op.basis_r, op.data)
 
-SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, spzeros(ComplexF64, length(b1), length(b2)))
+SparseOperator(b1::Basis, b2::Basis, type::Type = ComplexF64) = SparseOperator(b1, b2, spzeros(type, length(b1), length(b2)))
 SparseOperator(b::Basis) = SparseOperator(b, b)
 
 """

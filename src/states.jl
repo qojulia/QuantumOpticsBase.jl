@@ -156,14 +156,14 @@ Basis vector specified by `index` as ket state.
 For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
-function basisstate(b::Basis, indices::Vector{Int}, type = ComplexF64)
+function basisstate(b::Basis, indices::Vector{Int}, type::Type = ComplexF64)
     @assert length(b.shape) == length(indices)
     x = zeros(type, length(b))
     x[LinearIndices(tuple(b.shape...))[indices...]] = type(1.)
     Ket(b, x)
 end
 
-function basisstate(b::Basis, index::Int, type = ComplexF64)
+function basisstate(b::Basis, index::Int, type::Type = ComplexF64)
     data = zeros(type, length(b))
     data[index] = type(1.)
     Ket(b, data)
