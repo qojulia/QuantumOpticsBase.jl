@@ -149,23 +149,31 @@ end
 
 # Creation of basis states.
 """
-    basisstate(b, index)
+    basisstate(b, index; sparse=false, dType=ComplexF64)
 
 Basis vector specified by `index` as ket state.
 
 For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
-function basisstate(b::Basis, indices::Vector{Int})
+function basisstate(b::Basis, indices::Vector{Int}; sparse=false, dType=ComplexF64)
     @assert length(b.shape) == length(indices)
-    x = zeros(ComplexF64, length(b))
-    x[LinearIndices(tuple(b.shape...))[indices...]] = Complex(1.)
+    x = if sparse
+        spzeros(dType, length(b))
+    else
+        zeros(dType, length(b))
+    end
+    x[LinearIndices(tuple(b.shape...))[indices...]] = one(dType)
     Ket(b, x)
 end
 
-function basisstate(b::Basis, index::Int)
-    data = zeros(ComplexF64, length(b))
-    data[index] = Complex(1.)
+function basisstate(b::Basis, index::Int; sparse=false, dType=ComplexF64)
+    data = if sparse
+        spzeros(dType, length(b))
+    else
+        zeros(dType, length(b))
+    end
+    data[index] = one(dType)
     Ket(b, data)
 end
 
