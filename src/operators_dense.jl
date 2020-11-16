@@ -186,13 +186,13 @@ projector(a::Ket, b::Bra) = tensor(a, b)
 
 Projection operator ``|a⟩⟨a|``.
 """
-projector(a::Ket) = tensor(a, dagger(a))
+projector(a::Ket) = Operator(a.basis, a.data*a.data')
 """
     projector(a::Bra)
 
 Projection operator ``|a⟩⟨a|``.
 """
-projector(a::Bra) = tensor(dagger(a), a)
+projector(a::Bra) = projector(a')
 
 """
     dm(a::StateVector)
