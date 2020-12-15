@@ -9,7 +9,7 @@ The dimension of the basis is 2²ᴺ.
 struct PauliBasis{S,B<:Tuple{Vararg{Basis}}} <: Basis
     shape::S
     bases::B
-    function PauliBasis(num_qubits::T) where {T<:Int}
+    function PauliBasis(num_qubits::T) where {T<:Integer}
         shape = [2 for _ in 1:num_qubits]
         bases = Tuple(SpinBasis(1//2) for _ in 1:num_qubits)
         return new{typeof(shape),typeof(bases)}(shape, bases)

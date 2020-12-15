@@ -6,7 +6,7 @@ Basis for a system consisting of N states.
 struct NLevelBasis{T} <: Basis
     shape::Vector{T}
     N::T
-    function NLevelBasis(N::T) where T<:Int
+    function NLevelBasis(N::T) where T<:Integer
         if N < 1
             throw(DimensionMismatch())
         end

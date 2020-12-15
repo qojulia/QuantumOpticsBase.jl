@@ -7,7 +7,7 @@ included fock state is. Note that the dimension of this basis then is N+1.
 struct FockBasis{T} <: Basis
     shape::Vector{T}
     N::T
-    function FockBasis(N::T) where T<:Int
+    function FockBasis(N::T) where T<:Integer
         if N < 0
             throw(DimensionMismatch())
         end
