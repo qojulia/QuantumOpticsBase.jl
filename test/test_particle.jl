@@ -111,6 +111,9 @@ psi0_bp_fft = Txp*psi0_bp
 @test 1e-12 > norm(dagger(Tpx*psi0_bx) - dagger(psi0_bx)*dagger(Tpx))
 @test 1e-12 > norm(dagger(Txp*psi0_bp) - dagger(psi0_bp)*dagger(Txp))
 
+@test 1e-12 > norm(psi0_bx' - (psi0_bx'*Txp)*Tpx)
+@test 1e-12 > norm(psi0_bx.data' - (psi0_bx.data'*Txp.data)*Tpx.data)
+
 # Test gemv!
 psi_ = deepcopy(psi0_bp)
 QuantumOpticsBase.mul!(psi_,Tpx,psi0_bx)
@@ -244,8 +247,8 @@ sigma = [1., 0.9]
 sigma_x = sigma./sqrt(2)
 sigma_p = 1.0/(sigma.*sqrt(2))
 
-Txp = transform(tensor(basis_position...), tensor(basis_momentum...))
-Tpx = transform(tensor(basis_momentum...), tensor(basis_position...))
+Txp = tensor([transform(bx, bp) for (bx,bp) in zip(basis_position,basis_momentum)]...)
+Tpx = tensor([transform(bp, bx) for (bx,bp) in zip(basis_position,basis_momentum)]...)
 
 Txp_sub = [transform(basis_position[i], basis_momentum[i]) for i=1:2]
 Tpx_sub = dagger.(Txp_sub)
@@ -274,39 +277,10 @@ psi_x_fft = dagger(tensor(psi0_p...))*Tpx
 psi_x_fft2 = tensor((dagger.(psi0_p).*Tpx_sub)...)
 @test norm(psi_p_fft - psi_p_fft2) < 1e-15
 
-difference = (dense(Txp) - identityoperator(DenseOpType, Txp.basis_l)*Txp).data
+difference = (dense(Txp) - dense(identityoperator(DenseOpType, Txp.basis_l)*Txp)).data
 @test isapprox(difference, zero(difference); atol=1e-12)
-@test_throws AssertionError transform(tensor(basis_position...), tensor(basis_position...))
-@test_throws QuantumOpticsBase.IncompatibleBases transform(SpinBasis(1//2)^2, SpinBasis(1//2)^2)
 
 @test dense(Txp) == dense(Txp_sub[1] ⊗ Txp_sub[2])
-
-# Test ket only FFTs
-Txp = transform(tensor(basis_position...), tensor(basis_momentum...); ket_only=true)
-Tpx = transform(tensor(basis_momentum...), tensor(basis_position...); ket_only=true)
-
-Txp_sub = [transform(basis_position[i], basis_momentum[i]; ket_only=true) for i=1:2]
-Tpx_sub = dagger.(Txp_sub)
-
-psi_p_fft = Tpx*tensor(psi0_x...)
-psi_p_fft2 = tensor((Tpx_sub.*psi0_x)...)
-@test norm(psi_p_fft - psi_p_fft2) < 1e-15
-
-psi_x_fft = Txp*tensor(psi0_p...)
-psi_x_fft2 = tensor((Txp_sub.*psi0_p)...)
-@test norm(psi_p_fft - psi_p_fft2) < 1e-15
-
-psi_p_fft = dagger(tensor(psi0_x...))*Txp
-psi_p_fft2 = tensor((dagger.(psi0_x).*Txp_sub)...)
-@test norm(psi_p_fft - psi_p_fft2) < 1e-15
-
-psi_x_fft = dagger(tensor(psi0_p...))*Tpx
-psi_x_fft2 = tensor((dagger.(psi0_p).*Tpx_sub)...)
-@test norm(psi_p_fft - psi_p_fft2) < 1e-15
-
-psi_x_fft = Txp*tensor(psi0_p...)
-psi_x_fft2 = tensor(Txp_sub...)*tensor(psi0_p...)
-@test norm(psi_x_fft - psi_x_fft2) < 1e-15
 
 # Test composite basis of mixed type
 bc = FockBasis(2)
@@ -316,8 +290,8 @@ psi2 = tensor(psi0_x[1], psi_fock, psi0_x[2])
 
 basis_l = tensor(basis_position[1], bc, basis_position[2])
 basis_r = tensor(basis_momentum[1], bc, basis_momentum[2])
-Txp = transform(basis_l, basis_r; ket_only=true)
-Tpx = transform(basis_r, basis_l; ket_only=true)
+Txp = transform(basis_position[1], basis_momentum[1]) ⊗ one(bc) ⊗ transform(basis_position[2], basis_momentum[2])
+Tpx = transform(basis_momentum[1], basis_position[1]) ⊗ one(bc) ⊗ transform(basis_momentum[2], basis_position[2])
 
 psi1_fft = Txp*psi1
 psi1_fft2 = tensor(Txp_sub[1]*psi0_p[1], psi_fock, Txp_sub[2]*psi0_p[2])
@@ -327,19 +301,18 @@ psi2_fft = Tpx*psi2
 psi2_fft2 = tensor(Tpx_sub[1]*psi0_x[1], psi_fock, Tpx_sub[2]*psi0_x[2])
 @test norm(psi2_fft - psi2_fft2) < 1e-15
 
-Txp = transform(basis_l, basis_r)
 Txp_sub = [transform(basis_position[i], basis_momentum[i]) for i=1:2]
 difference = (dense(Txp) - tensor(dense(Txp_sub[1]), dense(one(bc)), dense(Txp_sub[2]))).data
 @test isapprox(difference, zero(difference); atol=1e-12)
 
 basis_l = tensor(bc, basis_position[1], basis_position[2])
 basis_r = tensor(bc, basis_momentum[1], basis_momentum[2])
-Txp2 = transform(basis_l, basis_r)
-Tpx2 = transform(basis_r, basis_l)
+Txp2 = one(bc) ⊗ transform(basis_position[1], basis_momentum[1]) ⊗ transform(basis_position[2], basis_momentum[2])
+Tpx2 = one(bc) ⊗ transform(basis_momentum[1], basis_position[1]) ⊗ transform(basis_momentum[2], basis_position[2])
 difference = (dense(Txp) - permutesystems(dense(Txp2), [2, 1, 3])).data
 @test isapprox(difference, zero(difference); atol=1e-13)
 difference = (dense(dagger(Txp)) - permutesystems(dense(Tpx2), [2, 1, 3])).data
-@test isapprox(difference, zero(difference); atol=1e-13)
+@test isapprox(difference, zero(difference); atol=1e-12)
 
 # Test potentialoperator in more than 1D
 N = [21, 18]
@@ -359,12 +332,12 @@ V_op2 = potentialoperator(bcomp_pos, V)
 
 basis_position = PositionBasis.(basis_momentum)
 bcomp_pos = tensor(basis_position...)
-Txp = transform(bcomp_pos, bcomp_mom)
-Tpx = transform(bcomp_mom, bcomp_pos)
+Txp = tensor(transform.(basis_position, basis_momentum)...)
+Tpx = tensor(transform.(basis_momentum, basis_position)...)
 xsample, ysample = samplepoints.(basis_position)
 V_op = Tpx*dense(diagonaloperator(bcomp_pos, [V(x, y) for y in ysample for x in xsample]))*Txp
 V_op2 = potentialoperator(bcomp_mom, V)
-@test V_op == V_op2
+@test 1e-12 > D(V_op, V_op2)
 
 N = [17, 12, 9]
 xmin = [-32.5, -10π, -0.1]
@@ -386,24 +359,6 @@ b1 = PositionBasis(-1, 1, 50)
 b2 = MomentumBasis(-1, 1, 30)
 @test_throws QuantumOpticsBase.IncompatibleBases transform(b1, b2)
 @test_throws QuantumOpticsBase.IncompatibleBases transform(b2, b1)
-
-bc1 = b1 ⊗ bc
-bc2 = b2 ⊗ bc
-@test_throws QuantumOpticsBase.IncompatibleBases transform(bc1, bc2)
-@test_throws QuantumOpticsBase.IncompatibleBases transform(bc2, bc1)
-
-b1 = PositionBasis(-1, 1, 50)
-b2 = MomentumBasis(-1, 1, 50)
-bc1 = b1 ⊗ bc
-bc2 = b2 ⊗ bc
-@test_throws QuantumOpticsBase.IncompatibleBases transform(bc1, bc2)
-@test_throws QuantumOpticsBase.IncompatibleBases transform(bc2, bc1)
-@test_throws QuantumOpticsBase.IncompatibleBases transform(bc1, bc2; index=[2])
-
-bc1 = b1 ⊗ b2
-bc2 = b1 ⊗ b2
-@test_throws QuantumOpticsBase.IncompatibleBases transform(bc1, bc2)
-@test_throws QuantumOpticsBase.IncompatibleBases transform(bc2, bc1)
 
 @test_throws QuantumOpticsBase.IncompatibleBases potentialoperator(bc ⊗ bc, V)
 

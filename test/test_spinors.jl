@@ -106,10 +106,10 @@ H_matr=vcat(H_h_upperline,H_h_lowerline)
 @test getblock(ψ0, 1) == ψ0_up == getblock(ψ0, 2)
 
 # Test FFTs
-Txp = transform(bcomp_x, bcomp_p; ket_only=true) # "normal" FFT operators as implemented
-Tpx = transform(bcomp_p, bcomp_x; ket_only=true)
+Txp = tensor(transform(b_x, b_mom),transform(b_y, b_mom_y)) # "normal" FFT operators as implemented
+Tpx = Txp'
 ψ0_p1 = (Tpx*ψ0_up)⊕(Tpx*ψ0_up) # Build with usual FFTs
-ψ0_p2 = (Tpx⊕Tpx)*ψ0
+ψ0_p2 = LazyDirectSum(Tpx, Tpx)*ψ0
 @test ψ0_p1.data ≈ ψ0_p2.data
 
 # Test off-diagonal blocks
@@ -119,14 +119,14 @@ setblock!(H_test, Ω_R', 2, 1)
 @test H == H_test
 
 # Lazy formulation
-Txp_tot = Txp ⊕ Txp
-Tpx_tot = Tpx ⊕ Tpx
+Txp_tot = LazyDirectSum(Txp, Txp)
+Tpx_tot = LazyDirectSum(Tpx, Tpx)
 Hkin_p = Tpx*Hkin_x*Txp
-Hkin_tot = Hkin_p ⊕ Hkin_p
+Hkin_tot = LazyDirectSum(Hkin_p, Hkin_p)
 H_lazy = LazySum(H, LazyProduct(Txp_tot, Hkin_tot, Tpx_tot))
 
 Hkin_x_tot = Txp_tot*Hkin_tot*Tpx_tot
-@test dense(H_lazy).data ≈ dense(H + Hkin_x_tot).data
+@test dense(H_lazy).data ≈ dense(dense(H) + dense(Hkin_x_tot)).data
 @test (H_lazy*ψ0).data ≈ (H*ψ0 + Hkin_x_tot*ψ0).data
 
 # # Test time evolution

@@ -157,9 +157,8 @@ directsum(op1::LazyDirectSum,op2::AbstractOperator) = LazyDirectSum(op1,op2)
 directsum(op1::LazyDirectSum,op2::LazyDirectSum) = LazyDirectSum(op1,op2)
 
 # Use lazy sum for FFTOperator
+# TODO: deal with direct sum of FFTs now that they are <: Operator
 transform(b1::SumBasis,b2::SumBasis; kwargs...) = LazyDirectSum([transform(b1.bases[i],b2.bases[i];kwargs...) for i=1:length(b1.bases)]...)
-directsum(op1::FFTOperator, op2::FFTOperator) = LazyDirectSum(op1,op2)
-
 
 # Fast in-place multiplication
 function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) where {B1<:SumBasis,B2<:SumBasis}

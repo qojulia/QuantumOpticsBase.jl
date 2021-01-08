@@ -1,4 +1,5 @@
 import Base: position
+import LinearMaps
 using FFTW
 
 """
@@ -253,73 +254,18 @@ function potentialoperator_momentum(b::CompositeBasis, V::Function)
         push!(bases_pos, PositionBasis(base))
     end
     b_pos = tensor(bases_pos...)
-    transform(b, b_pos)*dense(potentialoperator_position(b_pos, V))*transform(b_pos, b)
+    T = tensor(transform.(b.bases, bases_pos)...)
+    dense(T*dense(potentialoperator_position(b_pos, V))*T')
 end
 
-"""
-    FFTOperator
-
-Abstract type for all implementations of FFT operators.
-"""
-abstract type FFTOperator{BL<:Basis, BR<:Basis, T} <: AbstractOperator{BL,BR} end
-
-Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_after))
-
-"""
-    FFTOperators
-
-Operator performing a fast fourier transformation when multiplied with a state
-that is a Ket or an Operator.
-"""
-mutable struct FFTOperators{BL<:Basis,BR<:Basis,T<:Array,P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
-    basis_l::BL
-    basis_r::BR
-    fft_l!::P1
-    fft_r!::P2
-    fft_l2!::P3
-    fft_r2!::P4
-    mul_before::T
-    mul_after::T
-    function FFTOperators(b1::BL, b2::BR,
-        fft_l!::P1,
-        fft_r!::P2,
-        fft_l2!::P3,
-        fft_r2!::P4,
-        mul_before::T,
-        mul_after::T) where {BL<:Basis,BR<:Basis,T,P1,P2,P3,P4}
-        new{BL,BR,T,P1,P2,P3,P4}(b1, b2, fft_l!, fft_r!, fft_l2!, fft_r2!, mul_before, mul_after)
-    end
-end
-
-"""
-    FFTKets
-
-Operator that can only perform fast fourier transformations on Kets.
-This is much more memory efficient when only working with Kets.
-"""
-mutable struct FFTKets{BL<:Basis,BR<:Basis,T<:Array,P1,P2} <: FFTOperator{BL, BR, T}
-    basis_l::BL
-    basis_r::BR
-    fft_l!::P1
-    fft_r!::P2
-    mul_before::T
-    mul_after::T
-    function FFTKets(b1::BL, b2::BR,
-        fft_l!::P1,
-        fft_r!::P2,
-        mul_before::T,
-        mul_after::T) where {BL<:Basis,BR<:Basis, T, P1, P2}
-        new{BL, BR, T, P1, P2}(b1, b2, fft_l!, fft_r!, mul_before, mul_after)
-    end
-end
-
+# FFT Operators
 """
     transform(b1::MomentumBasis, b2::PositionBasis)
     transform(b1::PositionBasis, b2::MomentumBasis)
 
 Transformation operator between position basis and momentum basis.
 """
-function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only::Bool=false)
+function transform(basis_l::MomentumBasis, basis_r::PositionBasis; dType=ComplexF64)
     Lx = (basis_r.xmax - basis_r.xmin)
     dp = spacing(basis_l)
     dx = spacing(basis_r)
@@ -328,13 +274,12 @@ function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only::Boo
     end
     mul_before = exp.(-1im*basis_l.pmin*(samplepoints(basis_r) .- basis_r.xmin))
     mul_after = exp.(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{ComplexF64}(undef, length(basis_r))
-    if ket_only
-        FFTKets(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), mul_before, mul_after)
-    else
-        A = Matrix{ComplexF64}(undef, length(basis_r), length(basis_r))
-        FFTOperators(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), plan_bfft!(A, 2), plan_fft!(A, 1), mul_before, mul_after)
-    end
+    x = Vector{dType}(undef, length(basis_r))
+    fft_l! = plan_bfft!(x)
+    fft_r! = plan_fft!(x)
+    f!, fc! = _make_lmap_fs(basis_l.N,fft_l!,fft_r!,mul_before,mul_after)
+    l = LinearMaps.LinearMap{dType}(f!,fc!,basis_l.N)
+    return Operator(basis_l,basis_r,l)
 end
 
 """
@@ -344,7 +289,7 @@ Transformation operator between two composite bases. Each of the bases
 has to contain bases of type PositionBasis and the other one a corresponding
 MomentumBasis.
 """
-function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only::Bool=false)
+function transform(basis_l::PositionBasis, basis_r::MomentumBasis; dType=ComplexF64)
     Lx = (basis_l.xmax - basis_l.xmin)
     dp = spacing(basis_r)
     dx = spacing(basis_l)
@@ -353,241 +298,66 @@ function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only::Boo
     end
     mul_before = exp.(1im*basis_l.xmin*(samplepoints(basis_r) .- basis_r.pmin))
     mul_after = exp.(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{ComplexF64}(undef, length(basis_r))
-    if ket_only
-        FFTKets(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), mul_before, mul_after)
-    else
-        A = Matrix{ComplexF64}(undef, length(basis_r), length(basis_r))
-        FFTOperators(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), plan_fft!(A, 2), plan_bfft!(A, 1), mul_before, mul_after)
-    end
+    x = Vector{dType}(undef, length(basis_r))
+    fft_l! = plan_fft!(x)
+    fft_r! = plan_bfft!(x)
+    f!, fc! = _make_lmap_fs(basis_l.N,fft_l!,fft_r!,mul_before,mul_after)
+    l = LinearMaps.LinearMap{dType}(f!,fc!,basis_l.N)
+    return Operator(basis_l,basis_r,l)
 end
 
-function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only::Bool=false, index::Vector{Int}=Int[])
-    @assert length(basis_l.bases) == length(basis_r.bases)
-    if length(index) == 0
-        check_pos = [isa.(basis_l.bases, PositionBasis)...]
-        check_mom = [isa.(basis_l.bases, MomentumBasis)...]
-        if any(check_pos) && !any(check_mom)
-            index = [1:length(basis_l.bases);][check_pos]
-        elseif any(check_mom) && !any(check_pos)
-            index = [1:length(basis_l.bases);][check_mom]
-        else
-            throw(IncompatibleBases())
+# Build the mutating functions for the linear maps
+function _make_lmap_fs(N,fft_l!,fft_r!,mul_before,mul_after)
+    function f!(result, b)
+        @inbounds for i=1:N
+            result[i] = mul_before[i] * b[i]
         end
+        fft_r! * result
+        @inbounds for i=1:N
+            result[i] *= mul_after[i]
+        end
+        return result
     end
-    if all(isa.(basis_l.bases[index], PositionBasis))
-        @assert all(isa.(basis_r.bases[index], MomentumBasis))
-        transform_xp(basis_l, basis_r, index; ket_only=ket_only)
-    elseif all(isa.(basis_l.bases[index], MomentumBasis))
-        @assert all(isa.(basis_r.bases[index], PositionBasis))
-        transform_px(basis_l, basis_r, index; ket_only=ket_only)
-    else
-        throw(IncompatibleBases())
+
+    function fc!(result, b)
+        @inbounds for i=1:N
+            result[i] = conj(mul_after[i]) * b[i]
+        end
+        fft_l! * result
+        @inbounds for i=1:N
+            result[i] = result[i] * conj(mul_before[i])
+        end
+        return result
     end
+
+    return f!, fc!
 end
 
-function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Vector{Int}; ket_only::Bool=false)
-    n = length(basis_l.bases)
-    Lx = [(b.xmax - b.xmin) for b=basis_l.bases[index]]
-    dp = [spacing(b) for b=basis_r.bases[index]]
-    dx = [spacing(b) for b=basis_l.bases[index]]
-    N = [length(b) for b=basis_l.bases]
-    for i=1:n
-        if N[i] != length(basis_r.bases[i])
-            throw(IncompatibleBases())
-        end
-    end
-    for i=1:length(index)
-        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > 1e-12
-            throw(IncompatibleBases())
-        end
-    end
-
-    if index[1] == 1
-        mul_before = exp.(1im*basis_l.bases[1].xmin*(samplepoints(basis_r.bases[1]) .- basis_r.bases[1].pmin))
-        mul_after = exp.(1im*basis_r.bases[1].pmin*samplepoints(basis_l.bases[1]))/sqrt(basis_r.bases[1].N)
-    else
-        mul_before = ones(N[1])
-        mul_after = ones(N[1])
-    end
-    for i=2:n
-        if any(i .== index)
-            mul_before = kron(exp.(1im*basis_l.bases[i].xmin*(samplepoints(basis_r.bases[i]) .- basis_r.bases[i].pmin)), mul_before)
-            mul_after = kron(exp.(1im*basis_r.bases[i].pmin*samplepoints(basis_l.bases[i]))/sqrt(basis_r.bases[i].N), mul_after)
-        else
-            mul_before = kron(ones(N[i]), mul_before)
-            mul_after = kron(ones(N[i]), mul_after)
-        end
-    end
-    mul_before = reshape(mul_before, (N...,))
-    mul_after = reshape(mul_after, (N...,))
-
-    x = Array{ComplexF64}(undef, N...)
-    if ket_only
-        FFTKets(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), mul_before, mul_after)
-    else
-        A = Array{ComplexF64}(undef, [N; N]...)
-        FFTOperators(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), plan_fft!(A, [n + 1:2n;][index]), plan_bfft!(A, [1:n;][index]), mul_before, mul_after)
-    end
-end
-
-function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Vector{Int}; ket_only::Bool=false)
-    n = length(basis_l.bases)
-    Lx = [(b.xmax - b.xmin) for b=basis_r.bases[index]]
-    dp = [spacing(b) for b=basis_l.bases[index]]
-    dx = [spacing(b) for b=basis_r.bases[index]]
-    N = [length(b) for b=basis_l.bases]
-    for i=1:n
-        if N[i] != length(basis_r.bases[i])
-            throw(IncompatibleBases())
-        end
-    end
-    for i=1:length(index)
-        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > 1e-12
-            throw(IncompatibleBases())
-        end
-    end
-
-    if index[1] == 1
-        mul_before = exp.(-1im*basis_l.bases[1].pmin*(samplepoints(basis_r.bases[1]) .- basis_r.bases[1].xmin))
-        mul_after = exp.(-1im*basis_r.bases[1].xmin*samplepoints(basis_l.bases[1]))/sqrt(N[1])
-    else
-        mul_before = ones(N[1])
-        mul_after = ones(N[1])
-    end
-    for i=2:n
-        if i in index
-            mul_before = kron(exp.(-1im*basis_l.bases[i].pmin*(samplepoints(basis_r.bases[i]) .- basis_r.bases[i].xmin)), mul_before)
-            mul_after = kron(exp.(-1im*basis_r.bases[i].xmin*samplepoints(basis_l.bases[i]))/sqrt(N[i]), mul_after)
-        else
-            mul_before = kron(ones(N[i]), mul_before)
-            mul_after = kron(ones(N[i]), mul_after)
-        end
-    end
-    mul_before = reshape(mul_before, (N...,))
-    mul_after = reshape(mul_after, (N...,))
-
-    x = Array{ComplexF64}(undef, N...)
-    if ket_only
-        FFTKets(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), mul_before, mul_after)
-    else
-        A = Array{ComplexF64}(undef, [N; N]...)
-        FFTOperators(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), plan_bfft!(A, [n + 1:2n;][index]), plan_fft!(A, [1:n;][index]), mul_before, mul_after)
-    end
-end
-
-DenseOperator(op::FFTOperator) = op*identityoperator(DenseOpType, op.basis_r)
-
-dagger(op::FFTOperators) = transform(op.basis_r, op.basis_l)
-dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
-
-tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r))
-tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
-
-function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    N::Int = length(M.basis_r)
-    if beta==Complex(0.)
-        @inbounds for i=1:N
-            result.data[i] = M.mul_before[i] * b.data[i]
-        end
-        M.fft_r! * reshape(result.data, size(M.mul_before))
-        @inbounds for i=1:N
-            result.data[i] *= M.mul_after[i] * alpha
-        end
-    else
-        psi_ = Ket(M.basis_l, copy(b.data))
-        @inbounds for i=1:N
-            psi_.data[i] *= M.mul_before[i]
-        end
-        M.fft_r! * reshape(psi_.data, size(M.mul_before))
-        @inbounds for i=1:N
-            result.data[i] = beta*result.data[i] + alpha * psi_.data[i] * M.mul_after[i]
-        end
+# Skip dimension check in LinearMaps.mul! by directly calling Linearmaps._unsafe_mul!
+mul!(result::Operator{B1,B3},a::Operator{B1,B2,<:LinearMaps.LinearMap},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (LinearMaps._unsafe_mul!(result.data,a.data,b.data,alpha,beta); result)
+function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3,<:LinearMaps.LinearMap},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
+    @inbounds for i=1:size(result,1)
+        # TODO: proper method for mul!(::Matrix,::Matrix,::LinearMap) ?
+        y = result.data[i,:]
+        x = view(a.data,i,:)
+        mul!(y,transpose(b.data),x,alpha,beta)
+        result.data[i,:] .= y
     end
     result
 end
+mul!(result::Ket{B1},a::Operator{B1,B2,<:LinearMaps.LinearMap},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearMaps._unsafe_mul!(result.data,a.data,b.data,alpha,beta); result)
+mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2,<:LinearMaps.LinearMap},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearMaps._unsafe_mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
 
-function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    N::Int = length(M.basis_l)
-    if beta==Complex(0.)
-        @inbounds for i=1:N
-            result.data[i] = conj(M.mul_after[i]) * conj(b.data[i])
-        end
-        M.fft_l! * reshape(result.data, size(M.mul_after))
-        @inbounds for i=1:N
-            result.data[i] = conj(result.data[i]) * M.mul_before[i] * alpha
-        end
-    else
-        psi_ = Bra(M.basis_r, conj(b.data))
-        @inbounds for i=1:N
-            psi_.data[i] *= conj(M.mul_after[i])
-        end
-        M.fft_l! * reshape(psi_.data, size(M.mul_after))
-        @inbounds for i=1:N
-            result.data[i] = beta*result.data[i] + alpha * conj(psi_.data[i]) * M.mul_before[i]
-        end
+mul!(result::Operator{B1,B3},a::Operator{B1,B2,<:LinearMaps.LinearMap},b::Operator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis} = (LinearMaps._unsafe_mul!(result.data,a.data,b.data); result)
+function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3,<:LinearMaps.LinearMap}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+    @inbounds for i=1:size(result,1)
+        # TODO: proper method for mul!(::Matrix,::Matrix,::LinearMap) ?
+        y = result.data[i,:]
+        x = view(a.data,i,:)
+        mul!(y,transpose(b.data),x)
+        result.data[i,:] .= y
     end
     result
 end
-
-function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    if beta != Complex(0.)
-        data = similar(result.data, size(result.data, 1), size(result.data, 2))
-    else
-        data = result.data
-    end
-    copyto!(data, A.data)
-    @inbounds for j=1:length(B.mul_after), i=1:length(B.mul_after)
-        data[i, j] *= B.mul_after[j]
-    end
-    conj!(data)
-    n = size(B.mul_after)
-    B.fft_l2! * reshape(data, n..., n...)
-    conj!(data)
-    N = prod(n)
-    @inbounds for j=1:N, i=1:N
-        data[i, j] *= B.mul_before[j]
-    end
-    if alpha != Complex(1.)
-        lmul!(alpha, data)
-    end
-    if beta != Complex(0.)
-        rmul!(result.data, beta)
-        result.data += data
-    end
-    result
-end
-
-function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    if beta != Complex(0.)
-        data = similar(result.data, size(result.data, 1), size(result.data, 2))
-    else
-        data = result.data
-    end
-    copyto!(data, B.data)
-    @inbounds for j=1:length(A.mul_before), i=1:length(A.mul_before)
-        data[i, j] *= A.mul_before[i]
-    end
-    n = size(A.mul_before)
-    A.fft_r2! * reshape(data, n...,n...)
-    N = prod(n)
-    @inbounds for j=1:N, i=1:N
-        data[i, j] *= A.mul_after[i]
-    end
-    if alpha != Complex(1.)
-        lmul!(alpha, data)
-    end
-    if beta != Complex(0.)
-        rmul!(result.data, beta)
-        result.data += data
-    end
-    result
-end
+mul!(result::Ket{B1},a::Operator{B1,B2,<:LinearMaps.LinearMap},b::Ket{B2}) where {B1<:Basis,B2<:Basis} = (LinearMaps._unsafe_mul!(result.data,a.data,b.data); result)
+mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2,<:LinearMaps.LinearMap}) where {B1<:Basis,B2<:Basis} = (LinearMaps._unsafe_mul!(result.data,transpose(b.data),a.data); result)
