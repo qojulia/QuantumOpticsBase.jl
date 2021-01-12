@@ -42,15 +42,23 @@ op = DenseOperator(b_fock, b_fock ⊗ SpinBasis(1//2))
  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im  0.0+0.0im"
 
 op = SparseOperator(b_fock, b_fock ⊗ SpinBasis(1//2))
+if VERSION < v"1.6.0-beta1"
 @test sprint(show, op) == "Operator(dim=5x10)
   basis left:  Fock(cutoff=4)
   basis right: [Fock(cutoff=4) ⊗ Spin(1/2)]
     []"
+else
+@test sprint(show, op) == "Operator(dim=5x10)\n  basis left:  Fock(cutoff=4)\n  basis right: [Fock(cutoff=4) ⊗ Spin(1/2)]\n     ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅    \n     ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅    \n     ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅    \n     ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅    \n     ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅          ⋅    "
+end
 
 op = SparseOperator(b_fock)
 op.data[2,2] = 1
+if VERSION < v"1.6.0-beta1"
 @test replace(sprint(show, op), "\t" => "  ") == "Operator(dim=5x5)
   basis: Fock(cutoff=4)\n  [2, 2]  =  1.0+0.0im"
+else
+@test replace(sprint(show, op), "\t" => "  ") == "Operator(dim=5x5)\n  basis: Fock(cutoff=4)\n     ⋅          ⋅          ⋅          ⋅          ⋅    \n     ⋅      1.0+0.0im      ⋅          ⋅          ⋅    \n     ⋅          ⋅          ⋅          ⋅          ⋅    \n     ⋅          ⋅          ⋅          ⋅          ⋅    \n     ⋅          ⋅          ⋅          ⋅          ⋅    "
+end
 
 op = LazySum(SparseOperator(b_fock), DenseOperator(b_fock))
 @test sprint(show, op) == "LazySum(dim=5x5)
@@ -98,7 +106,11 @@ state_data_str = sprint(Base.print_array, conj.(state_data))
 
 op = dm(state)
 op_data = state_data * state_data'
-type_len = length("Complex{Float64}")
+type_len = if VERSION < v"1.6.0-beta1"
+    length("Complex{Float64}")
+else
+    length("ComplexF64")
+end
 op_data_str1 = split(sprint(show, op_data)[type_len+2:end-1], ";")
 for i=1:length(op_data_str1)
     op_data_str1[i] = join(split(op_data_str1[i]), "  ")

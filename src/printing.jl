@@ -147,11 +147,11 @@ end
 
 function show(stream::IO, x::SparseOpPureType)
     summary(stream, x)
-    if nnz(x.data) == 0
+    if nnz(x.data) == 0 && (VERSION < v"1.6.0-beta1")
         print(stream, "\n    []")
     else
         if !_std_order
-            if !haskey(stream, :compact)
+            if !haskey(stream, :compact) && (VERSION < v"1.6.0-beta1")
                 stream = IOContext(stream, :compact => true)
             end
             show(stream, round.(x.data; digits=machineprecorder))
