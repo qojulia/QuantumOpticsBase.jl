@@ -16,6 +16,7 @@ a harmonic trap potential at position ``x``, i.e.:
 ```
 """
 function transform(b1::PositionBasis, b2::FockBasis; x0::Real=1)
+    @assert b2.offset==0 # TODO
     T = Matrix{ComplexF64}(undef, length(b1), length(b2))
     xvec = samplepoints(b1)
     A = hermite.A(b2.N)
@@ -32,6 +33,7 @@ function transform(b1::PositionBasis, b2::FockBasis; x0::Real=1)
 end
 
 function transform(b1::FockBasis, b2::PositionBasis; x0::Real=1)
+    @assert b1.offset==0 # TODO
     T = Matrix{ComplexF64}(undef, length(b1), length(b2))
     xvec = samplepoints(b2)
     A = hermite.A(b1.N)
