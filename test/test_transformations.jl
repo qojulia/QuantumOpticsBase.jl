@@ -40,17 +40,20 @@ psi_x = gaussianstate(b_position, x0/σ0, p0/σ0, σ0)
 
 # Test with offset in FockBasis
 b_fock = FockBasis(50,1)
-b_position = PositionBasis(0, 20, 200)
+b_position = PositionBasis(-10, 10, 300)
 
-x0 = 6.0
-p0 = 2.2
+x0 = 6.1
+p0 = 0.3
 α0 = (x0 + 1im*p0)/sqrt(2)
-σ0 = 0.7
 
 psi_n = coherentstate(b_fock, α0)
-psi_x = gaussianstate(b_position, x0/σ0, p0/σ0, σ0)
+psi_x = gaussianstate(b_position, x0, p0, 1)
 @test isapprox(norm(psi_n), 1, atol=1e-8)
 
-Txn = transform(b_position, b_fock; x0=σ0)
+Txn = transform(b_position, b_fock)
+Tnx = transform(b_fock, b_position)
+@test 1e-10 > D(dagger(Txn), Tnx)
+@test 1e-4 > D(psi_x, Txn*psi_n)
+@test 1e-4 > D(psi_n, Tnx*psi_x)
 
 end # testset
