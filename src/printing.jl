@@ -50,7 +50,11 @@ function show(stream::IO, x::SpinBasis)
 end
 
 function show(stream::IO, x::FockBasis)
-    write(stream, "Fock(cutoff=$(x.N))")
+    if iszero(x.offset)
+        write(stream, "Fock(cutoff=$(x.N))")
+    else
+        write(stream, "Fock(cutoff=$(x.N), offset=$(x.offset))")
+    end
 end
 
 function show(stream::IO, x::NLevelBasis)

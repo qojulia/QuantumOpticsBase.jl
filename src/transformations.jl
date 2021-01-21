@@ -24,8 +24,9 @@ function transform(b1::PositionBasis, b2::FockBasis; x0::Real=1)
     for i in 1:length(b1)
         u = xvec[i]/x0
         C = c*exp(-u^2/2)
-        for n=0:b2.N
-            T[i,n+1] = C*horner(A[n+1], u)
+        for n=b2.offset:b2.N
+            idx = n-b2.offset+1
+            T[i,idx] = C*horner(A[n+1], u)
         end
     end
     DenseOperator(b1, b2, T)
@@ -40,8 +41,9 @@ function transform(b1::FockBasis, b2::PositionBasis; x0::Real=1)
     for i in 1:length(b2)
         u = xvec[i]/x0
         C = c*exp(-u^2/2)
-        for n=0:b1.N
-            T[n+1,i] = C*horner(A[n+1], u)
+        for n=b1.offset:b1.N
+            idx = n-b1.offset+1
+            T[idx,i] = C*horner(A[n+1], u)
         end
     end
     DenseOperator(b1, b2, T)
