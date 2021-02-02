@@ -150,6 +150,7 @@ state = randstate(b_l)
 state = randoperator(b_l)
 @test expect(op123, state) ≈ expect(op123_, state)
 
+@test_throws QuantumOpticsBase.IncompatibleBases expect(op1, op2)
 
 # Tensor product
 # ==============

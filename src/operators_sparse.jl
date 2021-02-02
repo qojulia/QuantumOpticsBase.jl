@@ -40,6 +40,7 @@ function ptrace(op::SparseOpPureType, indices::Vector{Int})
 end
 
 function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1<:Basis,B2<:Basis}
+    check_samebases(op, state)
     result = zero(promote_type(eltype(op),eltype(state)))
     @inbounds for colindex = 1:op.data.n
         for i=op.data.colptr[colindex]:op.data.colptr[colindex+1]-1

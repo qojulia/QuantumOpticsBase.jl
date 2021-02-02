@@ -152,6 +152,7 @@ function expect(op::DataOperator{B,B}, state::Ket{B}) where B<:Basis
 end
 
 function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1<:Basis,B2<:Basis}
+    check_samebases(op, state)
     result = zero(promote_type(eltype(op),eltype(state)))
     @inbounds for i=1:size(op.data, 1), j=1:size(op.data,2)
         result += op.data[i,j]*state.data[j,i]

@@ -249,6 +249,8 @@ state = randoperator(b_l)
 @test expect(2, op2, state) ≈ expect(op2, ptrace(state, [1, 3]))
 @test expect(3, op3, state) ≈ expect(op3, ptrace(state, [1, 2]))
 
+@test_throws QuantumOpticsBase.IncompatibleBases expect(op2, op1)
+
 # Permute systems
 op1 = randoperator(b1a, b1b)
 op2 = randoperator(b2a, b2b)
