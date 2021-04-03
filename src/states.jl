@@ -209,50 +209,49 @@ Broadcast.BroadcastStyle(::Type{<:Bra{B}}) where {B<:Basis} = BraStyle{B}()
 Broadcast.BroadcastStyle(::KetStyle{B1}, ::KetStyle{B2}) where {B1<:Basis,B2<:Basis} = throw(IncompatibleBases())
 Broadcast.BroadcastStyle(::BraStyle{B1}, ::BraStyle{B2}) where {B1<:Basis,B2<:Basis} = throw(IncompatibleBases())
 
+# Broadcast with scalars (of use in ODE solvers checking for tolerances, e.g. `.* reltol .+ abstol`)
+Broadcast.BroadcastStyle(::T, ::Broadcast.DefaultArrayStyle{0}) where {B<:Basis, T<:KetStyle{B}} = T()
+Broadcast.BroadcastStyle(::T, ::Broadcast.DefaultArrayStyle{0}) where {B<:Basis, T<:BraStyle{B}} = T()
+
 # Out-of-place broadcasting
 @inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:KetStyle{B},Axes,F,Args<:Tuple}
     bcf = Broadcast.flatten(bc)
-    bc_ = Broadcasted_restrict_f(bcf.f, bcf.args, axes(bcf))
     b = find_basis(bcf)
-    return Ket{B}(b, copy(bc_))
+    T = find_dType(bcf)
+    data = zeros(T, length(b))
+    @inbounds @simd for I in eachindex(bcf)
+        data[I] = bcf[I]
+    end
+    return Ket{B}(b, data)
 end
 @inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:BraStyle{B},Axes,F,Args<:Tuple}
     bcf = Broadcast.flatten(bc)
-    bc_ = Broadcasted_restrict_f(bcf.f, bcf.args, axes(bcf))
     b = find_basis(bcf)
-    return Bra{B}(b, copy(bc_))
+    T = find_dType(bcf)
+    data = zeros(T, length(b))
+    @inbounds @simd for I in eachindex(bcf)
+        data[I] = bcf[I]
+    end
+    return Bra{B}(b, data)
 end
-find_basis(bc::Broadcast.Broadcasted) = find_basis(bc.args)
-find_basis(args::Tuple) = find_basis(find_basis(args[1]), Base.tail(args))
-find_basis(x) = x
+for f ∈ [:find_basis,:find_dType]
+    @eval ($f)(bc::Broadcast.Broadcasted) = ($f)(bc.args)
+    @eval ($f)(args::Tuple) = ($f)(($f)(args[1]), Base.tail(args))
+    @eval ($f)(x) = x
+    @eval ($f)(::Any, rest) = ($f)(rest)
+end
 find_basis(a::StateVector, rest) = a.basis
-find_basis(::Any, rest) = find_basis(rest)
-
-const BasicMathFunc = Union{typeof(+),typeof(-),typeof(*)}
-function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{Vararg{<:T}}, axes) where T<:StateVector
-    args_ = Tuple(a.data for a=args)
-    return Broadcast.Broadcasted(f, args_, axes)
-end
-function Broadcasted_restrict_f(f, args::Tuple{Vararg{<:T}}, axes) where T<:StateVector
-    throw(error("Cannot broadcast function `$f` on type `$T`"))
-end
-
+find_dType(a::StateVector, rest) = eltype(a)
+Base.getindex(st::StateVector, idx) = getindex(st.data, idx)
 
 # In-place broadcasting for Kets
 @inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:KetStyle{B},Axes,F,Args}
-    axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
-    # Performance optimization: broadcast!(identity, dest, A) is equivalent to copyto!(dest, A) if indices match
-    if bc.f === identity && isa(bc.args, Tuple{<:Ket{B}}) # only a single input argument to broadcast!
-        A = bc.args[1]
-        if axes(dest) == axes(A)
-            return copyto!(dest, A)
-        end
+    axes(dest) == axes(bc) || throwdm(axes(dest), axes(bc))
+    bc′ = Base.Broadcast.preprocess(dest, bc)
+    dest′ = dest.data
+    @inbounds @simd for I in eachindex(bc′)
+        dest′[I] = bc′[I]
     end
-    # Get the underlying data fields of kets and broadcast them as arrays
-    bcf = Broadcast.flatten(bc)
-    args_ = Tuple(a.data for a=bcf.args)
-    bc_ = Broadcast.Broadcasted(bcf.f, args_, axes(bcf))
-    copyto!(dest.data, bc_)
     return dest
 end
 @inline Base.copyto!(dest::Ket{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1<:Basis,B2<:Basis,Style<:KetStyle{B2},Axes,F,Args} =
@@ -260,21 +259,26 @@ end
 
 # In-place broadcasting for Bras
 @inline function Base.copyto!(dest::Bra{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:BraStyle{B},Axes,F,Args}
-    axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
-    # Performance optimization: broadcast!(identity, dest, A) is equivalent to copyto!(dest, A) if indices match
-    if bc.f === identity && isa(bc.args, Tuple{<:Bra{B}}) # only a single input argument to broadcast!
-        A = bc.args[1]
-        if axes(dest) == axes(A)
-            return copyto!(dest, A)
-        end
+    axes(dest) == axes(bc) || throwdm(axes(dest), axes(bc))
+    bc′ = Base.Broadcast.preprocess(dest, bc)
+    dest′ = dest.data
+    @inbounds @simd for I in eachindex(bc′)
+        dest′[I] = bc′[I]
     end
-    # Get the underlying data fields of bras and broadcast them as arrays
-    bcf = Broadcast.flatten(bc)
-    bc_ = Broadcasted_restrict_f(bcf.f, bcf.args, axes(bcf))
-    copyto!(dest.data, bc_)
     return dest
 end
 @inline Base.copyto!(dest::Bra{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1<:Basis,B2<:Basis,Style<:BraStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())
 
 @inline Base.copyto!(A::T,B::T) where T<:StateVector = (copyto!(A.data,B.data); A)
+
+# A few more standard interfaces: These do not necessarily make sense for a StateVector, but enable transparent use of DifferentialEquations.jl
+Base.eltype(::Type{Ket{B,A}}) where {B,N,A<:AbstractVector{N}} = N # ODE init
+Base.eltype(::Type{Bra{B,A}}) where {B,N,A<:AbstractVector{N}} = N
+Base.zero(k::StateVector) = typeof(k)(k.basis, zero(k.data)) # ODE init
+Base.any(f::Function, x::StateVector; kwargs...) = any(f, x.data; kwargs...) # ODE nan checks
+Base.all(f::Function, x::StateVector; kwargs...) = all(f, x.data; kwargs...)
+Broadcast.similar(k::StateVector, t) = typeof(k)(k.basis, copy(k.data))
+using RecursiveArrayTools
+RecursiveArrayTools.recursivecopy!(dst::Ket{B,A},src::Ket{B,A}) where {B,A} = copy!(dst.data,src.data) # ODE in-place equations
+RecursiveArrayTools.recursivecopy!(dst::Bra{B,A},src::Bra{B,A}) where {B,A} = copy!(dst.data,src.data)
