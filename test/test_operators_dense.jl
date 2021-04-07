@@ -360,6 +360,10 @@ op1 .= op1_ .+ 3 * op1_
 bf = FockBasis(3)
 op3 = randoperator(bf)
 @test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
-@test_throws ErrorException cos.(op1)
+@test op3 * 2 == op3 .+ op3
+z = zero(op3)
+z .= op3 .* 3
+@test z == op3 .* 2 .+ op3
+@test_broken all(z .== op3 .* 2 .+ op3)
 
 end # testset
