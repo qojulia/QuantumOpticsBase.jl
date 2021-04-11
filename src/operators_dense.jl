@@ -37,9 +37,9 @@ const AdjointOperator{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint}
 """
     DenseOperator(b1[, b2, data])
 
-Dense array implementation of Operator. Converts any given data to `Matrix{ComplexF64}`.
+Dense array implementation of Operator. Converts any given data to a dense `Matrix`.
 """
-DenseOperator(basis_l::Basis,basis_r::Basis,data::T) where T = Operator(basis_l,basis_r,Matrix{ComplexF64}(data))
+DenseOperator(basis_l::Basis,basis_r::Basis,data::T) where T = Operator(basis_l,basis_r,Matrix(data))
 DenseOperator(basis_l::Basis,basis_r::Basis,data::Matrix{ComplexF64}) = Operator(basis_l,basis_r,data)
 DenseOperator(b::Basis, data) = DenseOperator(b, b, data)
 DenseOperator(b1::Basis, b2::Basis) = DenseOperator(b1, b2, zeros(ComplexF64, length(b1), length(b2)))
