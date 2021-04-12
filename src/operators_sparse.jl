@@ -14,8 +14,8 @@ Sparse array implementation of Operator.
 The matrix is stored as the julia built-in type `SparseMatrixCSC`
 in the `data` field.
 """
-SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, SparseMatrixCSC{ComplexF64,Int}(data))
-SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC{ComplexF64,Int}) = Operator(b1, b2, data)
+SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, SparseMatrixCSC(data))
+SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC) = Operator(b1, b2, data)
 SparseOperator(b::Basis, data) = SparseOperator(b, b, data)
 SparseOperator(op::DataOperator) = SparseOperator(op.basis_l, op.basis_r, op.data)
 
