@@ -162,7 +162,7 @@ I = identityoperator(DenseOpType, b_l)
 @test I == identityoperator(DenseOpType, b1a) ⊗ identityoperator(DenseOpType, b2a) ⊗ identityoperator(DenseOpType, b3a)
 
 # Test tr and normalize
-op = DenseOperator(GenericBasis(3), [1 3 2;5 2 2;-1 2 5])
+op = DenseOperator(GenericBasis(3), float.([1 3 2;5 2 2;-1 2 5]))
 @test 8 == tr(op)
 op_normalized = normalize(op)
 @test 8 == tr(op)
