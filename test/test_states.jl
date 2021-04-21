@@ -161,7 +161,18 @@ psi_ .+= psi123
 bra_ = copy(bra123)
 bra_ .= 3*bra123
 @test bra_ == 3*dagger(psi123)
-@test_throws ErrorException cos.(psi_)
-@test_throws ErrorException cos.(bra_)
+@test bra_ .* 2 == bra_ .+ bra_
+@test bra_  * 2 == bra_ .+ bra_
+z = zero(bra_)
+z .= bra_ .* 2
+@test_broken all(z .== bra_ .+ bra_)
+@test z == bra_ .+ bra_
+ket_ = bra_'
+@test ket_ .* 2 == ket_ .+ ket_
+@test ket_  * 2 == ket_ .+ ket_
+z = zero(ket_)
+z .= ket_ .* 2
+@test_broken all(z .== ket_.+ ket_)
+@test z == ket_ .+ ket_
 
 end # testset
