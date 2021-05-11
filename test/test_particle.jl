@@ -242,7 +242,7 @@ x0 = [5.1, -0.2]
 p0 = [-3.2, 1.33]
 sigma = [1., 0.9]
 sigma_x = sigma./sqrt(2)
-sigma_p = 1.0/(sigma.*sqrt(2))
+sigma_p = 1.0 ./ (sigma.*sqrt(2))
 
 Txp = transform(tensor(basis_position...), tensor(basis_momentum...))
 Tpx = transform(tensor(basis_momentum...), tensor(basis_position...))
