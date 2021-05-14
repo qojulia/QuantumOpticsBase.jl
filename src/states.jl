@@ -1,4 +1,4 @@
-import Base: ==, +, -, *, /, length, copy
+import Base: ==, +, -, *, /, length, copy, eltype
 import LinearAlgebra: norm, normalize, normalize!
 
 """
@@ -38,6 +38,9 @@ mutable struct Ket{B<:Basis,T<:AbstractVector} <: StateVector{B,T}
         new(b, data)
     end
 end
+
+eltype(::Type{K}) where {K <: Ket{B,V}} where {B,V} = eltype(V)
+eltype(::Type{K}) where {K <: Bra{B,V}} where {B,V} = eltype(V)
 
 Bra{B}(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
 Ket{B}(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)

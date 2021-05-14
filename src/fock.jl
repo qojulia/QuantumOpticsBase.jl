@@ -21,44 +21,63 @@ end
 ==(b1::FockBasis, b2::FockBasis) = (b1.N==b2.N && b1.offset==b2.offset)
 
 """
-    number(b::FockBasis)
+    number([T=ComplexF64,] b::FockBasis)
 
-Number operator for the specified Fock space.
+Number operator for the specified Fock space with optional data type `T`.
 """
-function number(b::FockBasis)
-    diag = complex.(b.offset:b.N)
+function number(::Type{T}, b::FockBasis) where T
+    diag = T.(b.offset:b.N)
     data = spdiagm(0 => diag)
     SparseOperator(b, data)
 end
 
-"""
-    destroy(b::FockBasis)
+number(b::FockBasis) = number(ComplexF64, b)
 
-Annihilation operator for the specified Fock space.
+
 """
-function destroy(b::FockBasis)
-    diag = complex.(sqrt.(b.offset+1.:b.N))
+    destroy([T=ComplexF64,] b::FockBasis)
+
+Annihilation operator for the specified Fock space with optional data type `T`.
+"""
+function destroy(::Type{C}, b::FockBasis) where C
+    T = real(C)
+    ns = b.offset+1.:b.N
+    diag = @. C(sqrt(T(ns)))
     data = spdiagm(1 => diag)
     SparseOperator(b, data)
 end
 
-"""
-    create(b::FockBasis)
+destroy(b::FockBasis) = destroy(ComplexF64, b)
 
-Creation operator for the specified Fock space.
+
 """
-function create(b::FockBasis)
-    diag = complex.(sqrt.(b.offset+1.:b.N))
+    create([T=ComplexF64,] b::FockBasis)
+
+Creation operator for the specified Fock space with optional data type `T`.
+"""
+function create(::Type{C}, b::FockBasis) where C
+    T = real(C)
+    ns = b.offset+1.:b.N
+    diag = @. C(sqrt(T(ns)))
     data = spdiagm(-1 => diag)
     SparseOperator(b, data)
 end
 
-"""
-    displace(b::FockBasis, alpha)
+create(b::FockBasis) = create(ComplexF64, b)
 
-Displacement operator ``D(α)`` for the specified Fock space.
+
 """
-displace(b::FockBasis, alpha::Number) = exp(dense(alpha*create(b) - conj(alpha)*destroy(b)))
+    displace([T=ComplexF64,] b::FockBasis, alpha)
+
+Displacement operator ``D(α)`` for the specified Fock space with optional data type `T`.
+"""
+function displace(::Type{T}, b::FockBasis, alpha::Number) where T
+    alpha = T(alpha)
+    exp(dense(alpha * create(T, b) - conj(alpha) * destroy(T, b)))
+end
+
+displace(b::FockBasis, alpha::T) where {T <: Number} = displace(ComplexF64, b, alpha)
+
 
 """
     fockstate(b::FockBasis, n)
@@ -91,19 +110,21 @@ coherentstate(b, alpha) = coherentstate(ComplexF64, b, alpha)
 Inplace creation of coherent state ``|α⟩`` for the specified Fock space.
 """
 function coherentstate!(ket::Ket, b::FockBasis, alpha::Number)
-    alpha = complex(alpha)
+    C = eltype(ket)
+    T = real(C)
+    alpha = C(alpha)
     data = ket.data
     data[1] = exp(-abs2(alpha)/2)
 
     # Compute coefficient up to offset
     offset = b.offset
     @inbounds for n=1:offset
-        data[1] *= alpha/sqrt(n)
+        data[1] *= alpha/sqrt(T(n))
     end
 
     # Write coefficients to state
     @inbounds for n=1:b.N-offset
-        data[n+1] = data[n]*alpha/sqrt(n+offset)
+        data[n+1] = data[n]*alpha/sqrt(T(n+offset))
     end
 
     return ket
