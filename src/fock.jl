@@ -62,24 +62,28 @@ displace(b::FockBasis, alpha::Number) = exp(dense(alpha*create(b) - conj(alpha)*
 
 """
     fockstate(b::FockBasis, n)
+    fockstate(::Type{T}, b::FockBasis, n)
 
 Fock state ``|n⟩`` for the specified Fock space.
 """
-function fockstate(b::FockBasis, n::Int)
+function fockstate(::Type{T}, b::FockBasis, n::Integer) where T
     @assert b.offset <= n <= b.N
-    basisstate(b, n+1-b.offset)
+    basisstate(T, b, n+1-b.offset)
 end
+fockstate(b, n) = fockstate(ComplexF64, b, n)
 
 """
     coherentstate(b::FockBasis, alpha)
+    coherentstate(::Type{T}, b::FockBasis, alpha)
 
 Coherent state ``|α⟩`` for the specified Fock space.
 """
-function coherentstate(b::FockBasis, alpha::Number)
-    result = Ket(b, Vector{ComplexF64}(undef, length(b)))
+function coherentstate(::Type{T}, b::FockBasis, alpha::Number) where T
+    result = Ket(T, b)
     coherentstate!(result, b, alpha)
     return result
 end
+coherentstate(b, alpha) = coherentstate(ComplexF64, b, alpha)
 
 """
     coherentstate!(ket::Ket, b::FockBasis, alpha)

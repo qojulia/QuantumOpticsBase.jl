@@ -5,7 +5,7 @@ import LinearAlgebra: mul!, rmul!
 
 export bases, Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,
-        states, StateVector, Bra, Ket, basisstate, norm,
+        states, StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
                 dagger, normalize, normalize!,
         operators, AbstractOperator, DataOperator, expect, variance,
             identityoperator, ptrace, embed, dense, tr, sparse,

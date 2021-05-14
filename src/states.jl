@@ -45,10 +45,15 @@ Ket{B}(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
 Bra(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
 Ket(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
 
-Bra{B}(b::B) where B<:Basis = Bra{B}(b, zeros(ComplexF64, length(b)))
-Ket{B}(b::B) where B<:Basis = Ket{B}(b, zeros(ComplexF64, length(b)))
-Bra(b::Basis) = Bra(b, zeros(ComplexF64, length(b)))
-Ket(b::Basis) = Ket(b, zeros(ComplexF64, length(b)))
+Bra{B}(::Type{T}, b::B) where {T,B<:Basis} = Bra{B}(b, zeros(T, length(b)))
+Ket{B}(::Type{T}, b::B) where {T,B<:Basis} = Ket{B}(b, zeros(T, length(b)))
+Bra(::Type{T}, b::Basis) where T = Bra(b, zeros(T, length(b)))
+Ket(::Type{T}, b::Basis) where T = Ket(b, zeros(T, length(b)))
+
+Bra{B}(b::B) where B<:Basis = Bra{B}(ComplexF64, b)
+Ket{B}(b::B) where B<:Basis = Ket{B}(ComplexF64, b)
+Bra(b::Basis) = Bra(ComplexF64, b)
+Ket(b::Basis) = Ket(ComplexF64, b)
 
 copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
 length(a::StateVector) = length(a.basis)::Int
@@ -149,34 +154,68 @@ end
 
 # Creation of basis states.
 """
-    basisstate(b, index; sparse=false, dType=ComplexF64)
+    basisstate(b, index)
+    basisstate(::Type{T}, b, index)
 
 Basis vector specified by `index` as ket state.
 
 For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
-function basisstate(b::Basis, indices::Vector{Int}; sparse=false, dType=ComplexF64)
+function basisstate(::Type{T}, b::Basis, indices::Vector) where T
     @assert length(b.shape) == length(indices)
-    x = if sparse
-        spzeros(dType, length(b))
-    else
-        zeros(dType, length(b))
-    end
-    x[LinearIndices(tuple(b.shape...))[indices...]] = one(dType)
+    x = zeros(T, length(b))
+    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
     Ket(b, x)
 end
-
-function basisstate(b::Basis, index::Int; sparse=false, dType=ComplexF64)
-    data = if sparse
-        spzeros(dType, length(b))
-    else
-        zeros(dType, length(b))
-    end
-    data[index] = one(dType)
+function basisstate(::Type{T}, b::Basis, index::Integer) where T
+    data = zeros(T, length(b))
+    data[index] = one(T)
     Ket(b, data)
 end
 
+# Deprecate kwargs
+function basisstate(b::Basis, index; sparse=nothing, dType=nothing)
+    if sparse===nothing && dType===nothing
+        return basisstate(ComplexF64, b, index)
+    end
+    if sparse !== nothing
+        Base.depwarn("basisstate(b, index, sparse=true) is deprecated, use sparsebasisstate(b, index) instead",
+                    :basisstate; force=true)
+    end
+    if dType !== nothing
+        Base.depwarn("basisstate(b, index, dType=$dType) is deprecated, use basisstate($dType, b, index) instead",
+                    :basisstate)
+    end
+    if sparse !== nothing
+        if dType === nothing
+            return sparsebasisstate(b, index)
+        else
+            return sparsebasisstate(dType, b, index)
+        end
+    else
+        return basisstate(dType, b, index)
+    end
+end
+
+"""
+    sparsebasisstate(b, index)
+    sparsebasisstate(::Type{T}, b, index)
+
+Sparse version of [`basisstate`](@ref).
+"""
+function sparsebasisstate(::Type{T}, b::Basis, indices) where T
+    @assert length(b.shape) == length(indices)
+    x = spzeros(T, length(b))
+    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
+    Ket(b, x)
+end
+function sparsebasisstate(::Type{T}, b::Basis, index::Integer) where T
+    data = spzeros(T, length(b))
+    data[index] = one(T)
+    Ket(b, data)
+end
+sparsebasisstate(b::Basis, indices) = sparsebasisstate(ComplexF64, b, indices)
 
 # Helper functions to check validity of arguments
 function check_multiplicable(a::Bra, b::Ket)

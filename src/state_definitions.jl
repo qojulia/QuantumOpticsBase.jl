@@ -3,11 +3,12 @@
 
 Calculate a random normalized ket state.
 """
-function randstate(b::Basis)
-    psi = Ket(b, rand(ComplexF64, length(b)))
+function randstate(::Type{T}, b::Basis) where T
+    psi = Ket(b, rand(T, length(b)))
     normalize!(psi)
     psi
 end
+randstate(b) = randstate(ComplexF64, b)
 
 """
     randoperator(b1[, b2])

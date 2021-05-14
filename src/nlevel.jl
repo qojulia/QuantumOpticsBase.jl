@@ -40,9 +40,10 @@ end
 
 State where the system is completely in the n-th level.
 """
-function nlevelstate(b::NLevelBasis, n::Int)
+function nlevelstate(::Type{T}, b::NLevelBasis, n::Integer) where T
     if n < 1 || b.N < n
         throw(BoundsError("n has to be between 1 and b.N"))
     end
-    basisstate(b, n)
+    basisstate(T, b, n)
 end
+nlevelstate(b::NLevelBasis, n::Integer) = nlevelstate(ComplexF64, b, n)

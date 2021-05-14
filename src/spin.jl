@@ -90,14 +90,17 @@ end
 
 """
     spinup(b::SpinBasis)
+    spinup(::Type{T}, b::SpinBasis)
 
 Spin up state for the given Spin basis.
 """
-spinup(b::SpinBasis) = basisstate(b, 1)
+spinup(::Type{T}, b::SpinBasis) where T = basisstate(T, b, 1)
+spinup(b::SpinBasis) = spinup(ComplexF64, b)
 
 """
     spindown(b::SpinBasis)
 
 Spin down state for the given Spin basis.
 """
-spindown(b::SpinBasis) = basisstate(b, b.shape[1])
+spindown(::Type{T}, b::SpinBasis) where T = basisstate(T, b, b.shape[1])
+spindown(b::SpinBasis) = spindown(ComplexF64, b)

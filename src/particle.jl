@@ -64,6 +64,7 @@ MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi
 """
     gaussianstate(b::PositionBasis, x0, p0, sigma)
     gaussianstate(b::MomentumBasis, x0, p0, sigma)
+    gaussianstate(::Type{T}, b, x0, p0, sigma)
 
 Create a Gaussian state around `x0` and` p0` with width `sigma`.
 
@@ -100,8 +101,8 @@ factors ``\\sqrt{Δx}`` and ``\\sqrt{Δp}`` are used so that
 ``\\langle x_i|Ψ\\rangle = \\sqrt{Δ x} Ψ(x_i)`` and ``\\langle p_i|Ψ\\rangle = \\sqrt{Δ p} Ψ(p_i)`` so
 that the resulting Ket state is normalized.
 """
-function gaussianstate(b::PositionBasis, x0::Real, p0::Real, sigma::Real)
-    psi = Ket(b)
+function gaussianstate(::Type{T}, b::PositionBasis, x0, p0, sigma) where T
+    psi = Ket(T, b)
     dx = spacing(b)
     alpha = 1.0/(pi^(1/4)*sqrt(sigma))*sqrt(dx)
     x = b.xmin
@@ -112,8 +113,8 @@ function gaussianstate(b::PositionBasis, x0::Real, p0::Real, sigma::Real)
     return psi
 end
 
-function gaussianstate(b::MomentumBasis, x0::Real, p0::Real, sigma::Real)
-    psi = Ket(b)
+function gaussianstate(::Type{T}, b::MomentumBasis, x0, p0, sigma) where T
+    psi = Ket(T, b)
     dp = spacing(b)
     alpha = sqrt(sigma)/pi^(1/4)*sqrt(dp)
     p = b.pmin
@@ -123,6 +124,8 @@ function gaussianstate(b::MomentumBasis, x0::Real, p0::Real, sigma::Real)
     end
     return psi
 end
+
+gaussianstate(args...) = gaussianstate(ComplexF64, args...)
 
 
 """
