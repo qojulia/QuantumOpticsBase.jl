@@ -139,13 +139,6 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     # Create the operator.
     permuted_op = tensor(all_operators...)
 
-    # Create a copy to fill with correctly-ordered objects (basis and data).
-    unpermuted_op = copy(permuted_op)
-
-    # Create the correctly ordered basis.
-    unpermuted_op.basis_l = basis_l
-    unpermuted_op.basis_r = basis_r
-
     # Reorient the matrix to act in the correctly ordered basis.
     # Get the dimensions necessary for index permuting.
     dims_l = [b.shape[1] for b in basis_l.bases]
@@ -167,7 +160,9 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
          x -> permutedims(x, [perm_order_l; perm_order_r .+ length(dims_l)]) |>
          x -> sparse(reshape(x, (prod(dims_l), prod(dims_r)))))
 
-    unpermuted_op.data = M
+    # Create operator with proper data and bases
+    constructor = Base.typename(T)
+    unpermuted_op = constructor.wrapper(basis_l, basis_r, M)
 
     return unpermuted_op
 end
