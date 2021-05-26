@@ -9,17 +9,17 @@ in respect to a certain basis. These coefficients are stored in the
 `data` field and the basis is defined in the `basis`
 field.
 """
-abstract type StateVector{B<:Basis,T<:AbstractVector} end
+abstract type StateVector{B,T} end
 
 """
     Bra(b::Basis[, data])
 
 Bra state defined by coefficients in respect to the basis.
 """
-mutable struct Bra{B<:Basis,T<:AbstractVector} <: StateVector{B,T}
+mutable struct Bra{B,T} <: StateVector{B,T}
     basis::B
     data::T
-    function Bra{B,T}(b::B, data::T) where {B<:Basis,T<:AbstractVector}
+    function Bra{B,T}(b::B, data::T) where {B,T}
         (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
         new(b, data)
     end
@@ -30,23 +30,23 @@ end
 
 Ket state defined by coefficients in respect to the given basis.
 """
-mutable struct Ket{B<:Basis,T<:AbstractVector} <: StateVector{B,T}
+mutable struct Ket{B,T} <: StateVector{B,T}
     basis::B
     data::T
-    function Ket{B,T}(b::B, data::T) where {B<:Basis,T<:AbstractVector}
+    function Ket{B,T}(b::B, data::T) where {B,T}
         (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
         new(b, data)
     end
 end
 
-Bra{B}(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
-Ket{B}(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
+Bra{B}(b::B, data::T) where {B,T} = Bra{B,T}(b, data)
+Ket{B}(b::B, data::T) where {B,T} = Ket{B,T}(b, data)
 
-Bra(b::B, data::T) where {B<:Basis,T} = Bra{B,T}(b, data)
-Ket(b::B, data::T) where {B<:Basis,T} = Ket{B,T}(b, data)
+Bra(b::B, data::T) where {B,T} = Bra{B,T}(b, data)
+Ket(b::B, data::T) where {B,T} = Ket{B,T}(b, data)
 
-Bra{B}(b::B) where B<:Basis = Bra{B}(b, zeros(ComplexF64, length(b)))
-Ket{B}(b::B) where B<:Basis = Ket{B}(b, zeros(ComplexF64, length(b)))
+Bra{B}(b::B) where B = Bra{B}(b, zeros(ComplexF64, length(b)))
+Ket{B}(b::B) where B = Ket{B}(b, zeros(ComplexF64, length(b)))
 Bra(b::Basis) = Bra(b, zeros(ComplexF64, length(b)))
 Ket(b::Basis) = Ket(b, zeros(ComplexF64, length(b)))
 
@@ -54,30 +54,30 @@ copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
 length(a::StateVector) = length(a.basis)::Int
 basis(a::StateVector) = a.basis
 
-==(x::Ket{B}, y::Ket{B}) where {B<:Basis} = (samebases(x, y) && x.data==y.data)
-==(x::Bra{B}, y::Bra{B}) where {B<:Basis} = (samebases(x, y) && x.data==y.data)
+==(x::Ket{B}, y::Ket{B}) where {B} = (samebases(x, y) && x.data==y.data)
+==(x::Bra{B}, y::Bra{B}) where {B} = (samebases(x, y) && x.data==y.data)
 ==(x::Ket, y::Ket) = false
 ==(x::Bra, y::Bra) = false
 
-Base.isapprox(x::Ket{B}, y::Ket{B}; kwargs...) where {B<:Basis} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
-Base.isapprox(x::Bra{B}, y::Bra{B}; kwargs...) where {B<:Basis} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
+Base.isapprox(x::Ket{B}, y::Ket{B}; kwargs...) where {B} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
+Base.isapprox(x::Bra{B}, y::Bra{B}; kwargs...) where {B} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
 Base.isapprox(x::Ket, y::Ket; kwargs...) = false
 Base.isapprox(x::Bra, y::Bra; kwargs...) = false
 
 # Arithmetic operations
-+(a::Ket{B}, b::Ket{B}) where {B<:Basis} = Ket(a.basis, a.data+b.data)
-+(a::Bra{B}, b::Bra{B}) where {B<:Basis} = Bra(a.basis, a.data+b.data)
++(a::Ket{B}, b::Ket{B}) where {B} = Ket(a.basis, a.data+b.data)
++(a::Bra{B}, b::Bra{B}) where {B} = Bra(a.basis, a.data+b.data)
 +(a::Ket, b::Ket) = throw(IncompatibleBases())
 +(a::Bra, b::Bra) = throw(IncompatibleBases())
 
--(a::Ket{B}, b::Ket{B}) where {B<:Basis} = Ket(a.basis, a.data-b.data)
--(a::Bra{B}, b::Bra{B}) where {B<:Basis} = Bra(a.basis, a.data-b.data)
+-(a::Ket{B}, b::Ket{B}) where {B} = Ket(a.basis, a.data-b.data)
+-(a::Bra{B}, b::Bra{B}) where {B} = Bra(a.basis, a.data-b.data)
 -(a::Ket, b::Ket) = throw(IncompatibleBases())
 -(a::Bra, b::Bra) = throw(IncompatibleBases())
 
 -(a::T) where {T<:StateVector} = T(a.basis, -a.data)
 
-*(a::Bra{B}, b::Ket{B}) where {B<:Basis} = transpose(a.data)*b.data
+*(a::Bra{B}, b::Ket{B}) where {B} = transpose(a.data)*b.data
 *(a::Bra, b::Ket) = throw(IncompatibleBases())
 *(a::Number, b::Ket) = Ket(b.basis, a*b.data)
 *(a::Number, b::Bra) = Bra(b.basis, a*b.data)
@@ -130,7 +130,7 @@ In-place normalization of the given bra or ket so that `norm(x)` is one.
 """
 normalize!(x::StateVector) = (normalize!(x.data); x)
 
-function permutesystems(state::T, perm::Vector{Int}) where T<:Ket
+function permutesystems(state::T, perm) where T<:Ket
     @assert length(state.basis.bases) == length(perm)
     @assert isperm(perm)
     data = reshape(state.data, state.basis.shape...)
@@ -138,7 +138,7 @@ function permutesystems(state::T, perm::Vector{Int}) where T<:Ket
     data = reshape(data, length(data))
     Ket(permutesystems(state.basis, perm), data)
 end
-function permutesystems(state::T, perm::Vector{Int}) where T<:Bra
+function permutesystems(state::T, perm) where T<:Bra
     @assert length(state.basis.bases) == length(perm)
     @assert isperm(perm)
     data = reshape(state.data, state.basis.shape...)
@@ -156,7 +156,7 @@ Basis vector specified by `index` as ket state.
 For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
-function basisstate(b::Basis, indices::Vector{Int}; sparse=false, dType=ComplexF64)
+function basisstate(b, indices; sparse=false, dType=ComplexF64)
     @assert length(b.shape) == length(indices)
     x = if sparse
         spzeros(dType, length(b))
@@ -167,7 +167,7 @@ function basisstate(b::Basis, indices::Vector{Int}; sparse=false, dType=ComplexF
     Ket(b, x)
 end
 
-function basisstate(b::Basis, index::Int; sparse=false, dType=ComplexF64)
+function basisstate(b, index::Integer; sparse=false, dType=ComplexF64)
     data = if sparse
         spzeros(dType, length(b))
     else
@@ -199,24 +199,24 @@ Base.eltype(x::StateVector) = eltype(x.data)
 Base.broadcastable(x::StateVector) = x
 
 # Custom broadcasting style
-abstract type StateVectorStyle{B<:Basis} <: Broadcast.BroadcastStyle end
-struct KetStyle{B<:Basis} <: StateVectorStyle{B} end
-struct BraStyle{B<:Basis} <: StateVectorStyle{B} end
+abstract type StateVectorStyle{B} <: Broadcast.BroadcastStyle end
+struct KetStyle{B} <: StateVectorStyle{B} end
+struct BraStyle{B} <: StateVectorStyle{B} end
 
 # Style precedence rules
-Broadcast.BroadcastStyle(::Type{<:Ket{B}}) where {B<:Basis} = KetStyle{B}()
-Broadcast.BroadcastStyle(::Type{<:Bra{B}}) where {B<:Basis} = BraStyle{B}()
-Broadcast.BroadcastStyle(::KetStyle{B1}, ::KetStyle{B2}) where {B1<:Basis,B2<:Basis} = throw(IncompatibleBases())
-Broadcast.BroadcastStyle(::BraStyle{B1}, ::BraStyle{B2}) where {B1<:Basis,B2<:Basis} = throw(IncompatibleBases())
+Broadcast.BroadcastStyle(::Type{<:Ket{B}}) where {B} = KetStyle{B}()
+Broadcast.BroadcastStyle(::Type{<:Bra{B}}) where {B} = BraStyle{B}()
+Broadcast.BroadcastStyle(::KetStyle{B1}, ::KetStyle{B2}) where {B1,B2} = throw(IncompatibleBases())
+Broadcast.BroadcastStyle(::BraStyle{B1}, ::BraStyle{B2}) where {B1,B2} = throw(IncompatibleBases())
 
 # Out-of-place broadcasting
-@inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:KetStyle{B},Axes,F,Args<:Tuple}
+@inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:KetStyle{B},Axes,F,Args<:Tuple}
     bcf = Broadcast.flatten(bc)
     bc_ = Broadcasted_restrict_f(bcf.f, bcf.args, axes(bcf))
     b = find_basis(bcf)
     return Ket{B}(b, copy(bc_))
 end
-@inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:BraStyle{B},Axes,F,Args<:Tuple}
+@inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:BraStyle{B},Axes,F,Args<:Tuple}
     bcf = Broadcast.flatten(bc)
     bc_ = Broadcasted_restrict_f(bcf.f, bcf.args, axes(bcf))
     b = find_basis(bcf)
@@ -239,7 +239,7 @@ end
 
 
 # In-place broadcasting for Kets
-@inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:KetStyle{B},Axes,F,Args}
+@inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:KetStyle{B},Axes,F,Args}
     axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
     # Performance optimization: broadcast!(identity, dest, A) is equivalent to copyto!(dest, A) if indices match
     if bc.f === identity && isa(bc.args, Tuple{<:Ket{B}}) # only a single input argument to broadcast!
@@ -255,11 +255,11 @@ end
     copyto!(dest.data, bc_)
     return dest
 end
-@inline Base.copyto!(dest::Ket{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1<:Basis,B2<:Basis,Style<:KetStyle{B2},Axes,F,Args} =
+@inline Base.copyto!(dest::Ket{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:KetStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())
 
 # In-place broadcasting for Bras
-@inline function Base.copyto!(dest::Bra{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B<:Basis,Style<:BraStyle{B},Axes,F,Args}
+@inline function Base.copyto!(dest::Bra{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:BraStyle{B},Axes,F,Args}
     axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
     # Performance optimization: broadcast!(identity, dest, A) is equivalent to copyto!(dest, A) if indices match
     if bc.f === identity && isa(bc.args, Tuple{<:Bra{B}}) # only a single input argument to broadcast!
@@ -274,7 +274,7 @@ end
     copyto!(dest.data, bc_)
     return dest
 end
-@inline Base.copyto!(dest::Bra{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1<:Basis,B2<:Basis,Style<:BraStyle{B2},Axes,F,Args} =
+@inline Base.copyto!(dest::Bra{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:BraStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())
 
 @inline Base.copyto!(A::T,B::T) where T<:StateVector = (copyto!(A.data,B.data); A)
