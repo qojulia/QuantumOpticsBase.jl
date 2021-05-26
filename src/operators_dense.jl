@@ -8,11 +8,11 @@ using Base.Cartesian
 Operator type that stores the representation of an operator on the Hilbert spaces
 given by `BL` and `BR` (e.g. a Matrix).
 """
-mutable struct Operator{BL<:Basis,BR<:Basis,T} <: DataOperator{BL,BR}
+mutable struct Operator{BL,BR,T} <: DataOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     data::T
-    function Operator{BL,BR,T}(basis_l::BL,basis_r::BR,data::T) where {BL<:Basis,BR<:Basis,T}
+    function Operator{BL,BR,T}(basis_l::BL,basis_r::BR,data::T) where {BL,BR,T}
         (length.((basis_l,basis_r))==size(data)) || throw(DimensionMismatch("Tried to assign data of size $(size(data)) to bases of length $(length(basis_l)) and $(length(basis_r))!"))
         new(basis_l,basis_r,data)
     end
@@ -29,10 +29,10 @@ Base.size(op::Operator, d::Int) = size(op.data, d)
 # Convert data to CuArray with cu(::Operator)
 Adapt.adapt_structure(to, x::Operator) = Operator(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))
 
-const DenseOpPureType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Matrix}
-const DenseOpAdjType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint{<:Number,<:Matrix}}
-const DenseOpType{BL<:Basis,BR<:Basis} = Union{DenseOpPureType{BL,BR},DenseOpAdjType{BL,BR}}
-const AdjointOperator{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint}
+const DenseOpPureType{BL,BR} = Operator{BL,BR,<:Matrix}
+const DenseOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:Matrix}}
+const DenseOpType{BL,BR} = Union{DenseOpPureType{BL,BR},DenseOpAdjType{BL,BR}}
+const AdjointOperator{BL,BR} = Operator{BL,BR,<:Adjoint}
 
 """
     DenseOperator(b1[, b2, data])
@@ -55,43 +55,43 @@ Convert an arbitrary Operator into a [`DenseOperator`](@ref).
 """
 dense(x::AbstractOperator) = DenseOperator(x)
 
-==(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL<:Basis,BR<:Basis} = (samebases(x,y) && x.data==y.data)
+==(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL,BR} = (samebases(x,y) && x.data==y.data)
 ==(x::DataOperator, y::DataOperator) = false
-Base.isapprox(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}; kwargs...) where {BL<:Basis,BR<:Basis} = (samebases(x,y) && isapprox(x.data, y.data; kwargs...))
+Base.isapprox(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}; kwargs...) where {BL,BR} = (samebases(x,y) && isapprox(x.data, y.data; kwargs...))
 Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = false
 
 # Arithmetic operations
-+(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL<:Basis,BR<:Basis} = Operator(a.basis_l, a.basis_r, a.data+b.data)
++(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL,BR} = Operator(a.basis_l, a.basis_r, a.data+b.data)
 +(a::Operator, b::Operator) = throw(IncompatibleBases())
 
 -(a::Operator) = Operator(a.basis_l, a.basis_r, -a.data)
--(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL<:Basis,BR<:Basis} = Operator(a.basis_l, a.basis_r, a.data-b.data)
+-(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL,BR} = Operator(a.basis_l, a.basis_r, a.data-b.data)
 -(a::Operator, b::Operator) = throw(IncompatibleBases())
 
-*(a::Operator{BL,BR}, b::Ket{BR}) where {BL<:Basis,BR<:Basis} = Ket{BL}(a.basis_l, a.data*b.data)
+*(a::Operator{BL,BR}, b::Ket{BR}) where {BL,BR} = Ket{BL}(a.basis_l, a.data*b.data)
 *(a::DataOperator, b::Ket) = throw(IncompatibleBases())
-*(a::Bra{BL}, b::Operator{BL,BR}) where {BL<:Basis,BR<:Basis} = Bra{BR}(b.basis_r, transpose(b.data)*a.data)
+*(a::Bra{BL}, b::Operator{BL,BR}) where {BL,BR} = Bra{BR}(b.basis_r, transpose(b.data)*a.data)
 *(a::Bra, b::DataOperator) = throw(IncompatibleBases())
-*(a::Operator{B1,B2}, b::Operator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis} = Operator(a.basis_l, b.basis_r, a.data*b.data)
+*(a::Operator{B1,B2}, b::Operator{B2,B3}) where {B1,B2,B3} = Operator(a.basis_l, b.basis_r, a.data*b.data)
 *(a::DataOperator, b::DataOperator) = throw(IncompatibleBases())
 *(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, b*a.data)
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
-function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
+function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1,B2,B3,T}
     result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(op2.data,length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
-function *(op1::Operator{B1,B2,T}, op2::AbstractOperator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
+function *(op1::Operator{B1,B2,T}, op2::AbstractOperator{B2,B3}) where {B1,B2,B3,T}
     result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(op1.data,length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
-function *(op::AbstractOperator{BL,BR}, psi::Ket{BR,T}) where {BL<:Basis,BR<:Basis,T}
+function *(op::AbstractOperator{BL,BR}, psi::Ket{BR,T}) where {BL,BR,T}
     result = Ket{BL,T}(op.basis_l,similar(psi.data,length(op.basis_l)))
     mul!(result,op,psi)
     return result
 end
-function *(psi::Bra{BL,T}, op::AbstractOperator{BL,BR}) where {BL<:Basis,BR<:Basis,T}
+function *(psi::Bra{BL,T}, op::AbstractOperator{BL,BR}) where {BL,BR,T}
     result = Bra{BR,T}(op.basis_r, similar(psi.data,length(op.basis_r)))
     mul!(result,psi,op)
     return result
@@ -102,7 +102,7 @@ end
 dagger(x::Operator) = Operator(x.basis_r,x.basis_l,adjoint(x.data))
 transpose(x::Operator) = Operator(x.basis_r,x.basis_l,transpose(x.data))
 ishermitian(A::DataOperator) = false
-ishermitian(A::DataOperator{B,B}) where B<:Basis = ishermitian(A.data)
+ishermitian(A::DataOperator{B,B}) where B = ishermitian(A.data)
 Base.collect(A::Operator) = Operator(A.basis_l, A.basis_r, collect(A.data))
 
 tensor(a::Operator, b::Operator) = Operator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(b.data, a.data))
@@ -118,17 +118,18 @@ Outer product ``|x⟩⟨y|`` of the given states.
 """
 tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), length(a.basis), length(b.basis)))
 
-tr(op::Operator{B,B}) where B<:Basis = tr(op.data)
+tr(op::Operator{B,B}) where B = tr(op.data)
 
-function ptrace(a::DataOperator, indices::Vector{Int})
+function ptrace(a::DataOperator, indices)
     check_ptrace_arguments(a, indices)
     rank = length(a.basis_l.shape)
     result = _ptrace(Val{rank}, a.data, a.basis_l.shape, a.basis_r.shape, indices)
     return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
-ptrace(op::AdjointOperator, indices::Vector{Int}) = dagger(ptrace(op, indices))
+ptrace(op::AdjointOperator, indices) = dagger(ptrace(op, indices))
+ptrace(op::DataOperator, index::Integer) = ptrace(op, [index])
 
-function ptrace(psi::Ket, indices::Vector{Int})
+function ptrace(psi::Ket, indices)
     check_ptrace_arguments(psi, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
@@ -136,7 +137,9 @@ function ptrace(psi::Ket, indices::Vector{Int})
     result = _ptrace_ket(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
-function ptrace(psi::Bra, indices::Vector{Int})
+ptrace(psi::Ket, index::Integer) = ptrace(psi, [index])
+
+function ptrace(psi::Bra, indices)
     check_ptrace_arguments(psi, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
@@ -144,14 +147,15 @@ function ptrace(psi::Bra, indices::Vector{Int})
     result = _ptrace_bra(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
+ptrace(psi::Bra, index::Integer) = ptrace(psi, [index])
 
 normalize!(op::Operator) = (rmul!(op.data, 1.0/tr(op)); op)
 
-function expect(op::DataOperator{B,B}, state::Ket{B}) where B<:Basis
+function expect(op::DataOperator{B,B}, state::Ket{B}) where B
     state.data' * op.data * state.data
 end
 
-function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1<:Basis,B2<:Basis}
+function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1,B2}
     check_samebases(op, state)
     result = zero(promote_type(eltype(op),eltype(state)))
     @inbounds for i=1:size(op.data, 1), j=1:size(op.data,2)
@@ -160,11 +164,11 @@ function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1<:
     result
 end
 
-function exp(op::T) where {B<:Basis,T<:DenseOpType{B,B}}
+function exp(op::T) where {B,T<:DenseOpType{B,B}}
     return DenseOperator(op.basis_l, op.basis_r, exp(op.data))
 end
 
-function permutesystems(a::Operator{B1,B2}, perm::Vector{Int}) where {B1<:CompositeBasis,B2<:CompositeBasis}
+function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
     @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
     @assert isperm(perm)
     data = reshape(a.data, [a.basis_l.shape; a.basis_r.shape]...)
@@ -172,7 +176,7 @@ function permutesystems(a::Operator{B1,B2}, perm::Vector{Int}) where {B1<:Compos
     data = reshape(data, length(a.basis_l), length(a.basis_r))
     return Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), data)
 end
-permutesystems(a::AdjointOperator{B1,B2}, perm::Vector{Int}) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
+permutesystems(a::AdjointOperator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
 
 identityoperator(::Type{T}, b1::Basis, b2::Basis) where {BL,BR,dType,T<:DenseOpType} = Operator(b1, b2, Matrix{ComplexF64}(I, length(b1), length(b2)))
 
@@ -205,9 +209,9 @@ dm(x::Bra) = tensor(dagger(x), x)
 
 
 # Partial trace implementation for dense operators.
-function _strides(shape::Vector{Int})
+function _strides(shape)
     N = length(shape)
-    S = zeros(Int, N)
+    S = zeros(eltype(shape), N)
     S[1] = 1
     for m=2:N
         S[m] = S[m-1]*shape[m-1]
@@ -217,8 +221,8 @@ end
 
 # Dense operator version
 @generated function _ptrace(::Type{Val{RANK}}, a,
-                            shape_l::Vector{Int}, shape_r::Vector{Int},
-                            indices::Vector{Int}) where RANK
+                            shape_l, shape_r,
+                            indices) where RANK
     return quote
         a_strides_l = _strides(shape_l)
         result_shape_l = copy(shape_l)
@@ -242,8 +246,8 @@ end
     end
 end
 
-@generated function _ptrace_ket(::Type{Val{RANK}}, a::Vector,
-                            shape::Vector{Int}, indices::Vector{Int}) where RANK
+@generated function _ptrace_ket(::Type{Val{RANK}}, a,
+                            shape, indices) where RANK
     return quote
         a_strides = _strides(shape)
         result_shape = copy(shape)
@@ -262,8 +266,8 @@ end
     end
 end
 
-@generated function _ptrace_bra(::Type{Val{RANK}}, a::Vector,
-                            shape::Vector{Int}, indices::Vector{Int}) where RANK
+@generated function _ptrace_bra(::Type{Val{RANK}}, a,
+                            shape, indices) where RANK
     return quote
         a_strides = _strides(shape)
         result_shape = copy(shape)
@@ -291,13 +295,13 @@ Fast in-place multiplication of operators/state vectors. Updates `Y` as
 Julia's 5-arg mul! implementation on the underlying data.
 See also [`LinearAlgebra.mul!`](@ref).
 """
-mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
-mul!(result::Ket{B1},a::Operator{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
-mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
+mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
+mul!(result::Ket{B1},a::Operator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
+mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1,B2} = (LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
 rmul!(op::Operator, x) = (rmul!(op.data, x); op)
 
 # Multiplication for Operators in terms of their gemv! implementation
-function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3}
     for i=1:size(b.data, 2)
         bket = Ket(b.basis_l, b.data[:,i])
         resultket = Ket(M.basis_l, result.data[:,i])
@@ -307,7 +311,7 @@ function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,
     return result
 end
 
-function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,B3},alpha,beta) where {B1,B2,B3}
     for i=1:size(b.data, 1)
         bbra = Bra(b.basis_r, vec(b.data[i,:]))
         resultbra = Bra(M.basis_r, vec(result.data[i,:]))
@@ -319,20 +323,20 @@ end
 
 # Broadcasting
 Base.size(A::DataOperator) = size(A.data)
-Base.size(A::DataOperator, d::Int) = size(A.data, d)
+Base.size(A::DataOperator, d) = size(A.data, d)
 @inline Base.axes(A::DataOperator) = axes(A.data)
 Base.broadcastable(A::DataOperator) = A
 
 # Custom broadcasting styles
-abstract type DataOperatorStyle{BL<:Basis,BR<:Basis} <: Broadcast.BroadcastStyle end
-struct OperatorStyle{BL<:Basis,BR<:Basis} <: DataOperatorStyle{BL,BR} end
+abstract type DataOperatorStyle{BL,BR} <: Broadcast.BroadcastStyle end
+struct OperatorStyle{BL,BR} <: DataOperatorStyle{BL,BR} end
 
 # Style precedence rules
-Broadcast.BroadcastStyle(::Type{<:Operator{BL,BR}}) where {BL<:Basis,BR<:Basis} = OperatorStyle{BL,BR}()
-Broadcast.BroadcastStyle(::OperatorStyle{B1,B2}, ::OperatorStyle{B3,B4}) where {B1<:Basis,B2<:Basis,B3<:Basis,B4<:Basis} = throw(IncompatibleBases())
+Broadcast.BroadcastStyle(::Type{<:Operator{BL,BR}}) where {BL,BR} = OperatorStyle{BL,BR}()
+Broadcast.BroadcastStyle(::OperatorStyle{B1,B2}, ::OperatorStyle{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
 # Out-of-place broadcasting
-@inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL<:Basis,BR<:Basis,Style<:OperatorStyle{BL,BR},Axes,F,Args<:Tuple}
+@inline function Base.copy(bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL,BR,Style<:OperatorStyle{BL,BR},Axes,F,Args<:Tuple}
     bcf = Broadcast.flatten(bc)
     bl,br = find_basis(bcf.args)
     bc_ = Broadcasted_restrict_f(bcf.f, bcf.args, axes(bcf))
@@ -350,7 +354,7 @@ function Broadcasted_restrict_f(f, args::Tuple{Vararg{<:DataOperator}}, axes)
 end
 
 # In-place broadcasting
-@inline function Base.copyto!(dest::DataOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL<:Basis,BR<:Basis,Style<:DataOperatorStyle{BL,BR},Axes,F,Args}
+@inline function Base.copyto!(dest::DataOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL,BR,Style<:DataOperatorStyle{BL,BR},Axes,F,Args}
     axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
     # Performance optimization: broadcast!(identity, dest, A) is equivalent to copyto!(dest, A) if indices match
     if bc.f === identity && isa(bc.args, Tuple{<:DataOperator{BL,BR}}) # only a single input argument to broadcast!
@@ -365,6 +369,6 @@ end
     copyto!(dest.data, bc_)
     return dest
 end
-@inline Base.copyto!(A::DataOperator{BL,BR},B::DataOperator{BL,BR}) where {BL<:Basis,BR<:Basis} = (copyto!(A.data,B.data); A)
-@inline Base.copyto!(dest::DataOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL<:Basis,BR<:Basis,Style<:DataOperatorStyle,Axes,F,Args} =
+@inline Base.copyto!(A::DataOperator{BL,BR},B::DataOperator{BL,BR}) where {BL,BR} = (copyto!(A.data,B.data); A)
+@inline Base.copyto!(dest::DataOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL,BR,Style<:DataOperatorStyle,Axes,F,Args} =
     throw(IncompatibleBases())
