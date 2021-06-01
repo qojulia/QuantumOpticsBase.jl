@@ -151,6 +151,7 @@ dense(x::LazyDirectSum) = directsum(dense.(x.operators)...)
 -(op::LazyDirectSum) = LazyDirectSum([-op.operators[1];op.operators[2:end]]...)
 +(op1::LazyDirectSum{B1,B2},op2::LazyDirectSum{B1,B2}) where {B1<:Basis,B2<:Basis} = LazyDirectSum((op1.operators .+ op2.operators)...)
 dagger(op::LazyDirectSum) = LazyDirectSum(op.basis_r, op.basis_l, dagger.(op.operators))
+Base.eltype(x::LazyDirectSum) = promote_type(eltype.(x.operators)...)
 
 directsum(op1::AbstractOperator,op2::LazyDirectSum) = LazyDirectSum(op1,op2)
 directsum(op1::LazyDirectSum,op2::AbstractOperator) = LazyDirectSum(op1,op2)
