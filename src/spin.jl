@@ -10,8 +10,7 @@ spin numbers.
 struct SpinBasis{S,T} <: Basis
     shape::Vector{T}
     spinnumber::Rational{T}
-    function SpinBasis{S}(spinnumber::Rational{T}) where {S,T<:Int}
-        @assert isa(S, Rational{Int})
+    function SpinBasis{S}(spinnumber::Rational{T}) where {S,T}
         n = numerator(spinnumber)
         d = denominator(spinnumber)
         @assert d==2 || d==1
@@ -20,8 +19,8 @@ struct SpinBasis{S,T} <: Basis
         new{spinnumber,T}([N], spinnumber)
     end
 end
-SpinBasis(spinnumber::Rational{Int}) = SpinBasis{spinnumber}(spinnumber)
-SpinBasis(spinnumber::Int) = SpinBasis(convert(Rational{Int}, spinnumber))
+SpinBasis(spinnumber::Rational) = SpinBasis{spinnumber}(spinnumber)
+SpinBasis(spinnumber) = SpinBasis(convert(Rational{Int}, spinnumber))
 
 ==(b1::SpinBasis, b2::SpinBasis) = b1.spinnumber==b2.spinnumber
 

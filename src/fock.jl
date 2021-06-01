@@ -9,7 +9,7 @@ struct FockBasis{T} <: Basis
     shape::Vector{T}
     N::T
     offset::T
-    function FockBasis(N::T,offset::T=0) where T<:Integer
+    function FockBasis(N::T,offset::T=0) where T
         if N < 0 || offset < 0 || N <= offset
             throw(DimensionMismatch())
         end
@@ -58,14 +58,14 @@ end
 
 Displacement operator ``D(α)`` for the specified Fock space.
 """
-displace(b::FockBasis, alpha::Number) = exp(dense(alpha*create(b) - conj(alpha)*destroy(b)))
+displace(b::FockBasis, alpha) = exp(dense(alpha*create(b) - conj(alpha)*destroy(b)))
 
 """
     fockstate(b::FockBasis, n)
 
 Fock state ``|n⟩`` for the specified Fock space.
 """
-function fockstate(b::FockBasis, n::Int)
+function fockstate(b::FockBasis, n)
     @assert b.offset <= n <= b.N
     basisstate(b, n+1-b.offset)
 end
@@ -75,7 +75,7 @@ end
 
 Coherent state ``|α⟩`` for the specified Fock space.
 """
-function coherentstate(b::FockBasis, alpha::Number)
+function coherentstate(b::FockBasis, alpha)
     result = Ket(b, Vector{ComplexF64}(undef, length(b)))
     coherentstate!(result, b, alpha)
     return result
@@ -86,8 +86,7 @@ end
 
 Inplace creation of coherent state ``|α⟩`` for the specified Fock space.
 """
-function coherentstate!(ket::Ket, b::FockBasis, alpha::Number)
-    alpha = complex(alpha)
+function coherentstate!(ket::Ket, b::FockBasis, alpha)
     data = ket.data
     data[1] = exp(-abs2(alpha)/2)
 
