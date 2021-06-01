@@ -3,17 +3,16 @@
 
 A basis describing a subspace embedded a higher dimensional Hilbert space.
 """
-struct SubspaceBasis{S,B<:Basis,T<:Ket,H,UT} <: Basis
+struct SubspaceBasis{S,B,T,H,UT} <: Basis
     shape::S
     superbasis::B
     basisstates::Vector{T}
     basisstates_hash::UT
-
     function SubspaceBasis{S,B,T,H,UT}(shape::S,superbasis::B,basisstates::Vector{T},basisstates_hash::UT) where {S,B,T,H,UT}
-        new{S,B,T,H,UT}(shape,superbasis,basisstates,basisstates_hash)
+        new(shape,superbasis,basisstates,basisstates_hash)
     end
 end
-function SubspaceBasis(superbasis::B, basisstates::Vector{T}) where {B<:Basis,T<:Ket}
+function SubspaceBasis(superbasis::B, basisstates::Vector{T}) where {B,T}
     for state = basisstates
         if state.basis != superbasis
             throw(ArgumentError("The basis of the basisstates has to be the superbasis."))
@@ -23,7 +22,7 @@ function SubspaceBasis(superbasis::B, basisstates::Vector{T}) where {B<:Basis,T<
     shape = Int[length(basisstates)]
     SubspaceBasis{typeof(shape),B,T,H,typeof(H)}(shape, superbasis, basisstates, H)
 end
-SubspaceBasis(basisstates::Vector{T}) where T<:Ket = SubspaceBasis(basisstates[1].basis, basisstates)
+SubspaceBasis(basisstates::Vector{T}) where T = SubspaceBasis(basisstates[1].basis, basisstates)
 
 ==(b1::SubspaceBasis, b2::SubspaceBasis) = b1.superbasis==b2.superbasis && b1.basisstates_hash==b2.basisstates_hash
 
@@ -39,7 +38,7 @@ A modified Gram-Schmidt process is used.
 """
 function orthonormalize(b::SubspaceBasis)
     V = b.basisstates
-    U = Ket[]
+    U = eltype(V)[]
     for (k, v)=enumerate(V)
         u = copy(v)
         for i=1:k-1
