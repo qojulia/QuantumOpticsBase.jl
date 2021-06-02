@@ -6,7 +6,7 @@ Basis for a system consisting of N states.
 struct NLevelBasis{T} <: Basis
     shape::Vector{T}
     N::T
-    function NLevelBasis(N::T) where T<:Integer
+    function NLevelBasis(N::T) where T
         if N < 1
             throw(DimensionMismatch())
         end
@@ -22,7 +22,7 @@ end
 
 Transition operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|``.
 """
-function transition(b::NLevelBasis, to::Int, from::Int)
+function transition(b::NLevelBasis, to, from)
     if to < 1 || b.N < to
         throw(BoundsError("'to' index has to be between 1 and b.N"))
     end
@@ -40,7 +40,7 @@ end
 
 State where the system is completely in the n-th level.
 """
-function nlevelstate(b::NLevelBasis, n::Int)
+function nlevelstate(b::NLevelBasis, n)
     if n < 1 || b.N < n
         throw(BoundsError("n has to be between 1 and b.N"))
     end
