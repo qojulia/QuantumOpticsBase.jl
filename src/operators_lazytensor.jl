@@ -132,7 +132,7 @@ function tr(op::LazyTensor)
     result
 end
 
-function ptrace(op::LazyTensor, indices::Vector{Int})
+function ptrace(op::LazyTensor, indices)
     check_ptrace_arguments(op, indices)
     N = length(op.basis_l.shape)
     rank = N - length(indices)
@@ -162,7 +162,7 @@ end
 
 normalize!(op::LazyTensor) = (op.factor /= tr(op); op)
 
-function permutesystems(op::LazyTensor, perm::Vector{Int})
+function permutesystems(op::LazyTensor, perm)
     b_l = permutesystems(op.basis_l, perm)
     b_r = permutesystems(op.basis_r, perm)
     indices = [findfirst(isequal(i), perm) for i in op.indices]
@@ -174,9 +174,9 @@ identityoperator(::Type{LazyTensor}, b1::Basis, b2::Basis) = LazyTensor(b1, b2, 
 
 
 # Recursively calculate result_{IK} = \\sum_J op_{IJ} h_{JK}
-function _gemm_recursive_dense_lazy(i_k::Int, N_k::Int, K::Int, J::Int, val::Number,
-                        shape::Vector{Int}, strides_k::Vector{Int}, strides_j::Vector{Int},
-                        indices::Vector{Int}, h::LazyTensor,
+function _gemm_recursive_dense_lazy(i_k, N_k, K, J, val,
+                        shape, strides_k, strides_j,
+                        indices, h::LazyTensor,
                         op::Matrix, result::Matrix)
     if i_k > N_k
         for I=1:size(op, 1)
@@ -223,9 +223,9 @@ end
 
 
 # Recursively calculate result_{JI} = \\sum_K h_{JK} op_{KI}
-function _gemm_recursive_lazy_dense(i_k::Int, N_k::Int, K::Int, J::Int, val::Number,
-                        shape::Vector{Int}, strides_k::Vector{Int}, strides_j::Vector{Int},
-                        indices::Vector{Int}, h::LazyTensor,
+function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
+                        shape, strides_k, strides_j,
+                        indices, h::LazyTensor,
                         op::Matrix, result::Matrix)
     if i_k > N_k
         for I=1:size(op, 2)
@@ -270,7 +270,7 @@ function _gemm_recursive_lazy_dense(i_k::Int, N_k::Int, K::Int, J::Int, val::Num
     end
 end
 
-function gemm(alpha::Number, op::Matrix, h::LazyTensor, beta::Number, result::Matrix)
+function gemm(alpha, op::Matrix, h::LazyTensor, beta, result::Matrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -283,7 +283,7 @@ function gemm(alpha::Number, op::Matrix, h::LazyTensor, beta::Number, result::Ma
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-function gemm(alpha::Number, h::LazyTensor, op::Matrix, beta::Number, result::Matrix)
+function gemm(alpha, h::LazyTensor, op::Matrix, beta, result::Matrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)

@@ -218,7 +218,7 @@ Trace of the given operator.
 tr(x::AbstractOperator) = arithmetic_unary_error("Trace", x)
 
 ptrace(a::AbstractOperator, index) = arithmetic_unary_error("Partial trace", a)
-ptrace(a::AbstractOperator, index::Integer) = ptrace(a,[index])
+# ptrace(a::AbstractOperator, index::Integer) = ptrace(a,[index])
 
 """
     normalize(op)

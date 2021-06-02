@@ -21,7 +21,7 @@ end
 """
 [1, 4, 5], [2, 4, 7] => [1, 5]
 """
-function remove(ind1::Vector{Int}, ind2::Vector{Int})
+function remove(ind1, ind2)
     x = Int[]
     for i in ind1
         if i ∉ ind2

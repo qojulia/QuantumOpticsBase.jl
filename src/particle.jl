@@ -50,7 +50,7 @@ struct MomentumBasis{P1,P2,T,F} <: Basis
     pmin::F
     pmax::F
     N::T
-    function MomentumBasis{P1,P2}(pmin::F, pmax::F, N::T) where {T,F,P1,P2}
+    function MomentumBasis{P1,P2}(pmin::F, pmax::F, N::T) where {T<:Integer,F,P1,P2}
         @assert isa(P1, Real) && isa(P2, Real)
         new{P1,P2,T,F}([N], pmin, pmax, N)
     end
@@ -243,7 +243,7 @@ function potentialoperator_position(b::CompositeBasis, V::Function)
     points = [samplepoints(b1) for b1=b.bases]
     dims = length.(points)
     n = length(b.bases)
-    data = Array{ComplexF64}(undef, dims...)
+    data = Array{complex(eltype(points))}(undef, dims...)
     @inbounds for i=1:length(data)
         index = Tuple(CartesianIndices(data)[i])
         args = (points[j][index[j]] for j=1:n)
@@ -359,11 +359,11 @@ function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only=fals
     end
     mul_before = exp.(1im*basis_l.xmin*(samplepoints(basis_r) .- basis_r.pmin))
     mul_after = exp.(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{ComplexF64}(undef, length(basis_r))
+    x = Vector{eltype(mul_before)}(undef, length(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), mul_before, mul_after)
     else
-        A = Matrix{ComplexF64}(undef, length(basis_r), length(basis_r))
+        A = Matrix{eltype(mul_before)}(undef, length(basis_r), length(basis_r))
         FFTOperators(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), plan_fft!(A, 2), plan_bfft!(A, 1), mul_before, mul_after)
     end
 end
@@ -428,11 +428,11 @@ function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
     mul_before = reshape(mul_before, (N...,))
     mul_after = reshape(mul_after, (N...,))
 
-    x = Array{ComplexF64}(undef, N...)
+    x = Array{eltype(mul_before)}(undef, N...)
     if ket_only
         FFTKets(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), mul_before, mul_after)
     else
-        A = Array{ComplexF64}(undef, [N; N]...)
+        A = Array{eltype(mul_before)}(undef, [N; N]...)
         FFTOperators(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), plan_fft!(A, [n + 1:2n;][index]), plan_bfft!(A, [1:n;][index]), mul_before, mul_after)
     end
 end
@@ -473,11 +473,11 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
     mul_before = reshape(mul_before, (N...,))
     mul_after = reshape(mul_after, (N...,))
 
-    x = Array{ComplexF64}(undef, N...)
+    x = Array{eltype(mul_before)}(undef, N...)
     if ket_only
         FFTKets(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), mul_before, mul_after)
     else
-        A = Array{ComplexF64}(undef, [N; N]...)
+        A = Array{eltype(mul_before)}(undef, [N; N]...)
         FFTOperators(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), plan_bfft!(A, [n + 1:2n;][index]), plan_fft!(A, [1:n;][index]), mul_before, mul_after)
     end
 end
@@ -491,7 +491,7 @@ tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l
 tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
 
 function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
-    N::Int = length(M.basis_r)
+    N = length(M.basis_r)
     if iszero(beta)
         @inbounds for i=1:N
             result.data[i] = M.mul_before[i] * b.data[i]
@@ -514,7 +514,7 @@ function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where
 end
 
 function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha,beta) where {B1,B2}
-    N::Int = length(M.basis_l)
+    N = length(M.basis_l)
     if iszero(beta)
         @inbounds for i=1:N
             result.data[i] = conj(M.mul_after[i]) * conj(b.data[i])
