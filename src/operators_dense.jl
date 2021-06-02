@@ -127,7 +127,6 @@ function ptrace(a::DataOperator, indices)
     return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
 ptrace(op::AdjointOperator, indices) = dagger(ptrace(op, indices))
-ptrace(op::DataOperator, index::Integer) = ptrace(op, [index])
 
 function ptrace(psi::Ket, indices)
     check_ptrace_arguments(psi, indices)
@@ -137,7 +136,6 @@ function ptrace(psi::Ket, indices)
     result = _ptrace_ket(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
-ptrace(psi::Ket, index::Integer) = ptrace(psi, [index])
 
 function ptrace(psi::Bra, indices)
     check_ptrace_arguments(psi, indices)
@@ -147,7 +145,6 @@ function ptrace(psi::Bra, indices)
     result = _ptrace_bra(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
-ptrace(psi::Bra, index::Integer) = ptrace(psi, [index])
 
 normalize!(op::Operator) = (rmul!(op.data, 1.0/tr(op)); op)
 
@@ -226,11 +223,15 @@ end
     return quote
         a_strides_l = _strides(shape_l)
         result_shape_l = copy(shape_l)
-        result_shape_l[indices] .= 1
+        @inbounds for idx ∈ indices
+            result_shape_l[idx] = 1
+        end
         result_strides_l = _strides(result_shape_l)
         a_strides_r = _strides(shape_r)
         result_shape_r = copy(shape_r)
-        result_shape_r[indices] .= 1
+        @inbounds for idx ∈ indices
+            result_shape_r[idx] = 1
+        end
         result_strides_r = _strides(result_shape_r)
         N_result_l = prod(result_shape_l)
         N_result_r = prod(result_shape_r)
@@ -251,7 +252,9 @@ end
     return quote
         a_strides = _strides(shape)
         result_shape = copy(shape)
-        result_shape[indices] .= 1
+        @inbounds for idx ∈ indices
+            result_shape[idx] = 1
+        end
         result_strides = _strides(result_shape)
         N_result = prod(result_shape)
         result = zeros(eltype(a), N_result, N_result)
@@ -271,7 +274,9 @@ end
     return quote
         a_strides = _strides(shape)
         result_shape = copy(shape)
-        result_shape[indices] .= 1
+        @inbounds for idx ∈ indices
+            result_shape[idx] = 1
+        end
         result_strides = _strides(result_shape)
         N_result = prod(result_shape)
         result = zeros(eltype(a), N_result, N_result)

@@ -38,7 +38,6 @@ function ptrace(op::SparseOpPureType, indices)
     b_r = ptrace(op.basis_r, indices)
     Operator(b_l, b_r, data)
 end
-ptrace(op::SparseOpPureType, index::Integer) = ptrace(op, [index])
 
 function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1,B2}
     check_samebases(op, state)

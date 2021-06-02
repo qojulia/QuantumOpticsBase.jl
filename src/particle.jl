@@ -243,7 +243,7 @@ function potentialoperator_position(b::CompositeBasis, V::Function)
     points = [samplepoints(b1) for b1=b.bases]
     dims = length.(points)
     n = length(b.bases)
-    data = Array{complex(eltype(points))}(undef, dims...)
+    data = Array{complex(eltype(points[1]))}(undef, dims...)
     @inbounds for i=1:length(data)
         index = Tuple(CartesianIndices(data)[i])
         args = (points[j][index[j]] for j=1:n)
@@ -334,11 +334,11 @@ function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only=fals
     end
     mul_before = exp.(-1im*basis_l.pmin*(samplepoints(basis_r) .- basis_r.xmin))
     mul_after = exp.(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{ComplexF64}(undef, length(basis_r))
+    x = Vector{eltype(mul_before)}(undef, length(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), mul_before, mul_after)
     else
-        A = Matrix{ComplexF64}(undef, length(basis_r), length(basis_r))
+        A = Matrix{eltype(mul_before)}(undef, length(basis_r), length(basis_r))
         FFTOperators(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), plan_bfft!(A, 2), plan_fft!(A, 1), mul_before, mul_after)
     end
 end

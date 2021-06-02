@@ -55,7 +55,7 @@ dagger(op::LazyProduct) = LazyProduct(dagger.(reverse(op.operators)), conj(op.fa
 
 tr(op::LazyProduct) = throw(ArgumentError("Trace of LazyProduct is not defined. Try to convert to another operator type first with e.g. dense() or sparse()."))
 
-ptrace(op::LazyProduct, indices::Vector{Int}) = throw(ArgumentError("Partial trace of LazyProduct is not defined. Try to convert to another operator type first with e.g. dense() or sparse()."))
+ptrace(op::LazyProduct, indices) = throw(ArgumentError("Partial trace of LazyProduct is not defined. Try to convert to another operator type first with e.g. dense() or sparse()."))
 
 permutesystems(op::LazyProduct, perm::Vector{Int}) = LazyProduct(([permutesystems(op_i, perm) for op_i in op.operators]...,), op.factor)
 

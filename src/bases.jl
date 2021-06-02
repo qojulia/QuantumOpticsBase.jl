@@ -238,8 +238,6 @@ function ptrace(b::CompositeBasis, indices)
         return CompositeBasis(b.shape[J], b.bases[J])
     end
 end
-# ptrace(b::CompositeBasis, index::Integer) = ptrace(b, [index])
-# ptrace(a, index::Integer) = ptrace(a, [index])
 
 
 """

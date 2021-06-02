@@ -67,7 +67,6 @@ function ptrace(op::LazySum, indices)
     D = ([ptrace(op_i, indices) for op_i in op.operators]...,)
     LazySum(op.factors, D)
 end
-ptrace(op::LazySum, index::Integer) = ptrace(op, [index])
 
 normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
