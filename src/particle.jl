@@ -21,7 +21,7 @@ struct PositionBasis{X1,X2,T,F} <: Basis
     xmin::F
     xmax::F
     N::T
-    function PositionBasis{X1,X2}(xmin::F, xmax::F, N::T) where {X1,X2,F,T}
+    function PositionBasis{X1,X2}(xmin::F, xmax::F, N::T) where {X1,X2,F,T<:Integer}
         @assert isa(X1, Real) && isa(X2, Real)
         new{X1,X2,T,F}([N], xmin, xmax, N)
     end

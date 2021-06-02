@@ -10,7 +10,7 @@ spin numbers.
 struct SpinBasis{S,T} <: Basis
     shape::Vector{T}
     spinnumber::Rational{T}
-    function SpinBasis{S}(spinnumber::Rational{T}) where {S,T}
+    function SpinBasis{S}(spinnumber::Rational{T}) where {S,T<:Integer}
         n = numerator(spinnumber)
         d = denominator(spinnumber)
         @assert d==2 || d==1

@@ -30,8 +30,8 @@ H_n(x) = \\sum_{k=0}^n a_{n,k} x^k
 Returns a vector of length N+1 where the n-th entry contains all coefficients
 for the n-th Hermite polynomial.
 """
-function a(N)
-    a = Vector{Vector{Int}}(undef, N+1)
+function a(N::T) where T
+    a = Vector{Vector{T}}(undef, N+1)
     a[1] = [1]
     a[2] = [0,2]
     am = a[2]
