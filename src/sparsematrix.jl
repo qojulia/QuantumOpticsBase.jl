@@ -1,6 +1,6 @@
 import Base: permutedims
 
-function gemm_sp_dense_small(alpha, M::SparseMatrixCSC, B::Matrix, result::Matrix)
+function gemm_sp_dense_small(alpha, M::SparseMatrixCSC, B::AbstractMatrix, result::AbstractMatrix)
     if isone(alpha)
         @inbounds for colindex = 1:M.n
             @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
@@ -24,7 +24,7 @@ function gemm_sp_dense_small(alpha, M::SparseMatrixCSC, B::Matrix, result::Matri
     end
 end
 
-function gemm_sp_dense_big(alpha, M::SparseMatrixCSC, B::Matrix, result::Matrix)
+function gemm_sp_dense_big(alpha, M::SparseMatrixCSC, B::AbstractMatrix, result::AbstractMatrix)
     if isone(alpha)
         @inbounds for j=1:size(B, 2)
             @inbounds for colindex = 1:M.n
@@ -48,7 +48,7 @@ function gemm_sp_dense_big(alpha, M::SparseMatrixCSC, B::Matrix, result::Matrix)
     end
 end
 
-function gemm_dense_adj_sp(alpha, B::Matrix, M::SparseMatrixCSC, result::Matrix)
+function gemm_dense_adj_sp(alpha, B::AbstractMatrix, M::SparseMatrixCSC, result::AbstractMatrix)
     if isone(alpha)
         @inbounds for colindex = 1:M.n
             @inbounds for i=M.colptr[colindex]:M.colptr[colindex+1]-1
@@ -72,7 +72,7 @@ function gemm_dense_adj_sp(alpha, B::Matrix, M::SparseMatrixCSC, result::Matrix)
     end
 end
 
-function gemm_adj_sp_dense_small(alpha, M::SparseMatrixCSC, B::Matrix, result::Matrix)
+function gemm_adj_sp_dense_small(alpha, M::SparseMatrixCSC, B::AbstractMatrix, result::AbstractMatrix)
     dimB = size(result,2)
     if isone(alpha)
         @inbounds for colindex = 1:M.n
@@ -98,7 +98,7 @@ function gemm_adj_sp_dense_small(alpha, M::SparseMatrixCSC, B::Matrix, result::M
 end
 
 
-function gemm!(alpha, M::SparseMatrixCSC, B::Matrix, beta, result::Matrix)
+function gemm!(alpha, M::SparseMatrixCSC, B::AbstractMatrix, beta, result::AbstractMatrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -111,7 +111,7 @@ function gemm!(alpha, M::SparseMatrixCSC, B::Matrix, beta, result::Matrix)
     end
 end
 
-function gemm!(alpha, B::Matrix, M::SparseMatrixCSC, beta, result::Matrix)
+function gemm!(alpha, B::AbstractMatrix, M::SparseMatrixCSC, beta, result::AbstractMatrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -141,7 +141,7 @@ function gemm!(alpha, B::Matrix, M::SparseMatrixCSC, beta, result::Matrix)
     end
 end
 
-function gemm!(alpha, M_::Adjoint{T,<:SparseMatrixCSC{T}}, B::Matrix, beta, result::Matrix) where T
+function gemm!(alpha, M_::Adjoint{T,<:SparseMatrixCSC{T}}, B::AbstractMatrix, beta, result::AbstractMatrix) where T
     M = M_.parent
     if nnz(M) > 550
         LinearAlgebra.mul!(result, M_, B, alpha, beta)
@@ -155,7 +155,7 @@ function gemm!(alpha, M_::Adjoint{T,<:SparseMatrixCSC{T}}, B::Matrix, beta, resu
     end
 end
 
-function gemm!(alpha, B::Matrix, M::Adjoint{T,<:SparseMatrixCSC{T}}, beta, result::Matrix) where T
+function gemm!(alpha, B::AbstractMatrix, M::Adjoint{T,<:SparseMatrixCSC{T}}, beta, result::AbstractMatrix) where T
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -164,7 +164,7 @@ function gemm!(alpha, B::Matrix, M::Adjoint{T,<:SparseMatrixCSC{T}}, beta, resul
     gemm_dense_adj_sp(alpha, B, M.parent, result)
 end
 
-function gemv!(alpha, M::SparseMatrixCSC, v::Vector, beta, result::Vector)
+function gemv!(alpha, M::SparseMatrixCSC, v::AbstractVector, beta, result::AbstractVector)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -187,7 +187,7 @@ function gemv!(alpha, M::SparseMatrixCSC, v::Vector, beta, result::Vector)
     end
 end
 
-function gemv!(alpha, v::Vector, M::SparseMatrixCSC, beta, result::Vector)
+function gemv!(alpha, v::AbstractVector, M::SparseMatrixCSC, beta, result::AbstractVector)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -208,12 +208,12 @@ function gemv!(alpha, v::Vector, M::SparseMatrixCSC, beta, result::Vector)
     end
 end
 
-function sub2sub(shape1::NTuple{N, Int}, shape2::NTuple{M, Int}, I::CartesianIndex{N}) where {N, M}
+function sub2sub(shape1, shape2, I) where {N, M}
     linearindex = LinearIndices(shape1)[I.I...]
     CartesianIndices(shape2)[linearindex]
 end
 
-function ptrace(x, shape_nd::Vector{Int}, indices::Vector{Int})
+function ptrace(x, shape_nd, indices)
     shape_nd = (shape_nd...,)
     N = div(length(shape_nd), 2)
     shape_2d = (x.m, x.n)

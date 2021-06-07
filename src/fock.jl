@@ -9,7 +9,7 @@ struct FockBasis{T} <: Basis
     shape::Vector{T}
     N::T
     offset::T
-    function FockBasis(N::T,offset::T=0) where T<:Integer
+    function FockBasis(N::T,offset::T=0) where T
         if N < 0 || offset < 0 || N <= offset
             throw(DimensionMismatch())
         end
@@ -77,7 +77,6 @@ function displace(::Type{T}, b::FockBasis, alpha::Number) where T
 end
 
 displace(b::FockBasis, alpha::T) where {T <: Number} = displace(ComplexF64, b, alpha)
-
 
 """
     fockstate(b::FockBasis, n)

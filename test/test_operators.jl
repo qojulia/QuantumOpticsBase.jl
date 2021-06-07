@@ -118,4 +118,13 @@ OP_cnot = embed(b8, [1,3], op_cnot)
 
 @test_throws ArgumentError conj!(op_test)
 
+bfock = FockBasis(2)
+bspin = SpinBasis(1//2)
+b = bfock⊗bspin⊗bspin
+
+op12 = destroy(bfock)⊗sigmap(bspin)
+
+@test embed(b, [1,2], op12) == destroy(bfock)⊗sigmap(bspin)⊗one(bspin)
+@test embed(b, [1,3], op12) == destroy(bfock)⊗one(bspin)⊗sigmap(bspin)
+
 end # testset

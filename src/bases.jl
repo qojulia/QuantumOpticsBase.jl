@@ -1,5 +1,3 @@
-import Base: ==, ^
-
 """
 Abstract base class for all specialized bases.
 
@@ -7,16 +5,13 @@ The Basis class is meant to specify a basis of the Hilbert space of the
 studied system. Besides basis specific information all subclasses must
 implement a shape variable which indicates the dimension of the used
 Hilbert space. For a spin-1/2 Hilbert space this would be the
-vector `Int[2]`. A system composed of two spins would then have a
-shape vector `Int[2 2]`.
+vector `[2]`. A system composed of two spins would then have a
+shape vector `[2 2]`.
 
 Composite systems can be defined with help of the [`CompositeBasis`](@ref)
 class.
 """
 abstract type Basis end
-
-
-==(b1::Basis, b2::Basis) = false
 
 """
     length(b::Basis)
@@ -47,14 +42,10 @@ The preferred way is to specify special bases for different systems.
 """
 struct GenericBasis{S} <: Basis
     shape::S
-    function GenericBasis(shape::S) where S<:Vector{<:Int}
-        new{S}(shape)
-    end
 end
+GenericBasis(N::Integer) = GenericBasis([N])
 
-GenericBasis(N::Int) = GenericBasis(Int[N])
-
-==(b1::GenericBasis, b2::GenericBasis) = equal_shape(b1.shape, b2.shape)
+Base.:(==)(b1::GenericBasis, b2::GenericBasis) = equal_shape(b1.shape, b2.shape)
 
 
 """
@@ -66,21 +57,14 @@ Stores the subbases in a vector and creates the shape vector directly
 from the shape vectors of these subbases. Instead of creating a CompositeBasis
 directly `tensor(b1, b2...)` or `b1 ⊗ b2 ⊗ …` can be used.
 """
-struct CompositeBasis{S,B<:Tuple{Vararg{Basis}}} <: Basis
+struct CompositeBasis{S,B} <: Basis
     shape::S
     bases::B
-    function CompositeBasis{B}(shape::S,bases::B) where {S,B}
-        new{S,B}(shape,bases)
-    end
 end
-CompositeBasis(shape::Vector{<:Int}, bases::B) where B<:Tuple{Vararg{Basis}} = CompositeBasis{B}(shape, bases)
-CompositeBasis(bases::B) where B<:Tuple{Vararg{Basis}} = CompositeBasis{B}(Int[length(b) for b in bases], bases)
-CompositeBasis(shape::Vector{Int}, bases::Vector{B}) where B<:Basis = (tmp = (bases...,); CompositeBasis{typeof(tmp)}(shape, tmp))
-CompositeBasis(bases::Vector{B}) where B<:Basis = CompositeBasis((bases...,))
+CompositeBasis(bases) = CompositeBasis([length(b) for b ∈ bases], bases)
 CompositeBasis(bases::Basis...) = CompositeBasis((bases...,))
 
-==(b1::T, b2::T) where T<:CompositeBasis = equal_shape(b1.shape, b2.shape)
-==(b1::CompositeBasis, b2::CompositeBasis) = false
+Base.:(==)(b1::T, b2::T) where T<:CompositeBasis = equal_shape(b1.shape, b2.shape)
 
 """
     tensor(x, y, z...)
@@ -99,36 +83,24 @@ Create a [`CompositeBasis`](@ref) from the given bases.
 Any given CompositeBasis is expanded so that the resulting CompositeBasis never
 contains another CompositeBasis.
 """
-tensor(b1::Basis, b2::Basis) = CompositeBasis(Int[length(b1); length(b2)], (b1, b2))
-tensor(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(Int[b1.shape; b2.shape], (b1.bases..., b2.bases...))
+tensor(b1::Basis, b2::Basis) = CompositeBasis([length(b1); length(b2)], (b1, b2))
+tensor(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis([b1.shape; b2.shape], (b1.bases..., b2.bases...))
 function tensor(b1::CompositeBasis, b2::Basis)
     N = length(b1.bases)
-    shape = Vector{Int}(undef, N+1)
-    bases = Vector{Basis}(undef, N+1)
-    for i=1:N
-        shape[i] = b1.shape[i]
-        bases[i] = b1.bases[i]
-    end
-    shape[end] = length(b2)
-    bases[end] = b2
+    shape = vcat(b1.shape, length(b2))
+    bases = (b1.bases..., b2)
     CompositeBasis(shape, bases)
 end
 function tensor(b1::Basis, b2::CompositeBasis)
     N = length(b2.bases)
-    shape = Vector{Int}(undef, N+1)
-    bases = Vector{Basis}(undef, N+1)
-    for i=1:N
-        shape[i+1] = b2.shape[i]
-        bases[i+1] = b2.bases[i]
-    end
-    shape[1] = length(b1)
-    bases[1] = b1
+    shape = vcat(length(b1), b2.shape)
+    bases = (b1, b2.bases...)
     CompositeBasis(shape, bases)
 end
 tensor(bases::Basis...) = reduce(tensor, bases)
 const ⊗ = tensor
 
-function ^(b::Basis, N::Int)
+function Base.:^(b::Basis, N::Integer)
     if N < 1
         throw(ArgumentError("Power of a basis is only defined for positive integers."))
     end
@@ -140,7 +112,7 @@ end
 
 Check if two shape vectors are the same.
 """
-function equal_shape(a::Vector{Int}, b::Vector{Int})
+function equal_shape(a, b)
     if a === b
         return true
     end
@@ -160,7 +132,7 @@ end
 
 Check if two subbases vectors are identical.
 """
-function equal_bases(a::Vector{T}, b::Vector{T}) where T <: Basis
+function equal_bases(a, b)
     if a===b
         return true
     end
@@ -178,6 +150,7 @@ Exception that should be raised for an illegal algebraic operation.
 mutable struct IncompatibleBases <: Exception end
 
 const BASES_CHECK = Ref(true)
+
 """
     @samebases
 
@@ -255,7 +228,7 @@ specifies which subsystems are traced out. The number of indices has to be
 smaller than the number of subsystems, i.e. it is not allowed to perform a
 full trace.
 """
-function ptrace(b::CompositeBasis, indices::Vector{Int})
+function ptrace(b::CompositeBasis, indices)
     J = [i for i in 1:length(b.bases) if i ∉ indices]
     if length(J)==0
         throw(ArgumentError("Tracing over all indices is not allowed in ptrace."))
@@ -265,7 +238,6 @@ function ptrace(b::CompositeBasis, indices::Vector{Int})
         return CompositeBasis(b.shape[J], b.bases[J])
     end
 end
-ptrace(a, index::Int) = ptrace(a, Int[index])
 
 
 """
@@ -276,7 +248,7 @@ Change the ordering of the subsystems of the given object.
 For a permutation vector `[2,1,3]` and a given object with basis `[b1, b2, b3]`
 this function results in `[b2, b1, b3]`.
 """
-function permutesystems(b::CompositeBasis, perm::Vector{Int})
+function permutesystems(b::CompositeBasis, perm)
     @assert length(b.bases) == length(perm)
     @assert isperm(perm)
     CompositeBasis(b.shape[perm], b.bases[perm])

@@ -13,7 +13,7 @@ For fast time evolution also at least the function
 implemented. Many other generic multiplication functions can be defined in
 terms of this function and are provided automatically.
 """
-abstract type AbstractOperator{BL<:Basis,BR<:Basis} end
+abstract type AbstractOperator{BL,BR} end
 
 """
 Abstract type for operators with a data field.
@@ -21,7 +21,7 @@ Abstract type for operators with a data field.
 This is an abstract type for operators that have a direct matrix representation
 stored in their `.data` field.
 """
-abstract type DataOperator{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR} end
+abstract type DataOperator{BL,BR} <: AbstractOperator{BL,BR} end
 
 
 # Common error messages
@@ -46,7 +46,7 @@ Base.broadcastable(x::AbstractOperator) = Ref(x)
 -(a::AbstractOperator, b::Number) = addnumbererror()
 
 *(a::AbstractOperator, b::AbstractOperator) = arithmetic_binary_error("Multiplication", a, b)
-^(a::AbstractOperator, b::Int) = Base.power_by_squaring(a, b)
+^(a::AbstractOperator, b::Integer) = Base.power_by_squaring(a, b)
 
 
 dagger(a::AbstractOperator) = arithmetic_unary_error("Hermitian conjugate", a)
@@ -83,7 +83,7 @@ tensor(operators::AbstractOperator...) = reduce(tensor, operators)
 Tensor product of operators where missing indices are filled up with identity operators.
 """
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-               indices::Vector, operators::Vector{T}) where T<:AbstractOperator
+               indices, operators::Vector{T}) where T<:AbstractOperator
 
     @assert check_embed_indices(indices)
 
@@ -92,7 +92,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     @assert length(indices) == length(operators)
 
     # Embed all single-subspace operators.
-    idxop_sb = [x for x in zip(indices, operators) if typeof(x[1]) <: Int]
+    idxop_sb = [x for x in zip(indices, operators) if x[1] isa Integer]
     indices_sb = [x[1] for x in idxop_sb]
     ops_sb = [x[2] for x in idxop_sb]
 
@@ -104,7 +104,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     embed_op = tensor([i ∈ indices_sb ? ops_sb[indexin(i, indices_sb)[1]] : identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
 
     # Embed all joint-subspace operators.
-    idxop_comp = [x for x in zip(indices, operators) if typeof(x[1]) <: Array]
+    idxop_comp = [x for x in zip(indices, operators) if x[1] isa Array]
     for (idxs, op) in idxop_comp
         embed_op *= embed(basis_l, basis_r, idxs, op)
     end
@@ -119,7 +119,7 @@ end
 Embed operator acting on a joint Hilbert space where missing indices are filled up with identity operators.
 """
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-               indices::Vector{Int}, op::T) where T<:AbstractOperator
+               indices, op::T) where T<:AbstractOperator
     N = length(basis_l.bases)
     @assert length(basis_r.bases) == N
 
@@ -138,13 +138,6 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
 
     # Create the operator.
     permuted_op = tensor(all_operators...)
-
-    # Create a copy to fill with correctly-ordered objects (basis and data).
-    unpermuted_op = copy(permuted_op)
-
-    # Create the correctly ordered basis.
-    unpermuted_op.basis_l = basis_l
-    unpermuted_op.basis_r = basis_r
 
     # Reorient the matrix to act in the correctly ordered basis.
     # Get the dimensions necessary for index permuting.
@@ -167,14 +160,15 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
          x -> permutedims(x, [perm_order_l; perm_order_r .+ length(dims_l)]) |>
          x -> sparse(reshape(x, (prod(dims_l), prod(dims_r)))))
 
-    unpermuted_op.data = M
+    # Create operator with proper data and bases
+    constructor = Base.typename(T)
+    unpermuted_op = constructor.wrapper(basis_l, basis_r, M)
 
     return unpermuted_op
 end
-embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, op::AbstractOperator) = embed(basis_l, basis_r, Int[index], [op])
-embed(basis::CompositeBasis, index::Int, op::AbstractOperator) = embed(basis, basis, Int[index], [op])
-embed(basis::CompositeBasis, indices::Vector, operators::Vector{T}) where {T<:AbstractOperator} = embed(basis, basis, indices, operators)
-embed(basis::CompositeBasis, indices::Vector{Int}, op::AbstractOperator) = embed(basis, basis, indices, op)
+embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::AbstractOperator) = embed(basis_l, basis_r, index, [op])
+embed(basis::CompositeBasis, indices, operators::Vector{T}) where {T<:AbstractOperator} = embed(basis, basis, indices, operators)
+embed(basis::CompositeBasis, indices, op::AbstractOperator) = embed(basis, basis, indices, op)
 
 """
     embed(basis1[, basis2], operators::Dict)
@@ -183,7 +177,7 @@ embed(basis::CompositeBasis, indices::Vector{Int}, op::AbstractOperator) = embed
 specifies in which subsystems the corresponding operator is defined.
 """
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-               operators::Dict{Vector{Int}, T}) where T<:AbstractOperator
+               operators::Dict{<:Vector{<:Integer}, T}) where T<:AbstractOperator
     @assert length(basis_l.bases) == length(basis_r.bases)
     N = length(basis_l.bases)
     if length(operators) == 0
@@ -211,9 +205,9 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
         return permutesystems(op, perm)
     end
 end
-embed(basis_l::CompositeBasis, basis_r::CompositeBasis, operators::Dict{Int, T}; kwargs...) where {T<:AbstractOperator} = embed(basis_l, basis_r, Dict([i]=>op_i for (i, op_i) in operators); kwargs...)
-embed(basis::CompositeBasis, operators::Dict{Int, T}; kwargs...) where {T<:AbstractOperator} = embed(basis, basis, operators; kwargs...)
-embed(basis::CompositeBasis, operators::Dict{Vector{Int}, T}; kwargs...) where {T<:AbstractOperator} = embed(basis, basis, operators; kwargs...)
+embed(basis_l::CompositeBasis, basis_r::CompositeBasis, operators::Dict{<:Integer, T}; kwargs...) where {T<:AbstractOperator} = embed(basis_l, basis_r, Dict([i]=>op_i for (i, op_i) in operators); kwargs...)
+embed(basis::CompositeBasis, operators::Dict{<:Integer, T}; kwargs...) where {T<:AbstractOperator} = embed(basis, basis, operators; kwargs...)
+embed(basis::CompositeBasis, operators::Dict{<:Vector{<:Integer}, T}; kwargs...) where {T<:AbstractOperator} = embed(basis, basis, operators; kwargs...)
 
 
 """
@@ -223,7 +217,7 @@ Trace of the given operator.
 """
 tr(x::AbstractOperator) = arithmetic_unary_error("Trace", x)
 
-ptrace(a::AbstractOperator, index::Vector{Int}) = arithmetic_unary_error("Partial trace", a)
+ptrace(a::AbstractOperator, index) = arithmetic_unary_error("Partial trace", a)
 
 """
     normalize(op)
@@ -246,27 +240,30 @@ Expectation value of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-expect(op::AbstractOperator{B,B}, state::Ket{B}) where B<:Basis = state.data' * (op * state).data
-expect(op::AbstractOperator{B1,B2}, state::AbstractOperator{B2,B2}) where {B1<:Basis,B2<:Basis} = tr(op*state)
+expect(op::AbstractOperator{B,B}, state::Ket{B}) where B = state.data' * (op * state).data
+expect(op::AbstractOperator{B1,B2}, state::AbstractOperator{B2,B2}) where {B1,B2} = tr(op*state)
 
 """
     expect(index, op, state)
 
 If an `index` is given, it assumes that `op` is defined in the subsystem specified by this number.
 """
-function expect(indices::Vector{Int}, op::AbstractOperator{B1,B2}, state::AbstractOperator{B3,B3}) where {B1<:Basis,B2<:Basis,B3<:CompositeBasis}
+function expect(indices, op::AbstractOperator{B1,B2}, state::AbstractOperator{B3,B3}) where {B1,B2,B3<:CompositeBasis}
     N = length(state.basis_l.shape)
     indices_ = complement(N, indices)
     expect(op, ptrace(state, indices_))
 end
-function expect(indices::Vector{Int}, op::AbstractOperator{B,B}, state::Ket{B2}) where {B<:Basis,B2<:CompositeBasis}
+function expect(indices, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis}
     N = length(state.basis.shape)
     indices_ = complement(N, indices)
     expect(op, ptrace(state, indices_))
 end
-expect(index::Int, op::AbstractOperator, state) = expect([index], op, state)
+
+expect(index::Integer, op::AbstractOperator{B1,B2}, state::AbstractOperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = expect([index], op, state)
+expect(index::Integer, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis} = expect([index], op, state)
+
 expect(op::AbstractOperator, states::Vector) = [expect(op, state) for state=states]
-expect(indices::Vector{Int}, op::AbstractOperator, states::Vector) = [expect(indices, op, state) for state=states]
+expect(indices, op::AbstractOperator, states::Vector) = [expect(indices, op, state) for state=states]
 
 """
     variance(op, state)
@@ -275,11 +272,11 @@ Variance of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-function variance(op::AbstractOperator{B,B}, state::Ket{B}) where B<:Basis
+function variance(op::AbstractOperator{B,B}, state::Ket{B}) where B
     x = op*state
     state.data'*(op*x).data - (state.data'*x.data)^2
 end
-function variance(op::AbstractOperator{B,B}, state::AbstractOperator{B,B}) where B<:Basis
+function variance(op::AbstractOperator{B,B}, state::AbstractOperator{B,B}) where B
     expect(op*op, state) - expect(op, state)^2
 end
 
@@ -288,19 +285,21 @@ end
 
 If an `index` is given, it assumes that `op` is defined in the subsystem specified by this number
 """
-function variance(indices::Vector{Int}, op::AbstractOperator{B,B}, state::AbstractOperator{BC,BC}) where {B<:Basis,BC<:CompositeBasis}
+function variance(indices, op::AbstractOperator{B,B}, state::AbstractOperator{BC,BC}) where {B,BC<:CompositeBasis}
     N = length(state.basis_l.shape)
     indices_ = complement(N, indices)
     variance(op, ptrace(state, indices_))
 end
-function variance(indices::Vector{Int}, op::AbstractOperator{B,B}, state::Ket{BC}) where {B<:Basis,BC<:CompositeBasis}
+function variance(indices, op::AbstractOperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis}
     N = length(state.basis.shape)
     indices_ = complement(N, indices)
     variance(op, ptrace(state, indices_))
 end
-variance(index::Int, op::AbstractOperator, state) = variance([index], op, state)
+
+variance(index::Integer, op::AbstractOperator{B,B}, state::AbstractOperator{BC,BC}) where {B,BC<:CompositeBasis} = variance([index], op, state)
+variance(index::Integer, op::AbstractOperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis} = variance([index], op, state)
 variance(op::AbstractOperator, states::Vector) = [variance(op, state) for state=states]
-variance(indices::Vector{Int}, op::AbstractOperator, states::Vector) = [variance(indices, op, state) for state=states]
+variance(indices, op::AbstractOperator, states::Vector) = [variance(indices, op, state) for state=states]
 
 
 """
@@ -310,7 +309,7 @@ Operator exponential.
 """
 exp(op::AbstractOperator) = throw(ArgumentError("exp() is not defined for this type of operator: $(typeof(op)).\nTry to convert to dense operator first with dense()."))
 
-permutesystems(a::AbstractOperator, perm::Vector{Int}) = arithmetic_unary_error("Permutations of subsystems", a)
+permutesystems(a::AbstractOperator, perm) = arithmetic_unary_error("Permutations of subsystems", a)
 
 """
     identityoperator(a::Basis[, b::Basis])
@@ -325,7 +324,7 @@ one(b::Basis) = identityoperator(b)
 one(op::AbstractOperator) = identityoperator(op)
 
 # Helper functions to check validity of arguments
-function check_ptrace_arguments(a::AbstractOperator, indices::Vector{Int})
+function check_ptrace_arguments(a::AbstractOperator, indices)
     if !isa(a.basis_l, CompositeBasis) || !isa(a.basis_r, CompositeBasis)
         throw(ArgumentError("Partial trace can only be applied onto operators with composite bases."))
     end
@@ -343,7 +342,7 @@ function check_ptrace_arguments(a::AbstractOperator, indices::Vector{Int})
         end
     end
 end
-function check_ptrace_arguments(a::StateVector, indices::Vector{Int})
+function check_ptrace_arguments(a::StateVector, indices)
     if length(basis(a).shape) == length(indices)
         throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))
     end

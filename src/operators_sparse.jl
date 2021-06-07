@@ -1,9 +1,9 @@
 import Base: ==, *, /, +, -, Broadcast
 import SparseArrays: sparse
 
-const SparseOpPureType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:SparseMatrixCSC}
-const SparseOpAdjType{BL<:Basis,BR<:Basis} = Operator{BL,BR,<:Adjoint{<:Number,<:SparseMatrixCSC}}
-const SparseOpType{BL<:Basis,BR<:Basis} = Union{SparseOpPureType{BL,BR},SparseOpAdjType{BL,BR}}
+const SparseOpPureType{BL,BR} = Operator{BL,BR,<:SparseMatrixCSC}
+const SparseOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:SparseMatrixCSC}}
+const SparseOpType{BL,BR} = Union{SparseOpPureType{BL,BR},SparseOpAdjType{BL,BR}}
 
 
 """
@@ -30,7 +30,7 @@ Convert an arbitrary operator into a [`SparseOperator`](@ref).
 sparse(a::AbstractOperator) = throw(ArgumentError("Direct conversion from $(typeof(a)) not implemented. Use sparse(full(op)) instead."))
 sparse(a::DataOperator) = Operator(a.basis_l, a.basis_r, sparse(a.data))
 
-function ptrace(op::SparseOpPureType, indices::Vector{Int})
+function ptrace(op::SparseOpPureType, indices)
     check_ptrace_arguments(op, indices)
     shape = [op.basis_l.shape; op.basis_r.shape]
     data = ptrace(op.data, shape, indices)
@@ -39,7 +39,7 @@ function ptrace(op::SparseOpPureType, indices::Vector{Int})
     Operator(b_l, b_r, data)
 end
 
-function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1<:Basis,B2<:Basis}
+function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1,B2}
     check_samebases(op, state)
     result = zero(promote_type(eltype(op),eltype(state)))
     @inbounds for colindex = 1:op.data.n
@@ -50,7 +50,7 @@ function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1<:
     result
 end
 
-function permutesystems(rho::SparseOpPureType{B1,B2}, perm::Vector{Int}) where {B1<:CompositeBasis,B2<:CompositeBasis}
+function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
     @assert length(rho.basis_l.bases) == length(rho.basis_r.bases) == length(perm)
     @assert isperm(perm)
     shape = [rho.basis_l.shape; rho.basis_r.shape]
@@ -67,13 +67,14 @@ identityoperator(b::Basis) = identityoperator(b, b)
 
 Create a diagonal operator of type [`SparseOperator`](@ref).
 """
-function diagonaloperator(b::Basis, diag::Vector{T}) where T <: Number
+function diagonaloperator(b::Basis, diag)
   @assert 1 <= length(diag) <= length(b)
-  SparseOperator(b, sparse(Diagonal(Vector{ComplexF64}(diag))))
+  T = complex(eltype(diag))
+  SparseOperator(b, spdiagm(T.(diag)))
 end
 
 # Fast in-place multiplication implementations
-mul!(result::DenseOpType{B1,B3},M::SparseOpType{B1,B2},b::DenseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm!(alpha,M.data,b.data,beta,result.data); result)
-mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},M::SparseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm!(alpha,a.data,M.data,beta,result.data); result)
-mul!(result::Ket{B1},M::SparseOpPureType{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (gemv!(alpha,M.data,b.data,beta,result.data); result)
-mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis} = (gemv!(alpha,b.data,M.data,beta,result.data); result)
+mul!(result::DenseOpType{B1,B3},M::SparseOpType{B1,B2},b::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm!(alpha,M.data,b.data,beta,result.data); result)
+mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},M::SparseOpType{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm!(alpha,a.data,M.data,beta,result.data); result)
+mul!(result::Ket{B1},M::SparseOpPureType{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2} = (gemv!(alpha,M.data,b.data,beta,result.data); result)
+mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1,B2} = (gemv!(alpha,b.data,M.data,beta,result.data); result)

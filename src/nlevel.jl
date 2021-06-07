@@ -18,11 +18,11 @@ end
 
 
 """
-    transition(b::NLevelBasis, to::Int, from::Int)
+    transition(b::NLevelBasis, to::Integer, from::Integer)
 
 Transition operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|``.
 """
-function transition(b::NLevelBasis, to::Int, from::Int)
+function transition(b::NLevelBasis, to::Integer, from::Integer)
     if to < 1 || b.N < to
         throw(BoundsError("'to' index has to be between 1 and b.N"))
     end
@@ -36,7 +36,7 @@ end
 
 
 """
-    nlevelstate(b::NLevelBasis, n::Int)
+    nlevelstate(b::NLevelBasis, n::Integer)
 
 State where the system is completely in the n-th level.
 """

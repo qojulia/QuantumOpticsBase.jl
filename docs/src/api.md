@@ -195,11 +195,6 @@ permutesystems
 exp(op::AbstractOperator)
 ```
 
-```@docs
-QuantumOpticsBase.mul!(Y::DataOperator,A::AbstractOperator,B::DataOperator,alpha,beta)
-QuantumOpticsBase.mul!(Y::StateVector,A::AbstractOperator,B::StateVector,alpha,beta)
-```
-
 * Conversion of operators
 
 ```@docs
@@ -261,7 +256,7 @@ NLevelBasis
 ```
 
 ```@docs
-transition(::NLevelBasis, ::Int, ::Int)
+transition(::NLevelBasis, ::Integer, ::Integer)
 ```
 
 ```@docs
@@ -383,20 +378,20 @@ bosonstates
 ```
 
 ```@docs
-number(::ManyBodyBasis, ::Int)
+number(::ManyBodyBasis, index)
 number(::ManyBodyBasis)
 ```
 
 ```@docs
-destroy(::ManyBodyBasis, ::Int)
+destroy(::ManyBodyBasis, index)
 ```
 
 ```@docs
-create(::ManyBodyBasis, ::Int)
+create(::ManyBodyBasis, index)
 ```
 
 ```@docs
-transition(::ManyBodyBasis, ::Int, ::Int)
+transition(::ManyBodyBasis, i, j)
 ```
 
 ```@docs
