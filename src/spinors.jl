@@ -3,12 +3,12 @@
 
 Similar to [`CompositeBasis`](@ref) but for the [`directsum`](@ref) (⊕)
 """
-mutable struct SumBasis{S,B<:Tuple{Vararg{Basis}}} <: Basis
+struct SumBasis{S,B} <: Basis
     shape::S
     bases::B
 end
-SumBasis(bases::B) where B<:Tuple{Vararg{Basis}} = SumBasis(Int[length(b) for b in bases], bases)
-SumBasis(shape::Vector{Int}, bases::Vector{B}) where B<:Basis = (tmp = (bases...,); SumBasis(shape, tmp))
+SumBasis(bases) = SumBasis(Int[length(b) for b in bases], bases)
+SumBasis(shape, bases::Vector) = (tmp = (bases...,); SumBasis(shape, tmp))
 SumBasis(bases::Vector) = SumBasis((bases...,))
 SumBasis(bases::Basis...) = SumBasis((bases...,))
 
@@ -54,23 +54,23 @@ directsum(x::Ket, y::Ket) = Ket(directsum(x.basis, y.basis), [x.data; y.data])
 directsum(x::StateVector...) = reduce(directsum, x)
 
 """
-    getblock(x::Ket{<:SumBasis}, i::Int)
+    getblock(x::Ket{<:SumBasis}, i)
 
 For a [`Ket`](@ref) defined on a [`SumBasis`](@ref), get the state as it is defined
 on the ith sub-basis.
 """
-function getblock(x::Ket{B}, i::Int) where B<:SumBasis
+function getblock(x::Ket{B}, i) where B<:SumBasis
     b_i = x.basis.bases[i]
     inds = cumsum([0;length.(x.basis.bases[1:i])...])
     return Ket(b_i, x.data[inds[i]+1:inds[i+1]])
 end
 
 """
-    setblock!(x::Ket{<:SumBasis}, val::Ket, i::Int)
+    setblock!(x::Ket{<:SumBasis}, val::Ket, i)
 
 Set the data of `x` on the ith sub-basis equal to the data of `val`.
 """
-function setblock!(x::Ket{B}, val::Ket, i::Int) where B<:SumBasis
+function setblock!(x::Ket{B}, val::Ket, i) where B<:SumBasis
     check_samebases(x.basis.bases[i], val)
     inds = cumsum([0;length.(x.basis.bases[1:i])...])
     x.data[inds[i]+1:inds[i+1]].data .= val.data
@@ -100,11 +100,11 @@ end
 directsum(a::AbstractOperator...) = reduce(directsum, a)
 
 """
-    setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i::Int, j::Int)
+    setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i, j)
 
 Set the data of `op` corresponding to the block `(i,j)` equal to the data of `val`.
 """
-function setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i::Int, j::Int)
+function setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i, j)
     (bases_l,bases_r) = op.basis_l.bases, op.basis_r.bases
     check_samebases(bases_l[i], val.basis_l)
     check_samebases(bases_r[j], val.basis_r)
@@ -115,11 +115,11 @@ function setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i
 end
 
 """
-    getblock(op::Operator{<:SumBasis,<:SumBasis}, i::int, j::Int)
+    getblock(op::Operator{<:SumBasis,<:SumBasis}, i, j)
 
 Get the sub-basis operator corresponding to the block `(i,j)` of `op`.
 """
-function getblock(op::DataOperator{BL,BR}, i::Int, j::Int) where {BL<:SumBasis,BR<:SumBasis}
+function getblock(op::DataOperator{BL,BR}, i, j) where {BL<:SumBasis,BR<:SumBasis}
     (bases_l,bases_r) = op.basis_l.bases, op.basis_r.bases
     inds_i = cumsum([0;length.(bases_l[1:i])...])
     inds_j = cumsum([0;length.(bases_r[1:j])...])
@@ -132,7 +132,7 @@ end
 
 Lazy implementation of `directsum`
 """
-mutable struct LazyDirectSum{BL<:SumBasis, BR<:SumBasis, T<:Tuple{Vararg{AbstractOperator}}} <: AbstractOperator{BL,BR}
+mutable struct LazyDirectSum{BL,BR,T} <: AbstractOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     operators::T
@@ -151,6 +151,7 @@ dense(x::LazyDirectSum) = directsum(dense.(x.operators)...)
 -(op::LazyDirectSum) = LazyDirectSum([-op.operators[1];op.operators[2:end]]...)
 +(op1::LazyDirectSum{B1,B2},op2::LazyDirectSum{B1,B2}) where {B1<:Basis,B2<:Basis} = LazyDirectSum((op1.operators .+ op2.operators)...)
 dagger(op::LazyDirectSum) = LazyDirectSum(op.basis_r, op.basis_l, dagger.(op.operators))
+Base.eltype(x::LazyDirectSum) = promote_type(eltype.(x.operators)...)
 
 directsum(op1::AbstractOperator,op2::LazyDirectSum) = LazyDirectSum(op1,op2)
 directsum(op1::LazyDirectSum,op2::AbstractOperator) = LazyDirectSum(op1,op2)
@@ -162,7 +163,7 @@ directsum(op1::FFTOperator, op2::FFTOperator) = LazyDirectSum(op1,op2)
 
 
 # Fast in-place multiplication
-function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) where {B1<:SumBasis,B2<:SumBasis}
+function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) where {B1,B2}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     bases_r = b.basis.bases
@@ -176,7 +177,7 @@ function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) w
     end
     return result
 end
-function mul!(result::Bra{B2},b::Bra{B1},M::LazyDirectSum{B1,B2},alpha_,beta_) where {B1<:SumBasis,B2<:SumBasis}
+function mul!(result::Bra{B2},b::Bra{B1},M::LazyDirectSum{B1,B2},alpha_,beta_) where {B1,B2}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
     bases_l = b.basis.bases

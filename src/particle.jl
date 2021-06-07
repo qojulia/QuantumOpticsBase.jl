@@ -16,17 +16,20 @@ of ``x_{min}`` and ``x_{max}`` are due to the periodic boundary conditions
 more or less arbitrary and are chosen to be
 ``-\\pi/dp`` and ``\\pi/dp`` with ``dp=(p_{max}-p_{min})/N``.
 """
-struct PositionBasis{T,X1,X2} <: Basis
+struct PositionBasis{X1,X2,T,F} <: Basis
     shape::Vector{T}
-    xmin::Float64
-    xmax::Float64
+    xmin::F
+    xmax::F
     N::T
-    function PositionBasis{X1,X2}(xmin::Real, xmax::Real, N::T) where {X1,X2,T<:Int}
+    function PositionBasis{X1,X2}(xmin::F, xmax::F, N::T) where {X1,X2,F,T<:Integer}
         @assert isa(X1, Real) && isa(X2, Real)
-        new{T,X1,X2}([N], xmin, xmax, N)
+        new{X1,X2,T,F}([N], xmin, xmax, N)
     end
 end
-PositionBasis(xmin::Real, xmax::Real, N::Int) = PositionBasis{xmin,xmax}(xmin,xmax,N)
+function PositionBasis(xmin::F1, xmax::F2, N) where {F1,F2}
+    F = promote_type(F1,F2)
+    return PositionBasis{xmin,xmax}(convert(F,xmin),convert(F,xmax),N)
+end
 
 """
     MomentumBasis(pmin, pmax, Npoints)
@@ -42,17 +45,20 @@ of ``p_{min}`` and ``p_{max}`` are due to the periodic boundary conditions
 more or less arbitrary and are chosen to be
 ``-\\pi/dx`` and ``\\pi/dx`` with ``dx=(x_{max}-x_{min})/N``.
 """
-struct MomentumBasis{P1,P2} <: Basis
-    shape::Vector{Int}
-    pmin::Float64
-    pmax::Float64
-    N::Int
-    function MomentumBasis{P1,P2}(pmin::Real, pmax::Real, N::Int) where {P1,P2}
+struct MomentumBasis{P1,P2,T,F} <: Basis
+    shape::Vector{T}
+    pmin::F
+    pmax::F
+    N::T
+    function MomentumBasis{P1,P2}(pmin::F, pmax::F, N::T) where {T<:Integer,F,P1,P2}
         @assert isa(P1, Real) && isa(P2, Real)
-        new([N], pmin, pmax, N)
+        new{P1,P2,T,F}([N], pmin, pmax, N)
     end
 end
-MomentumBasis(pmin::Real, pmax::Real, N::Int) = MomentumBasis{pmin,pmax}(pmin, pmax, N)
+function MomentumBasis(pmin::F1, pmax::F2, N) where {F1,F2}
+    F = promote_type(F1,F2)
+    return MomentumBasis{pmin,pmax}(convert(F,pmin), convert(F,pmax), N)
+end
 
 PositionBasis(b::MomentumBasis) = (dp = (b.pmax - b.pmin)/b.N; PositionBasis(-pi/dp, pi/dp, b.N))
 MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi/dx, pi/dx, b.N))
@@ -100,7 +106,7 @@ factors ``\\sqrt{Δx}`` and ``\\sqrt{Δp}`` are used so that
 ``\\langle x_i|Ψ\\rangle = \\sqrt{Δ x} Ψ(x_i)`` and ``\\langle p_i|Ψ\\rangle = \\sqrt{Δ p} Ψ(p_i)`` so
 that the resulting Ket state is normalized.
 """
-function gaussianstate(b::PositionBasis, x0::Real, p0::Real, sigma::Real)
+function gaussianstate(b::PositionBasis, x0, p0, sigma)
     psi = Ket(b)
     dx = spacing(b)
     alpha = 1.0/(pi^(1/4)*sqrt(sigma))*sqrt(dx)
@@ -112,7 +118,7 @@ function gaussianstate(b::PositionBasis, x0::Real, p0::Real, sigma::Real)
     return psi
 end
 
-function gaussianstate(b::MomentumBasis, x0::Real, p0::Real, sigma::Real)
+function gaussianstate(b::MomentumBasis, x0, p0, sigma)
     psi = Ket(b)
     dp = spacing(b)
     alpha = sqrt(sigma)/pi^(1/4)*sqrt(dp)
@@ -143,13 +149,13 @@ spacing(b::MomentumBasis) = (b.pmax - b.pmin)/b.N
 
 x values of the real space basis.
 """
-samplepoints(b::PositionBasis) = (dx = spacing(b); Float64[b.xmin + i*dx for i=0:b.N-1])
+samplepoints(b::PositionBasis) = (dx = spacing(b); [b.xmin + i*dx for i=0:b.N-1])
 """
     samplepoints(b::MomentumBasis)
 
 p values of the momentum basis.
 """
-samplepoints(b::MomentumBasis) = (dp = spacing(b); Float64[b.pmin + i*dp for i=0:b.N-1])
+samplepoints(b::MomentumBasis) = (dp = spacing(b); [b.pmin + i*dp for i=0:b.N-1])
 
 """
     position(b::PositionBasis)
@@ -237,7 +243,7 @@ function potentialoperator_position(b::CompositeBasis, V::Function)
     points = [samplepoints(b1) for b1=b.bases]
     dims = length.(points)
     n = length(b.bases)
-    data = Array{ComplexF64}(undef, dims...)
+    data = Array{complex(eltype(points[1]))}(undef, dims...)
     @inbounds for i=1:length(data)
         index = Tuple(CartesianIndices(data)[i])
         args = (points[j][index[j]] for j=1:n)
@@ -261,7 +267,7 @@ end
 
 Abstract type for all implementations of FFT operators.
 """
-abstract type FFTOperator{BL<:Basis, BR<:Basis, T} <: AbstractOperator{BL,BR} end
+abstract type FFTOperator{BL, BR, T} <: AbstractOperator{BL,BR} end
 
 Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_after))
 
@@ -271,7 +277,7 @@ Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_af
 Operator performing a fast fourier transformation when multiplied with a state
 that is a Ket or an Operator.
 """
-mutable struct FFTOperators{BL<:Basis,BR<:Basis,T<:Array,P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
+struct FFTOperators{BL,BR,T,P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
     basis_l::BL
     basis_r::BR
     fft_l!::P1
@@ -286,7 +292,7 @@ mutable struct FFTOperators{BL<:Basis,BR<:Basis,T<:Array,P1,P2,P3,P4} <: FFTOper
         fft_l2!::P3,
         fft_r2!::P4,
         mul_before::T,
-        mul_after::T) where {BL<:Basis,BR<:Basis,T,P1,P2,P3,P4}
+        mul_after::T) where {BL,BR,T,P1,P2,P3,P4}
         new{BL,BR,T,P1,P2,P3,P4}(b1, b2, fft_l!, fft_r!, fft_l2!, fft_r2!, mul_before, mul_after)
     end
 end
@@ -297,7 +303,7 @@ end
 Operator that can only perform fast fourier transformations on Kets.
 This is much more memory efficient when only working with Kets.
 """
-mutable struct FFTKets{BL<:Basis,BR<:Basis,T<:Array,P1,P2} <: FFTOperator{BL, BR, T}
+struct FFTKets{BL,BR,T,P1,P2} <: FFTOperator{BL, BR, T}
     basis_l::BL
     basis_r::BR
     fft_l!::P1
@@ -308,7 +314,7 @@ mutable struct FFTKets{BL<:Basis,BR<:Basis,T<:Array,P1,P2} <: FFTOperator{BL, BR
         fft_l!::P1,
         fft_r!::P2,
         mul_before::T,
-        mul_after::T) where {BL<:Basis,BR<:Basis, T, P1, P2}
+        mul_after::T) where {BL,BR, T, P1, P2}
         new{BL, BR, T, P1, P2}(b1, b2, fft_l!, fft_r!, mul_before, mul_after)
     end
 end
@@ -319,7 +325,7 @@ end
 
 Transformation operator between position basis and momentum basis.
 """
-function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only::Bool=false)
+function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only=false)
     Lx = (basis_r.xmax - basis_r.xmin)
     dp = spacing(basis_l)
     dx = spacing(basis_r)
@@ -328,11 +334,11 @@ function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only::Boo
     end
     mul_before = exp.(-1im*basis_l.pmin*(samplepoints(basis_r) .- basis_r.xmin))
     mul_after = exp.(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{ComplexF64}(undef, length(basis_r))
+    x = Vector{eltype(mul_before)}(undef, length(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), mul_before, mul_after)
     else
-        A = Matrix{ComplexF64}(undef, length(basis_r), length(basis_r))
+        A = Matrix{eltype(mul_before)}(undef, length(basis_r), length(basis_r))
         FFTOperators(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), plan_bfft!(A, 2), plan_fft!(A, 1), mul_before, mul_after)
     end
 end
@@ -344,7 +350,7 @@ Transformation operator between two composite bases. Each of the bases
 has to contain bases of type PositionBasis and the other one a corresponding
 MomentumBasis.
 """
-function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only::Bool=false)
+function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only=false)
     Lx = (basis_l.xmax - basis_l.xmin)
     dp = spacing(basis_r)
     dx = spacing(basis_l)
@@ -353,16 +359,16 @@ function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only::Boo
     end
     mul_before = exp.(1im*basis_l.xmin*(samplepoints(basis_r) .- basis_r.pmin))
     mul_after = exp.(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{ComplexF64}(undef, length(basis_r))
+    x = Vector{eltype(mul_before)}(undef, length(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), mul_before, mul_after)
     else
-        A = Matrix{ComplexF64}(undef, length(basis_r), length(basis_r))
+        A = Matrix{eltype(mul_before)}(undef, length(basis_r), length(basis_r))
         FFTOperators(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), plan_fft!(A, 2), plan_bfft!(A, 1), mul_before, mul_after)
     end
 end
 
-function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only::Bool=false, index::Vector{Int}=Int[])
+function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only=false, index=Int[])
     @assert length(basis_l.bases) == length(basis_r.bases)
     if length(index) == 0
         check_pos = [isa.(basis_l.bases, PositionBasis)...]
@@ -386,7 +392,7 @@ function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only::B
     end
 end
 
-function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Vector{Int}; ket_only::Bool=false)
+function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index; ket_only=false)
     n = length(basis_l.bases)
     Lx = [(b.xmax - b.xmin) for b=basis_l.bases[index]]
     dp = [spacing(b) for b=basis_r.bases[index]]
@@ -422,16 +428,16 @@ function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index::V
     mul_before = reshape(mul_before, (N...,))
     mul_after = reshape(mul_after, (N...,))
 
-    x = Array{ComplexF64}(undef, N...)
+    x = Array{eltype(mul_before)}(undef, N...)
     if ket_only
         FFTKets(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), mul_before, mul_after)
     else
-        A = Array{ComplexF64}(undef, [N; N]...)
+        A = Array{eltype(mul_before)}(undef, [N; N]...)
         FFTOperators(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), plan_fft!(A, [n + 1:2n;][index]), plan_bfft!(A, [1:n;][index]), mul_before, mul_after)
     end
 end
 
-function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Vector{Int}; ket_only::Bool=false)
+function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index; ket_only=false)
     n = length(basis_l.bases)
     Lx = [(b.xmax - b.xmin) for b=basis_r.bases[index]]
     dp = [spacing(b) for b=basis_l.bases[index]]
@@ -467,11 +473,11 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index::V
     mul_before = reshape(mul_before, (N...,))
     mul_after = reshape(mul_after, (N...,))
 
-    x = Array{ComplexF64}(undef, N...)
+    x = Array{eltype(mul_before)}(undef, N...)
     if ket_only
         FFTKets(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), mul_before, mul_after)
     else
-        A = Array{ComplexF64}(undef, [N; N]...)
+        A = Array{eltype(mul_before)}(undef, [N; N]...)
         FFTOperators(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), plan_bfft!(A, [n + 1:2n;][index]), plan_fft!(A, [1:n;][index]), mul_before, mul_after)
     end
 end
@@ -484,11 +490,9 @@ dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
 tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r))
 tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
 
-function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    N::Int = length(M.basis_r)
-    if beta==Complex(0.)
+function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
+    N = length(M.basis_r)
+    if iszero(beta)
         @inbounds for i=1:N
             result.data[i] = M.mul_before[i] * b.data[i]
         end
@@ -509,11 +513,9 @@ function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha_,beta_) whe
     result
 end
 
-function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) where {B1<:Basis,B2<:Basis}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    N::Int = length(M.basis_l)
-    if beta==Complex(0.)
+function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha,beta) where {B1,B2}
+    N = length(M.basis_l)
+    if iszero(beta)
         @inbounds for i=1:N
             result.data[i] = conj(M.mul_after[i]) * conj(b.data[i])
         end
@@ -534,10 +536,8 @@ function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha_,beta_) whe
     result
 end
 
-function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    if beta != Complex(0.)
+function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3},alpha,beta) where {B1,B2,B3,T}
+    if !iszero(beta)
         data = similar(result.data, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
@@ -554,20 +554,18 @@ function mul!(result::Operator{B1,B3,T},A::Operator{B1,B2},B::FFTOperators{B2,B3
     @inbounds for j=1:N, i=1:N
         data[i, j] *= B.mul_before[j]
     end
-    if alpha != Complex(1.)
+    if !isone(alpha)
         lmul!(alpha, data)
     end
-    if beta != Complex(0.)
+    if !iszero(beta)
         rmul!(result.data, beta)
         result.data += data
     end
     result
 end
 
-function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3},alpha_,beta_) where {B1<:Basis,B2<:Basis,B3<:Basis,T}
-    alpha = convert(ComplexF64, alpha_)
-    beta = convert(ComplexF64, beta_)
-    if beta != Complex(0.)
+function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3},alpha,beta) where {B1,B2,B3,T}
+    if !iszero(beta)
         data = similar(result.data, size(result.data, 1), size(result.data, 2))
     else
         data = result.data
@@ -582,10 +580,10 @@ function mul!(result::Operator{B1,B3,T},A::FFTOperators{B1,B2},B::Operator{B2,B3
     @inbounds for j=1:N, i=1:N
         data[i, j] *= A.mul_after[i]
     end
-    if alpha != Complex(1.)
+    if !isone(alpha)
         lmul!(alpha, data)
     end
-    if beta != Complex(0.)
+    if !iszero(beta)
         rmul!(result.data, beta)
         result.data += data
     end

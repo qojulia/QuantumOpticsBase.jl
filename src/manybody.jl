@@ -7,18 +7,18 @@ The basis has to know the associated one-body basis `b` and which occupation sta
 should be included. The occupations_hash is used to speed up checking if two
 many-body bases are equal.
 """
-struct ManyBodyBasis{S,B<:Basis,H,UT} <: Basis
+struct ManyBodyBasis{S,B,H,UT} <: Basis
     shape::S
     onebodybasis::B
     occupations::Vector{S}
     occupations_hash::UT
 
-    function ManyBodyBasis{S,B,H}(onebodybasis::B, occupations::Vector{S}) where {S<:Vector{<:Int},B<:Basis,H}
+    function ManyBodyBasis{S,B,H}(onebodybasis::B, occupations::Vector{S}) where {S,B,H}
         @assert isa(H, UInt)
         new{S,B,H,typeof(H)}([length(occupations)], onebodybasis, occupations, hash(hash.(occupations)))
     end
 end
-ManyBodyBasis(onebodybasis::B, occupations::Vector{S}) where {B<:Basis,S<:Vector{<:Int}} = ManyBodyBasis{S,B,hash(hash.(occupations))}(onebodybasis,occupations)
+ManyBodyBasis(onebodybasis::B, occupations::Vector{S}) where {B,S} = ManyBodyBasis{S,B,hash(hash.(occupations))}(onebodybasis,occupations)
 
 """
     fermionstates(Nmodes, Nparticles)
@@ -28,8 +28,8 @@ Generate all fermionic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
 particle number.
 """
-fermionstates(Nmodes::Int, Nparticles::Int) = _distribute_fermions(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
-fermionstates(Nmodes::Int, Nparticles::Vector{Int}) = vcat([fermionstates(Nmodes, N) for N in Nparticles]...)
+fermionstates(Nmodes::T, Nparticles::T) where T = _distribute_fermions(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
+fermionstates(Nmodes::T, Nparticles::Vector{T}) where T = vcat([fermionstates(Nmodes, N) for N in Nparticles]...)
 fermionstates(onebodybasis::Basis, Nparticles) = fermionstates(length(onebodybasis), Nparticles)
 
 """
@@ -40,19 +40,19 @@ Generate all bosonic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
 particle number.
 """
-bosonstates(Nmodes::Int, Nparticles::Int) = _distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
-bosonstates(Nmodes::Int, Nparticles::Vector{Int}) = vcat([bosonstates(Nmodes, N) for N in Nparticles]...)
+bosonstates(Nmodes::T, Nparticles::T) where T = _distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
+bosonstates(Nmodes::T, Nparticles::Vector{T}) where T = vcat([bosonstates(Nmodes, N) for N in Nparticles]...)
 bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis), Nparticles)
 
 ==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash==b2.occupations_hash && b1.onebodybasis==b2.onebodybasis
 
 """
-    basisstate(b::ManyBodyBasis, occupation::Vector{Int})
+    basisstate(b::ManyBodyBasis, occupation::Vector)
 
 Return a ket state where the system is in the state specified by the given
 occupation numbers.
 """
-function basisstate(basis::ManyBodyBasis, occupation::Vector{Int})
+function basisstate(basis::ManyBodyBasis, occupation::Vector)
     index = findfirst(isequal(occupation), basis.occupations)
     if isa(index, Nothing)
         throw(ArgumentError("Occupation not included in many-body basis."))
@@ -80,7 +80,7 @@ end
 
 Creation operator for the i-th mode of the many-body basis `b`.
 """
-function create(b::ManyBodyBasis, index::Int)
+function create(b::ManyBodyBasis, index)
     result = SparseOperator(b)
     # <{m}_i| at |{m}_j>
     for i=1:length(b)
@@ -102,7 +102,7 @@ end
 
 Annihilation operator for the i-th mode of the many-body basis `b`.
 """
-function destroy(b::ManyBodyBasis, index::Int)
+function destroy(b::ManyBodyBasis, index)
     result = SparseOperator(b)
     # <{m}_j| a |{m}_i>
     for i=1:length(b)
@@ -124,7 +124,7 @@ end
 
 Particle number operator for the i-th mode of the many-body basis `b`.
 """
-function number(b::ManyBodyBasis, index::Int)
+function number(b::ManyBodyBasis, index)
     result = SparseOperator(b)
     for i=1:length(b)
         result.data[i, i] = b.occupations[i][index]
@@ -145,7 +145,7 @@ function number(b::ManyBodyBasis)
     result
 end
 
-function isnonzero(occ1, occ2, index1::Int, index2::Int)
+function isnonzero(occ1, occ2, index1, index2)
     for i=1:length(occ1)
         if i == index1 && i == index2
             if occ1[i] != occ2[i]
@@ -169,11 +169,11 @@ function isnonzero(occ1, occ2, index1::Int, index2::Int)
 end
 
 """
-    transition(b::ManyBodyBasis, to::Int, from::Int)
+    transition(b::ManyBodyBasis, to, from)
 
 Operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|`` transferring particles between modes.
 """
-function transition(b::ManyBodyBasis, to::Int, from::Int)
+function transition(b::ManyBodyBasis, to, from)
     result = SparseOperator(b)
     # <{m}_j| at_to a_from |{m}_i>
     for i=1:length(b)
@@ -217,7 +217,7 @@ where ``X`` is the N-particle operator, ``x`` is the one-body operator and
 ``|u⟩`` are the one-body states associated to the
 different modes of the N-particle basis.
 """
-function manybodyoperator(basis::ManyBodyBasis, op::T) where T<:AbstractOperator
+function manybodyoperator(basis::ManyBodyBasis, op)
     @assert op.basis_l == op.basis_r
     if op.basis_l == basis.onebodybasis
         result =  manybodyoperator_1(basis, op)
@@ -446,7 +446,7 @@ function coefficient(occ_m, occ_n, at_indices, a_indices)
     end
 end
 
-function _distribute_bosons(Nparticles::Int, Nmodes::Int, index::Int, occupations::Vector{Int}, results::Vector{Vector{Int}})
+function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
     if index==Nmodes
         occupations[index] = Nparticles
         push!(results, copy(occupations))
@@ -459,7 +459,7 @@ function _distribute_bosons(Nparticles::Int, Nmodes::Int, index::Int, occupation
     return results
 end
 
-function _distribute_fermions(Nparticles::Int, Nmodes::Int, index::Int, occupations::Vector{Int}, results::Vector{Vector{Int}})
+function _distribute_fermions(Nparticles, Nmodes, index, occupations, results)
     if (Nmodes-index)+1<Nparticles
         return results
     end
