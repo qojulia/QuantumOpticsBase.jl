@@ -10,8 +10,8 @@ using QuantumOpticsBase
 @test sprint(show, FockBasis(1)) == "Fock(cutoff=1)"
 @test sprint(show, NLevelBasis(2)) == "NLevel(N=2)"
 
-@test sprint(show, PositionBasis(-4, 4, 10)) == "Position(xmin=-4.0, xmax=4.0, N=10)"
-@test sprint(show, MomentumBasis(-4, 4, 10)) == "Momentum(pmin=-4.0, pmax=4.0, N=10)"
+@test sprint(show, PositionBasis(-4, 4, 10)) == "Position(xmin=-4, xmax=4, N=10)"
+@test sprint(show, MomentumBasis(-4, 4, 10)) == "Momentum(pmin=-4, pmax=4, N=10)"
 
 b_fock = FockBasis(4)
 states = [fockstate(b_fock, 2), coherentstate(b_fock, 0.4)]
@@ -84,7 +84,7 @@ bp = MomentumBasis(bx)
 Tpx = transform(bp, bx)
 @test sprint(show, Tpx) == "FFTOperators(dim=4x4)
   basis left:  Momentum(pmin=-3.141592653589793, pmax=3.141592653589793, N=4)
-  basis right: Position(xmin=-2.0, xmax=2.0, N=4)"
+  basis right: Position(xmin=-2, xmax=2, N=4)"
 
 # Inversed tensor product ordering
 QuantumOpticsBase.set_printing(standard_order=true)

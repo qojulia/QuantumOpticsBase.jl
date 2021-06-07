@@ -6,7 +6,7 @@ import Base: isapprox
 Basis for an N-qubit space where `num_qubits` specifies the number of qubits.
 The dimension of the basis is 2²ᴺ.
 """
-struct PauliBasis{S,B<:Tuple{Vararg{Basis}}} <: Basis
+struct PauliBasis{S,B} <: Basis
     shape::S
     bases::B
     function PauliBasis(num_qubits::T) where {T<:Integer}
@@ -20,7 +20,7 @@ end
 """
     Base class for Pauli transfer matrix classes.
 """
-abstract type PauliTransferMatrix{B1<:Tuple{PauliBasis, PauliBasis}, B2<:Tuple{PauliBasis, PauliBasis}} end
+abstract type PauliTransferMatrix{B1, B2} end
 
 
 """
@@ -28,15 +28,13 @@ abstract type PauliTransferMatrix{B1<:Tuple{PauliBasis, PauliBasis}, B2<:Tuple{P
 
 DensePauliTransferMatrix stored as a dense matrix.
 """
-mutable struct DensePauliTransferMatrix{B1<:Tuple{PauliBasis, PauliBasis},
-                                        B2<:Tuple{PauliBasis, PauliBasis},
-                                        T<:Matrix{Float64}} <: PauliTransferMatrix{B1, B2}
+mutable struct DensePauliTransferMatrix{B1,B2,T<:Matrix} <: PauliTransferMatrix{B1, B2}
     basis_l::B1
     basis_r::B2
     data::T
-    function DensePauliTransferMatrix(basis_l::BL, basis_r::BR, data::T) where {BL<:Tuple{PauliBasis, PauliBasis},
-                                                                                BR<:Tuple{PauliBasis, PauliBasis},
-                                                                                T<:Matrix{Float64}}
+    function DensePauliTransferMatrix(basis_l::BL, basis_r::BR, data::T) where {BL,
+                                                                                BR,
+                                                                                T<:Matrix}
         if length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
            length(basis_r[1])*length(basis_r[2]) != size(data, 2)
             throw(DimensionMismatch())
@@ -45,32 +43,27 @@ mutable struct DensePauliTransferMatrix{B1<:Tuple{PauliBasis, PauliBasis},
     end
 end
 
-PauliTransferMatrix(ptm::DensePauliTransferMatrix{B, B, Matrix{Float64}}) where B <: Tuple{PauliBasis, PauliBasis} = ptm
+PauliTransferMatrix(ptm::DensePauliTransferMatrix) = ptm
 
-function *(ptm0::DensePauliTransferMatrix{B, B, Matrix{Float64}},
-           ptm1::DensePauliTransferMatrix{B, B, Matrix{Float64}}) where B <: Tuple{PauliBasis, PauliBasis}
+function *(ptm0::DensePauliTransferMatrix{B, B},ptm1::DensePauliTransferMatrix{B, B}) where B
     return DensePauliTransferMatrix(ptm0.basis_l, ptm1.basis_r, ptm0.data*ptm1.data)
 end
 
 """
     Base class for χ (process) matrix classes.
 """
-abstract type ChiMatrix{B1<:Tuple{PauliBasis, PauliBasis}, B2<:Tuple{PauliBasis, PauliBasis}} end
+abstract type ChiMatrix{B1, B2} end
 
 """
     DenseChiMatrix(b, b, data)
 
 DenseChiMatrix stored as a dense matrix.
 """
-mutable struct DenseChiMatrix{B1<:Tuple{PauliBasis, PauliBasis},
-                              B2<:Tuple{PauliBasis, PauliBasis},
-                              T<:Matrix{ComplexF64}} <: PauliTransferMatrix{B1, B2}
+mutable struct DenseChiMatrix{B1,B2,T<:Matrix} <: PauliTransferMatrix{B1, B2}
     basis_l::B1
     basis_r::B2
     data::T
-    function DenseChiMatrix(basis_l::BL, basis_r::BR, data::T) where {BL<:Tuple{PauliBasis, PauliBasis},
-                                                                                BR<:Tuple{PauliBasis, PauliBasis},
-                                                                                T<:Matrix{ComplexF64}}
+    function DenseChiMatrix(basis_l::BL, basis_r::BR, data::T) where {BL,BR,T<:Matrix}
         if length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
            length(basis_r[1])*length(basis_r[2]) != size(data, 2)
             throw(DimensionMismatch())
@@ -79,7 +72,7 @@ mutable struct DenseChiMatrix{B1<:Tuple{PauliBasis, PauliBasis},
     end
 end
 
-ChiMatrix(chi_matrix::DenseChiMatrix{B, B, Matrix{ComplexF64}}) where B <: Tuple{PauliBasis, PauliBasis} = chi_matrix
+ChiMatrix(chi_matrix::DenseChiMatrix) = chi_matrix
 
 """
 A dictionary that represents the Pauli algebra - for a pair of Pauli operators
@@ -117,7 +110,7 @@ of 1.
 """
 cache_multiply_pauli_matrices() = begin
     local pauli_multiplication_cache = Dict()
-    function _multiply_pauli_matirices(i4::String, j4::String)
+    function _multiply_pauli_matirices(i4, j4)
         if (i4, j4) ∉ keys(pauli_multiplication_cache)
             pauli_multiplication_cache[(i4, j4)] = mapreduce(x -> pauli_multiplication_dict[prod(x)],
                                                              (x,y) -> (x[1] * y[1], x[2] * y[2]),
@@ -128,8 +121,7 @@ cache_multiply_pauli_matrices() = begin
 end
 multiply_pauli_matirices = cache_multiply_pauli_matrices()
 
-function *(chi_matrix0::DenseChiMatrix{B, B, Matrix{ComplexF64}},
-           chi_matrix1::DenseChiMatrix{B, B, Matrix{ComplexF64}}) where B <: Tuple{PauliBasis, PauliBasis}
+function *(chi_matrix0::DenseChiMatrix{B, B},chi_matrix1::DenseChiMatrix{B, B}) where B
 
     num_qubits = length(chi_matrix0.basis_l[1].shape)
     sop_dim = 2 ^ prod(chi_matrix0.basis_l[1].shape)
@@ -156,11 +148,11 @@ end
 
 # TODO MAKE A GENERATOR FUNCTION
 """
-    pauli_operators(num_qubits::Int)
+    pauli_operators(num_qubits::Integer)
 
 Generate a list of N-qubit Pauli operators.
 """
-function pauli_operators(num_qubits::Int)
+function pauli_operators(num_qubits::Integer)
     pauli_funcs = (identityoperator, sigmax, sigmay, sigmaz)
     po = []
     for paulis in Iterators.product((pauli_funcs for _ in 1:num_qubits)...)
@@ -171,12 +163,12 @@ function pauli_operators(num_qubits::Int)
 end
 
 """
-    pauli_basis_vectors(num_qubits::Int)
+    pauli_basis_vectors(num_qubits::Integer)
 
 Generate a matrix of basis vectors in the Pauli representation given a number
 of qubits.
 """
-function pauli_basis_vectors(num_qubits::Int)
+function pauli_basis_vectors(num_qubits::Integer)
     po = pauli_operators(num_qubits)
     sop_dim = 4 ^ num_qubits
     return mapreduce(x -> sparse(reshape(x.data, sop_dim)), (x, y) -> [x y], po)
@@ -187,29 +179,27 @@ end
 
 Convert a superoperator to its representation as a Pauli transfer matrix.
 """
-function PauliTransferMatrix(sop::DenseSuperOpType{B, B}) where B <: Tuple{PauliBasis, PauliBasis}
+function PauliTransferMatrix(sop::DenseSuperOpType)
     num_qubits = length(sop.basis_l[1].bases)
     pbv = pauli_basis_vectors(num_qubits)
     sop_dim = 4 ^ num_qubits
-    data = Matrix{Float64}(undef, (sop_dim, sop_dim))
-    data .= real.(pbv' * sop.data * pbv / √sop_dim)
+    data = real.(pbv' * sop.data * pbv / √sop_dim)
     return DensePauliTransferMatrix(sop.basis_l, sop.basis_r, data)
 end
 
-SuperOperator(unitary::DenseOpType{B, B}) where B <: PauliBasis = spre(unitary) * spost(unitary')
-SuperOperator(sop::DenseSuperOpType{B, B}) where B <: Tuple{PauliBasis, PauliBasis} = sop
+SuperOperator(unitary::DenseOpType) = spre(unitary) * spost(unitary')
+SuperOperator(sop::DenseSuperOpType) = sop
 
 """
     SuperOperator(ptm::DensePauliTransferMatrix)
 
 Convert a Pauli transfer matrix to its representation as a superoperator.
 """
-function SuperOperator(ptm::DensePauliTransferMatrix{B, B, Matrix{Float64}}) where B <: Tuple{PauliBasis, PauliBasis}
+function SuperOperator(ptm::DensePauliTransferMatrix)
     num_qubits = length(ptm.basis_l[1].bases)
     pbv = pauli_basis_vectors(num_qubits)
     sop_dim = 4 ^ num_qubits
-    data = Matrix{ComplexF64}(undef, (sop_dim, sop_dim))
-    data .= pbv * ptm.data * pbv' / √sop_dim
+    data = pbv * ptm.data * pbv' / √sop_dim
     return DenseSuperOperator(ptm.basis_l, ptm.basis_r, data)
 end
 
@@ -219,14 +209,14 @@ end
 Convert an operator, presumably a unitary operator, to its representation as a
 Pauli transfer matrix.
 """
-PauliTransferMatrix(unitary::DenseOpType{B, B}) where B <: PauliBasis = PauliTransferMatrix(SuperOperator(unitary))
+PauliTransferMatrix(unitary::DenseOpType) = PauliTransferMatrix(SuperOperator(unitary))
 
 """
     ChiMatrix(unitary::DenseOpType)
 
 Convert an operator, presumably a unitary operator, to its representation as a χ matrix.
 """
-function ChiMatrix(unitary::DenseOpType{B, B}) where B <: PauliBasis
+function ChiMatrix(unitary::DenseOpType)
     num_qubits = length(unitary.basis_l.bases)
     pbv = pauli_basis_vectors(num_qubits)
     aj = pbv' * reshape(unitary.data, 4 ^ num_qubits)
@@ -238,11 +228,11 @@ end
 
 Convert a superoperator to its representation as a Chi matrix.
 """
-function ChiMatrix(sop::DenseSuperOpType{B, B}) where B <: Tuple{PauliBasis, PauliBasis}
+function ChiMatrix(sop::DenseSuperOpType{B, B, T}) where {B, T}
     num_qubits = length(sop.basis_l)
     sop_dim = 4 ^ num_qubits
     po = pauli_operators(num_qubits)
-    data = Matrix{ComplexF64}(undef, (sop_dim, sop_dim))
+    data = Matrix{eltype(T)}(undef, (sop_dim, sop_dim))
     for (idx, jdx) in Iterators.product(1:sop_dim, 1:sop_dim)
         data[idx, jdx] = tr((spre(po[idx]) * spost(po[jdx])).data' * sop.data) / √sop_dim
     end
@@ -254,11 +244,11 @@ end
 
 Convert a χ matrix to its representation as a Pauli transfer matrix.
 """
-function PauliTransferMatrix(chi_matrix::DenseChiMatrix{B, B, Matrix{ComplexF64}}) where B <: Tuple{PauliBasis, PauliBasis}
+function PauliTransferMatrix(chi_matrix::DenseChiMatrix{B, B, T}) where {B, T}
     num_qubits = length(chi_matrix.basis_l)
     sop_dim = 4 ^ num_qubits
     po = pauli_operators(num_qubits)
-    data = Matrix{Float64}(undef, (sop_dim, sop_dim))
+    data = Matrix{real(eltype(T))}(undef, (sop_dim, sop_dim))
     for (idx, jdx) in Iterators.product(1:sop_dim, 1:sop_dim)
         data[idx, jdx] = tr(mapreduce(x -> po[idx] * po[x[1]] * po[jdx] * po[x[2]] * chi_matrix.data[x[1], x[2]],
                                       +,
@@ -272,18 +262,14 @@ end
 
 Convert a χ matrix to its representation as a superoperator.
 """
-function SuperOperator(chi_matrix::DenseChiMatrix{B, B, Matrix{ComplexF64}}) where B <: Tuple{PauliBasis, PauliBasis}
-    return SuperOperator(PauliTransferMatrix(chi_matrix))
-end
+SuperOperator(chi_matrix::DenseChiMatrix) = SuperOperator(PauliTransferMatrix(chi_matrix))
 
 """
     ChiMatrix(ptm::DensePauliTransferMatrix)
 
 Convert a Pauli transfer matrix to its representation as a χ matrix.
 """
-function ChiMatrix(ptm::DensePauliTransferMatrix{B, B, Matrix{Float64}}) where B <: Tuple{PauliBasis, PauliBasis}
-    return ChiMatrix(SuperOperator(ptm))
-end
+ChiMatrix(ptm::DensePauliTransferMatrix) = ChiMatrix(SuperOperator(ptm))
 
 """Equality for all varieties of superoperators."""
 ==(sop1::T, sop2::T) where T<:Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix} = sop1.data == sop2.data
