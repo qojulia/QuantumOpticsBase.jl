@@ -79,8 +79,7 @@ end
 displace(b::FockBasis, alpha::T) where {T <: Number} = displace(ComplexF64, b, alpha)
 
 """
-    fockstate(b::FockBasis, n)
-    fockstate(::Type{T}, b::FockBasis, n)
+    fockstate([T=ComplexF64,] b::FockBasis, n)
 
 Fock state ``|n⟩`` for the specified Fock space.
 """
@@ -91,8 +90,7 @@ end
 fockstate(b, n) = fockstate(ComplexF64, b, n)
 
 """
-    coherentstate(b::FockBasis, alpha)
-    coherentstate(::Type{T}, b::FockBasis, alpha)
+    coherentstate([T=ComplexF64,] b::FockBasis, alpha)
 
 Coherent state ``|α⟩`` for the specified Fock space.
 """

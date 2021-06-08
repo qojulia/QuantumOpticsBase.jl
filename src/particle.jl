@@ -68,9 +68,8 @@ MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi
 
 
 """
-    gaussianstate(b::PositionBasis, x0, p0, sigma)
-    gaussianstate(b::MomentumBasis, x0, p0, sigma)
-    gaussianstate(::Type{T}, b, x0, p0, sigma)
+    gaussianstate([T=ComplexF64,] b::PositionBasis, x0, p0, sigma)
+    gaussianstate([T=ComplexF64,] b::MomentumBasis, x0, p0, sigma)
 
 Create a Gaussian state around `x0` and` p0` with width `sigma`.
 
@@ -161,62 +160,70 @@ p values of the momentum basis.
 samplepoints(b::MomentumBasis) = (dp = spacing(b); [b.pmin + i*dp for i=0:b.N-1])
 
 """
-    position(b::PositionBasis)
+    position([T=ComplexF64,] b::PositionBasis)
 
 Position operator in real space.
 """
-position(b::PositionBasis) = SparseOperator(b, sparse(Diagonal(complex(samplepoints(b)))))
-
+function position(::Type{T}, b::PositionBasis) where T
+    d = convert.(T, samplepoints(b))
+    return SparseOperator(b, spdiagm(0 => d))
+end
+position(b::Basis) = position(ComplexF64, b)
 
 """
-    position(b:MomentumBasis)
+    position([T=ComplexF64,] b:MomentumBasis)
 
 Position operator in momentum space.
 """
-function position(b::MomentumBasis)
+function position(::Type{T}, b::MomentumBasis) where T
     b_pos = PositionBasis(b)
-    transform(b, b_pos)*dense(position(b_pos))*transform(b_pos, b)
+    transform(b, b_pos)*dense(position(T, b_pos))*transform(b_pos, b)
 end
 
 """
-    momentum(b:MomentumBasis)
+    momentum([T=ComplexF64,] b:MomentumBasis)
 
 Momentum operator in momentum space.
 """
-momentum(b::MomentumBasis) = SparseOperator(b, sparse(Diagonal(complex(samplepoints(b)))))
+function momentum(::Type{T}, b::MomentumBasis) where T
+    d = convert.(T, samplepoints(b))
+    return SparseOperator(b, spdiagm(0=>d))
+end
+momentum(b::Basis) = momentum(ComplexF64, b)
 
 """
-    momentum(b::PositionBasis)
+    momentum([T=ComplexF64,] b::PositionBasis)
 
 Momentum operator in real space.
 """
-function momentum(b::PositionBasis)
+function momentum(::Type{T}, b::PositionBasis) where T
     b_mom = MomentumBasis(b)
-    transform(b, b_mom)*dense(momentum(b_mom))*transform(b_mom, b)
+    transform(b, b_mom)*dense(momentum(T,b_mom))*transform(b_mom, b)
 end
 
 """
-    potentialoperator(b::PositionBasis, V(x))
+    potentialoperator([T=ComplexF64,] b::PositionBasis, V(x))
 
 Operator representing a potential ``V(x)`` in real space.
 """
-function potentialoperator(b::PositionBasis, V::Function)
-    x = samplepoints(b)
+function potentialoperator(::Type{T}, b::PositionBasis, V) where T
+    x = convert.(T, samplepoints(b))
     diagonaloperator(b, V.(x))
 end
+potentialoperator(b::Basis, V) = potentialoperator(ComplexF64, b, V)
 
 """
-    potentialoperator(b::MomentumBasis, V(x))
+    potentialoperator([T=ComplexF64,] b::MomentumBasis, V(x))
 
 Operator representing a potential ``V(x)`` in momentum space.
 """
-function potentialoperator(b::MomentumBasis, V::Function)
+function potentialoperator(::Type{T}, b::MomentumBasis, V) where T
     b_pos = PositionBasis(b)
-    transform(b, b_pos)*dense(potentialoperator(b_pos, V))*transform(b_pos, b)
+    transform(b, b_pos)*dense(potentialoperator(T, b_pos, V))*transform(b_pos, b)
 end
 
 """
-    potentialoperator(b::CompositeBasis, V(x, y, z, ...))
+    potentialoperator([T=ComplexF64,] b::CompositeBasis, V(x, y, z, ...))
 
 Operator representing a potential ``V`` in more than one dimension.
 
@@ -229,16 +236,16 @@ Operator representing a potential ``V`` in more than one dimension.
     of the arguments has to match that of the order of the tensor product of
     bases (e.g. if `b=bx⊗by⊗bz`, then `V(x,y,z)`).
 """
-function potentialoperator(b::CompositeBasis, V::Function)
+function potentialoperator(::Type{T}, b::CompositeBasis, V) where T
     if isa(b.bases[1], PositionBasis)
-        potentialoperator_position(b, V)
+        potentialoperator_position(T, b, V)
     elseif isa(b.bases[1], MomentumBasis)
-        potentialoperator_momentum(b, V)
+        potentialoperator_momentum(T, b, V)
     else
         throw(IncompatibleBases())
     end
 end
-function potentialoperator_position(b::CompositeBasis, V::Function)
+function potentialoperator_position(::Type{T}, b::CompositeBasis, V) where T
     for base=b.bases
         @assert isa(base, PositionBasis)
     end
@@ -246,7 +253,7 @@ function potentialoperator_position(b::CompositeBasis, V::Function)
     points = [samplepoints(b1) for b1=b.bases]
     dims = length.(points)
     n = length(b.bases)
-    data = Array{complex(eltype(points[1]))}(undef, dims...)
+    data = Array{T}(undef, dims...)
     @inbounds for i=1:length(data)
         index = Tuple(CartesianIndices(data)[i])
         args = (points[j][index[j]] for j=1:n)
@@ -255,14 +262,14 @@ function potentialoperator_position(b::CompositeBasis, V::Function)
 
     diagonaloperator(b, data[:])
 end
-function potentialoperator_momentum(b::CompositeBasis, V::Function)
+function potentialoperator_momentum(::Type{T}, b::CompositeBasis, V) where T
     bases_pos = []
     for base=b.bases
         @assert isa(base, MomentumBasis)
         push!(bases_pos, PositionBasis(base))
     end
     b_pos = tensor(bases_pos...)
-    transform(b, b_pos)*dense(potentialoperator_position(b_pos, V))*transform(b_pos, b)
+    transform(b, b_pos)*dense(potentialoperator_position(T, b_pos, V))*transform(b_pos, b)
 end
 
 """

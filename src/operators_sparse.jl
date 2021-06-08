@@ -71,8 +71,7 @@ Create a diagonal operator of type [`SparseOperator`](@ref).
 """
 function diagonaloperator(b::Basis, diag)
   @assert 1 <= length(diag) <= length(b)
-  T = complex(eltype(diag))
-  SparseOperator(b, spdiagm(T.(diag)))
+  SparseOperator(b, spdiagm(0=>diag))
 end
 
 # Fast in-place multiplication implementations
