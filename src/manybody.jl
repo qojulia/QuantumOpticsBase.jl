@@ -47,17 +47,17 @@ bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis),
 ==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash==b2.occupations_hash && b1.onebodybasis==b2.onebodybasis
 
 """
-    basisstate(b::ManyBodyBasis, occupation::Vector)
+    basisstate([T=ComplexF64,] b::ManyBodyBasis, occupation::Vector)
 
 Return a ket state where the system is in the state specified by the given
 occupation numbers.
 """
-function basisstate(basis::ManyBodyBasis, occupation::Vector)
+function basisstate(::Type{T}, basis::ManyBodyBasis, occupation::Vector) where T
     index = findfirst(isequal(occupation), basis.occupations)
     if isa(index, Nothing)
         throw(ArgumentError("Occupation not included in many-body basis."))
     end
-    basisstate(basis, index)
+    basisstate(T, basis, index)
 end
 
 function isnonzero(occ1, occ2, index)
@@ -76,12 +76,12 @@ function isnonzero(occ1, occ2, index)
 end
 
 """
-    create(b::ManyBodyBasis, index)
+    create([T=ComplexF64,] b::ManyBodyBasis, index)
 
 Creation operator for the i-th mode of the many-body basis `b`.
 """
-function create(b::ManyBodyBasis, index)
-    result = SparseOperator(b)
+function create(::Type{T}, b::ManyBodyBasis, index) where T
+    result = SparseOperator(T, b)
     # <{m}_i| at |{m}_j>
     for i=1:length(b)
         occ_i = b.occupations[i]
@@ -96,14 +96,15 @@ function create(b::ManyBodyBasis, index)
     end
     result
 end
+create(b::ManyBodyBasis, index) = create(ComplexF64, b, index)
 
 """
-    destroy(b::ManyBodyBasis, index)
+    destroy([T=ComplexF64,] b::ManyBodyBasis, index)
 
 Annihilation operator for the i-th mode of the many-body basis `b`.
 """
-function destroy(b::ManyBodyBasis, index)
-    result = SparseOperator(b)
+function destroy(::Type{T}, b::ManyBodyBasis, index) where T
+    result = SparseOperator(T, b)
     # <{m}_j| a |{m}_i>
     for i=1:length(b)
         occ_i = b.occupations[i]
@@ -118,32 +119,35 @@ function destroy(b::ManyBodyBasis, index)
     end
     result
 end
+destroy(b::ManyBodyBasis, index) = destroy(ComplexF64, b, index)
 
 """
-    number(b::ManyBodyBasis, index)
+    number([T=ComplexF64,] b::ManyBodyBasis, index)
 
 Particle number operator for the i-th mode of the many-body basis `b`.
 """
-function number(b::ManyBodyBasis, index)
-    result = SparseOperator(b)
+function number(::Type{T}, b::ManyBodyBasis, index) where T
+    result = SparseOperator(T, b)
     for i=1:length(b)
         result.data[i, i] = b.occupations[i][index]
     end
     result
 end
+number(b::ManyBodyBasis, index) = number(ComplexF64, b, index)
 
 """
-    number(b::ManyBodyBasis)
+    number([T=ComplexF64,] b::ManyBodyBasis)
 
 Total particle number operator.
 """
-function number(b::ManyBodyBasis)
-    result = SparseOperator(b)
+function number(::Type{T}, b::ManyBodyBasis) where T
+    result = SparseOperator(T, b)
     for i=1:length(b)
         result.data[i, i] = sum(b.occupations[i])
     end
     result
 end
+number(b::ManyBodyBasis) = number(ComplexF64, b)
 
 function isnonzero(occ1, occ2, index1, index2)
     for i=1:length(occ1)
@@ -169,12 +173,12 @@ function isnonzero(occ1, occ2, index1, index2)
 end
 
 """
-    transition(b::ManyBodyBasis, to, from)
+    transition([T=ComplexF64,] b::ManyBodyBasis, to, from)
 
 Operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|`` transferring particles between modes.
 """
-function transition(b::ManyBodyBasis, to, from)
-    result = SparseOperator(b)
+function transition(::Type{T}, b::ManyBodyBasis, to, from) where T
+    result = SparseOperator(T, b)
     # <{m}_j| at_to a_from |{m}_i>
     for i=1:length(b)
         occ_i = b.occupations[i]
@@ -190,6 +194,7 @@ function transition(b::ManyBodyBasis, to, from)
     end
     result
 end
+transition(b::ManyBodyBasis, to, from) = transition(ComplexF64, b, to, from)
 
 # Calculate many-Body operator from one-body operator
 """
