@@ -25,71 +25,75 @@ SpinBasis(spinnumber) = SpinBasis(convert(Rational{Int}, spinnumber))
 ==(b1::SpinBasis, b2::SpinBasis) = b1.spinnumber==b2.spinnumber
 
 """
-    sigmax(b::SpinBasis)
+    sigmax([T=ComplexF64,] b::SpinBasis)
 
 Pauli ``σ_x`` operator for the given Spin basis.
 """
-function sigmax(b::SpinBasis)
+function sigmax(::Type{T}, b::SpinBasis) where T
     N = length(b)
-    diag = ComplexF64[complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:N-1]
+    diag = T[complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:N-1]
     data = spdiagm(1 => diag, -1 => diag)
     SparseOperator(b, data)
 end
+sigmax(b::SpinBasis) = sigmax(ComplexF64,b)
 
 """
-    sigmay(b::SpinBasis)
+    sigmay([T=ComplexF64,] b::SpinBasis)
 
 Pauli ``σ_y`` operator for the given Spin basis.
 """
-function sigmay(b::SpinBasis)
+function sigmay(::Type{T}, b::SpinBasis) where T
     N = length(b)
-    diag = ComplexF64[1im*complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:N-1]
+    diag = T[1im*complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:N-1]
     data = spdiagm(-1 => diag, 1 => -diag)
     SparseOperator(b, data)
 end
+sigmay(b::SpinBasis) = sigmay(ComplexF64,b)
 
 """
-    sigmaz(b::SpinBasis)
+    sigmaz([T=ComplexF64,] b::SpinBasis)
 
 Pauli ``σ_z`` operator for the given Spin basis.
 """
-function sigmaz(b::SpinBasis)
+function sigmaz(::Type{T}, b::SpinBasis) where T
     N = length(b)
-    diag = ComplexF64[complex(2*m) for m=b.spinnumber:-1:-b.spinnumber]
+    diag = T[complex(2*m) for m=b.spinnumber:-1:-b.spinnumber]
     data = spdiagm(0 => diag)
     SparseOperator(b, data)
 end
+sigmaz(b::SpinBasis) = sigmaz(ComplexF64,b)
 
 """
-    sigmap(b::SpinBasis)
+    sigmap([T=ComplexF64,] b::SpinBasis)
 
 Raising operator ``σ_+`` for the given Spin basis.
 """
-function sigmap(b::SpinBasis)
+function sigmap(::Type{T}, b::SpinBasis) where T
     N = length(b)
     S = (b.spinnumber + 1)*b.spinnumber
-    diag = ComplexF64[complex(sqrt(float(S - m*(m+1)))) for m=b.spinnumber-1:-1:-b.spinnumber]
+    diag = T[complex(sqrt(float(S - m*(m+1)))) for m=b.spinnumber-1:-1:-b.spinnumber]
     data = spdiagm(1 => diag)
     SparseOperator(b, data)
 end
+sigmap(b::SpinBasis) = sigmap(ComplexF64,b)
 
 """
-    sigmam(b::SpinBasis)
+    sigmam([T=ComplexF64,] b::SpinBasis)
 
 Lowering operator ``σ_-`` for the given Spin basis.
 """
-function sigmam(b::SpinBasis)
+function sigmam(::Type{T}, b::SpinBasis) where T
     N = length(b)
     S = (b.spinnumber + 1)*b.spinnumber
-    diag = [complex(sqrt(float(S - m*(m-1)))) for m=b.spinnumber:-1:-b.spinnumber+1]
+    diag = T[complex(sqrt(float(S - m*(m-1)))) for m=b.spinnumber:-1:-b.spinnumber+1]
     data = spdiagm(-1 => diag)
     SparseOperator(b, data)
 end
+sigmam(b::SpinBasis) = sigmam(ComplexF64,b)
 
 
 """
-    spinup(b::SpinBasis)
-    spinup(::Type{T}, b::SpinBasis)
+    spinup([T=ComplexF64,] b::SpinBasis)
 
 Spin up state for the given Spin basis.
 """
@@ -97,7 +101,7 @@ spinup(::Type{T}, b::SpinBasis) where T = basisstate(T, b, 1)
 spinup(b::SpinBasis) = spinup(ComplexF64, b)
 
 """
-    spindown(b::SpinBasis)
+    spindown([T=ComplexF64], b::SpinBasis)
 
 Spin down state for the given Spin basis.
 """

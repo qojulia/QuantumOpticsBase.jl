@@ -1,6 +1,6 @@
 """
-    transform(b1::PositionBasis, b2::FockBasis; x0=1)
-    transform(b1::FockBasis, b2::PositionBasis; x0=1)
+    transform([S=ComplexF64, ]b1::PositionBasis, b2::FockBasis; x0=1)
+    transform([S=ComplexF64, ]b1::FockBasis, b2::PositionBasis; x0=1)
 
 Transformation operator between position basis and fock basis.
 
@@ -15,8 +15,8 @@ a harmonic trap potential at position ``x``, i.e.:
             \\frac{1}{\\sqrt{2^n n!}} H_n\\left(\\frac{x}{x_0}\\right)
 ```
 """
-function transform(b1::PositionBasis, b2::FockBasis; x0::X=1) where X
-    T = Matrix{complex(float(X))}(undef, length(b1), length(b2))
+function transform(::Type{S}, b1::PositionBasis, b2::FockBasis; x0=1) where S
+    T = Matrix{S}(undef, length(b1), length(b2))
     xvec = samplepoints(b1)
     A = hermite.A(b2.N)
     delta_x = spacing(b1)
@@ -32,8 +32,8 @@ function transform(b1::PositionBasis, b2::FockBasis; x0::X=1) where X
     DenseOperator(b1, b2, T)
 end
 
-function transform(b1::FockBasis, b2::PositionBasis; x0::X=1) where X
-    T = Matrix{complex(float(X))}(undef, length(b1), length(b2))
+function transform(::Type{S}, b1::FockBasis, b2::PositionBasis; x0=1) where S
+    T = Matrix{S}(undef, length(b1), length(b2))
     xvec = samplepoints(b2)
     A = hermite.A(b1.N)
     delta_x = spacing(b2)
@@ -48,3 +48,5 @@ function transform(b1::FockBasis, b2::PositionBasis; x0::X=1) where X
     end
     DenseOperator(b1, b2, T)
 end
+
+transform(b1::Basis,b2::Basis;kwargs...) = transform(ComplexF64,b1,b2;kwargs...)
