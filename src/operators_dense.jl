@@ -42,8 +42,10 @@ Dense array implementation of Operator. Converts any given data to a dense `Matr
 DenseOperator(basis_l::Basis,basis_r::Basis,data::T) where T = Operator(basis_l,basis_r,Matrix(data))
 DenseOperator(basis_l::Basis,basis_r::Basis,data::Matrix) = Operator(basis_l,basis_r,data)
 DenseOperator(b::Basis, data) = DenseOperator(b, b, data)
-DenseOperator(b1::Basis, b2::Basis) = DenseOperator(b1, b2, zeros(ComplexF64, length(b1), length(b2)))
-DenseOperator(b::Basis) = DenseOperator(b, b)
+DenseOperator(::Type{T},b1::Basis,b2::Basis) where T = Operator(b1,b2,zeros(T,length(b1),length(b2)))
+DenseOperator(::Type{T},b::Basis) where T = Operator(b,b,zeros(T,length(b),length(b)))
+DenseOperator(b1::Basis, b2::Basis) = DenseOperator(ComplexF64, b1, b2)
+DenseOperator(b::Basis) = DenseOperator(ComplexF64, b)
 DenseOperator(op::DataOperator) = DenseOperator(op.basis_l,op.basis_r,Matrix(op.data))
 
 Base.copy(x::Operator) = Operator(x.basis_l, x.basis_r, copy(x.data))

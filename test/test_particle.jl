@@ -362,7 +362,7 @@ bcomp_pos = tensor(basis_position...)
 Txp = transform(bcomp_pos, bcomp_mom)
 Tpx = transform(bcomp_mom, bcomp_pos)
 xsample, ysample = samplepoints.(basis_position)
-V_op = Tpx*dense(diagonaloperator(bcomp_pos, [V(x, y) for y in ysample for x in xsample]))*Txp
+V_op = Tpx*dense(diagonaloperator(bcomp_pos, [complex(V(x, y)) for y in ysample for x in xsample]))*Txp
 V_op2 = potentialoperator(bcomp_mom, V)
 @test V_op == V_op2
 

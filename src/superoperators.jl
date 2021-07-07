@@ -40,32 +40,39 @@ const SparseSuperOpType{BL,BR} = SuperOperator{BL,BR,<:SparseMatrixCSC}
 
 """
     DenseSuperOperator(b1[, b2, data])
+    DenseSuperOperator([T=ComplexF64,], b1[, b2])
 
 SuperOperator stored as dense matrix.
 """
-DenseSuperOperator(basis_l,basis_r,data) = SuperOperator(basis_l, basis_r, Matrix{ComplexF64}(data))
-function DenseSuperOperator(basis_l, basis_r)
+DenseSuperOperator(basis_l,basis_r,data) = SuperOperator(basis_l, basis_r, Matrix(data))
+function DenseSuperOperator(::Type{T}, basis_l, basis_r) where T
     Nl = length(basis_l[1])*length(basis_l[2])
     Nr = length(basis_r[1])*length(basis_r[2])
-    data = zeros(ComplexF64, Nl, Nr)
+    data = zeros(T, Nl, Nr)
     DenseSuperOperator(basis_l, basis_r, data)
 end
+DenseSuperOperator(basis_l, basis_r) = DenseSuperOperator(ComplexF64, basis_l, basis_r)
+DenseSuperOperator(::Type{T}, b) where T = DenseSuperOperator(T, b, b)
 DenseSuperOperator(b) = DenseSuperOperator(b,b)
 
 
 """
     SparseSuperOperator(b1[, b2, data])
+    SparseSuperOperator([T=ComplexF64,], b1[, b2])
 
 SuperOperator stored as sparse matrix.
 """
-SparseSuperOperator(basis_l, basis_r, data) = SuperOperator(basis_l, basis_r, SparseMatrixCSC{ComplexF64,Int}(data))
+SparseSuperOperator(basis_l, basis_r, data) = SuperOperator(basis_l, basis_r, sparse(data))
 
-function SparseSuperOperator(basis_l, basis_r)
+function SparseSuperOperator(::Type{T}, basis_l, basis_r) where T
     Nl = length(basis_l[1])*length(basis_l[2])
     Nr = length(basis_r[1])*length(basis_r[2])
-    data = spzeros(ComplexF64, Nl, Nr)
+    data = spzeros(T, Nl, Nr)
     SparseSuperOperator(basis_l, basis_r, data)
 end
+SparseSuperOperator(basis_l, basis_r) = SparseSuperOperator(ComplexF64, basis_l, basis_r)
+SparseSuperOperator(::Type{T}, b) where T = SparseSuperOperator(T, b, b)
+SparseSuperOperator(b) = DenseSuperOperator(b,b)
 
 Base.copy(a::T) where {T<:SuperOperator} = T(a.basis_l, a.basis_r, copy(a.data))
 
@@ -167,7 +174,7 @@ S ρ = -\\frac{i}{ħ} [H, ρ] + \\sum_i J_i ρ J_i^† - \\frac{1}{2} J_i^† J_
 * `Jdagger`: Vector containing the hermitian conjugates of the jump operators. If they
              are not given they are calculated automatically.
 """
-function liouvillian(H, J; rates=ones(Float64, length(J)), Jdagger::Vector=dagger.(J))
+function liouvillian(H, J; rates=ones(length(J)), Jdagger=dagger.(J))
     _check_input(H, J, Jdagger, rates)
     L = spre(-1im*H) + spost(1im*H)
     if isa(rates, AbstractMatrix)

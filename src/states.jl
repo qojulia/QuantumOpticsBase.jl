@@ -1,4 +1,4 @@
-import Base: ==, +, -, *, /, length, copy
+import Base: ==, +, -, *, /, length, copy, eltype
 import LinearAlgebra: norm, normalize, normalize!
 
 """
@@ -39,16 +39,24 @@ mutable struct Ket{B,T} <: StateVector{B,T}
     end
 end
 
+eltype(::Type{K}) where {K <: Ket{B,V}} where {B,V} = eltype(V)
+eltype(::Type{K}) where {K <: Bra{B,V}} where {B,V} = eltype(V)
+
 Bra{B}(b::B, data::T) where {B,T} = Bra{B,T}(b, data)
 Ket{B}(b::B, data::T) where {B,T} = Ket{B,T}(b, data)
 
 Bra(b::B, data::T) where {B,T} = Bra{B,T}(b, data)
 Ket(b::B, data::T) where {B,T} = Ket{B,T}(b, data)
 
-Bra{B}(b::B) where B = Bra{B}(b, zeros(ComplexF64, length(b)))
-Ket{B}(b::B) where B = Ket{B}(b, zeros(ComplexF64, length(b)))
-Bra(b::Basis) = Bra(b, zeros(ComplexF64, length(b)))
-Ket(b::Basis) = Ket(b, zeros(ComplexF64, length(b)))
+Bra{B}(::Type{T}, b::B) where {T,B} = Bra{B}(b, zeros(T, length(b)))
+Ket{B}(::Type{T}, b::B) where {T,B} = Ket{B}(b, zeros(T, length(b)))
+Bra(::Type{T}, b::Basis) where T = Bra(b, zeros(T, length(b)))
+Ket(::Type{T}, b::Basis) where T = Ket(b, zeros(T, length(b)))
+
+Bra{B}(b::B) where B = Bra{B}(ComplexF64, b)
+Ket{B}(b::B) where B = Ket{B}(ComplexF64, b)
+Bra(b::Basis) = Bra(ComplexF64, b)
+Ket(b::Basis) = Ket(ComplexF64, b)
 
 copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
 length(a::StateVector) = length(a.basis)::Int
@@ -149,34 +157,45 @@ end
 
 # Creation of basis states.
 """
-    basisstate(b, index; sparse=false, dType=ComplexF64)
+    basisstate(b, index)
+    basisstate(::Type{T}, b, index)
 
 Basis vector specified by `index` as ket state.
 
 For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
-function basisstate(b, indices; sparse=false, dType=ComplexF64)
+function basisstate(::Type{T}, b::Basis, indices) where T
     @assert length(b.shape) == length(indices)
-    x = if sparse
-        spzeros(dType, length(b))
-    else
-        zeros(dType, length(b))
-    end
-    x[LinearIndices(tuple(b.shape...))[indices...]] = one(dType)
+    x = zeros(T, length(b))
+    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
     Ket(b, x)
 end
-
-function basisstate(b, index::Integer; sparse=false, dType=ComplexF64)
-    data = if sparse
-        spzeros(dType, length(b))
-    else
-        zeros(dType, length(b))
-    end
-    data[index] = one(dType)
+function basisstate(::Type{T}, b::Basis, index::Integer) where T
+    data = zeros(T, length(b))
+    data[index] = one(T)
     Ket(b, data)
 end
+basisstate(b::Basis, indices) = basisstate(ComplexF64, b, indices)
 
+"""
+    sparsebasisstate(b, index)
+    sparsebasisstate(::Type{T}, b, index)
+
+Sparse version of [`basisstate`](@ref).
+"""
+function sparsebasisstate(::Type{T}, b::Basis, indices) where T
+    @assert length(b.shape) == length(indices)
+    x = spzeros(T, length(b))
+    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
+    Ket(b, x)
+end
+function sparsebasisstate(::Type{T}, b::Basis, index::Integer) where T
+    data = spzeros(T, length(b))
+    data[index] = one(T)
+    Ket(b, data)
+end
+sparsebasisstate(b::Basis, indices) = sparsebasisstate(ComplexF64, b, indices)
 
 # Helper functions to check validity of arguments
 function check_multiplicable(a::Bra, b::Ket)
