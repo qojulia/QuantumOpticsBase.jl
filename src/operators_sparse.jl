@@ -60,9 +60,11 @@ function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:Composite
     SparseOperator(permutesystems(rho.basis_l, perm), permutesystems(rho.basis_r, perm), data)
 end
 
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where {T<:DataOperator} = SparseOperator(b1, b2, sparse(ComplexF64(1)*I, length(b1), length(b2)))
-identityoperator(b1::Basis, b2::Basis) = identityoperator(DataOperator, b1, b2)
-identityoperator(b::Basis) = identityoperator(b, b)
+identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
+    SparseOperator(b1, b2, sparse(one(S)*I, length(b1), length(b2)))
+identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2)
+identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(T, b, b)
+identityoperator(b1::Basis, b2::Basis) = identityoperator(ComplexF64, b1, b2)
 
 """
     diagonaloperator(b::Basis)

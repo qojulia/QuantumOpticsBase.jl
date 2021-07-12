@@ -59,7 +59,7 @@ ptrace(op::LazyProduct, indices) = throw(ArgumentError("Partial trace of LazyPro
 
 permutesystems(op::LazyProduct, perm::Vector{Int}) = LazyProduct(([permutesystems(op_i, perm) for op_i in op.operators]...,), op.factor)
 
-identityoperator(::Type{LazyProduct}, b1::Basis, b2::Basis) = LazyProduct(identityoperator(b1, b2))
+identityoperator(::Type{LazyProduct}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazyProduct(identityoperator(S, b1, b2))
 
 
 # Fast in-place multiplication

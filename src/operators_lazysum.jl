@@ -72,7 +72,7 @@ normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
 permutesystems(op::LazySum, perm) = LazySum(op.factors, ([permutesystems(op_i, perm) for op_i in op.operators]...,))
 
-identityoperator(::Type{<:LazySum}, b1::Basis, b2::Basis) = LazySum(identityoperator(b1, b2))
+identityoperator(::Type{<:LazySum}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazySum(identityoperator(S, b1, b2))
 
 
 # Fast in-place multiplication
