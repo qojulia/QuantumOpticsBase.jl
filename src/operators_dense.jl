@@ -23,6 +23,7 @@ Operator(b::Basis,data) = Operator(b,b,data)
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
+Base.eltype(::Type{T}) where {BL,BR,D,T<:Operator{BL,BR,D}} = eltype(D)
 Base.size(op::Operator) = size(op.data)
 Base.size(op::Operator, d::Int) = size(op.data, d)
 

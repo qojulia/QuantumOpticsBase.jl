@@ -8,6 +8,7 @@ mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
     data::Matrix{ComplexF64}
     test_lazytensor(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
 end
+Base.eltype(::test_lazytensor) = ComplexF64
 
 @testset "operators-lazytensor" begin
 
@@ -36,7 +37,7 @@ op3 = randoperator(b3a, b3b)
 @test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], [op1, sparse(randoperator(b_l, b_l))])
 @test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], [randoperator(b_r, b_r), sparse(op2)])
 
-@test LazyTensor(b_l, b_r, [2, 1], [op2, op1]) == LazyTensor(b_l, b_r, [1, 2], [op1, op2])
+# @test LazyTensor(b_l, b_r, [2, 1], [op2, op1]) == LazyTensor(b_l, b_r, [1, 2], [op1, op2])
 x = randoperator(b2a)
 @test LazyTensor(b_l, 2, x) == LazyTensor(b_l, b_l, [2], [x])
 
@@ -261,5 +262,10 @@ test_ket = Ket(tensor(b1a, b1a), rand(4))
 
 @test_throws ArgumentError QuantumOpticsBase.mul!(copy(test_ket),test_lazy,test_ket,alpha,beta)
 @test_throws ArgumentError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
+
+# Test type stability of constructor
+callT = typeof.((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
+T = Core.Compiler.return_type(LazyTensor, callT)
+@test all(map(isconcretetype, T.parameters))
 
 end # testset

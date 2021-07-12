@@ -364,7 +364,7 @@ op3 = randtestoperator(b3a, b3b)
 @test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], [op1, sparse(randtestoperator(b_l, b_l))])
 @test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], [randtestoperator(b_r, b_r), sparse(op2)])
 
-@test LazyTensor(b_l, b_r, [2, 1], [op2, op1]) == LazyTensor(b_l, b_r, [1, 2], [op1, op2])
+# @test LazyTensor(b_l, b_r, [2, 1], [op2, op1]) == LazyTensor(b_l, b_r, [1, 2], [op1, op2])
 x = randtestoperator(b2a)
 @test LazyTensor(b_l, 2, x) == LazyTensor(b_l, b_l, [2], [x])
 
