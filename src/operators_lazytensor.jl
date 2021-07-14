@@ -181,7 +181,7 @@ function permutesystems(op::LazyTensor, perm)
     LazyTensor(b_l, b_r, indices[perm_], op.operators[perm_], op.factor)
 end
 
-identityoperator(::Type{LazyTensor}, b1::Basis, b2::Basis) = LazyTensor(b1, b2, Int[], Tuple{}(), 1.0)
+identityoperator(::Type{LazyTensor}, ::Type{T<:Number}, b1::Basis, b2::Basis) where T<:Number = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
 
 # Recursively calculate result_{IK} = \\sum_J op_{IJ} h_{JK}
