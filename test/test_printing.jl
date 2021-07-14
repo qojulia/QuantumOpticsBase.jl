@@ -73,7 +73,7 @@ op = LazyProduct(SparseOperator(b_fock), DenseOperator(b_fock))
 b_fock = FockBasis(2)
 b_spin = SpinBasis(1//2)
 b_mb = ManyBodyBasis(b_spin, fermionstates(b_spin, 1))
-op = LazyTensor(b_fock ⊗ b_mb ⊗ b_spin, [1, 3], [SparseOperator(b_fock), DenseOperator(b_spin)])
+op = LazyTensor(b_fock ⊗ b_mb ⊗ b_spin, [1, 3], (SparseOperator(b_fock), DenseOperator(b_spin)))
 @test sprint(show, op) == "LazyTensor(dim=12x12)
   basis: [Fock(cutoff=2) ⊗ ManyBody(onebodybasis=Spin(1/2), states:2) ⊗ Spin(1/2)]
   operators: 2
