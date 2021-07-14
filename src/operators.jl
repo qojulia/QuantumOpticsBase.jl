@@ -170,6 +170,38 @@ embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::Abst
 embed(basis::CompositeBasis, indices, operators::Vector{T}) where {T<:AbstractOperator} = embed(basis, basis, indices, operators)
 embed(basis::CompositeBasis, indices, op::AbstractOperator) = embed(basis, basis, indices, op)
 
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
+                index::Integer, op::T) where T<:DataOperator
+
+    N = length(basis_l.bases)
+
+    # Check stuff
+    @assert N==length(basis_r.bases)
+    basis_l.bases[index] == op.basis_l || throw(IncompatibleBases())
+    basis_r.bases[index] == op.basis_r || throw(IncompatibleBases())
+    check_indices(N, index)
+
+    # Build data
+    Tnum = eltype(op)
+    data = similar(sparse(op.data),1,1)
+    data[1] = one(Tnum)
+    i = N
+    while i > 0
+        if i ∈ index
+            data = kron(data, op.data)
+            i -= length(index)
+        else
+            bl = basis_l.bases[i]
+            br = basis_r.bases[i]
+            id = SparseMatrixCSC{Tnum}(I, length(bl), length(br))
+            data = kron(data, id)
+            i -= 1
+        end
+    end
+
+    return Operator(basis_l, basis_r, data)
+end
+
 """
     embed(basis1[, basis2], operators::Dict)
 
