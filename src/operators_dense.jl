@@ -152,7 +152,7 @@ end
 normalize!(op::Operator) = (rmul!(op.data, 1.0/tr(op)); op)
 
 function expect(op::DataOperator{B,B}, state::Ket{B}) where B
-    state.data' * op.data * state.data
+    dot(state.data, op.data, state.data)
 end
 
 function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1,B2}
