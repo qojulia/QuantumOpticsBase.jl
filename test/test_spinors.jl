@@ -49,6 +49,24 @@ L = LazyDirectSum(op1a,op2a)
 @test 1e-13 > D(op1a ⊕ op2a ⊕ op3a, L ⊕ op3a)
 @test 1e-13 > D((op1a⊕op2a)*dagger(op1a⊕op2a), L*L')
 
+# Test embedding
+@test embed(b_l,b_r,1,op1a) == op1a ⊕ SparseOperator(b2a,b2b) ⊕ SparseOperator(b3a,b3b)
+@test embed(b_l,b_r,[1,3],op1a ⊕ op3a) == embed(b_l,b_r,[1,3],(op1a,op3a)) == op1a ⊕ SparseOperator(b2a,b2b) ⊕ op3a
+
+# Test with off-diagonal blocks
+op = op1a ⊕ op3a
+op_upper = randoperator(b1a,b3b)
+setblock!(op, op_upper, 1, 2)
+op_lower = randoperator(b1b,b3a)
+setblock!(op, op_lower', 2, 1)
+
+op_tot = op1a ⊕ SparseOperator(b2a,b2b) ⊕ op3a
+setblock!(op_tot, op_upper, 1, 3)
+setblock!(op_tot, op_lower', 3, 1)
+@test op_tot == embed(b_l,b_r,[1,3],op)
+
+# Lazy embed
+@test embed(b_l,b_r,[1,2],L) == L ⊕ SparseOperator(b3a,b3b)
 
 ### Test example
 
