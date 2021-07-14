@@ -240,7 +240,7 @@ Expectation value of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-expect(op::AbstractOperator{B,B}, state::Ket{B}) where B = state.data' * (op * state).data
+expect(op::AbstractOperator{B,B}, state::Ket{B}) where B = dot(state.data, (op * state).data)
 expect(op::AbstractOperator{B1,B2}, state::AbstractOperator{B2,B2}) where {B1,B2} = tr(op*state)
 
 """
