@@ -23,6 +23,7 @@ Operator(b::Basis,data) = Operator(b,b,data)
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
+Base.eltype(::Type{T}) where {BL,BR,D,T<:Operator{BL,BR,D}} = eltype(D)
 Base.size(op::Operator) = size(op.data)
 Base.size(op::Operator, d::Int) = size(op.data, d)
 
@@ -177,7 +178,8 @@ function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:
 end
 permutesystems(a::AdjointOperator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
 
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where {BL,BR,dType,T<:DenseOpType} = Operator(b1, b2, Matrix{ComplexF64}(I, length(b1), length(b2)))
+identityoperator(::Type{S}, ::Type{T}, b1::Basis, b2::Basis) where {S<:DenseOpType,T<:Number} =
+    Operator(b1, b2, Matrix{T}(I, length(b1), length(b2)))
 
 """
     projector(a::Ket, b::Bra)

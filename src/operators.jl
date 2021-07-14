@@ -316,12 +316,16 @@ permutesystems(a::AbstractOperator, perm) = arithmetic_unary_error("Permutations
 
 Return an identityoperator in the given bases.
 """
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where {T<:AbstractOperator} = throw(ArgumentError("Identity operator not defined for operator type $T."))
-identityoperator(::Type{T}, b::Basis) where {T<:AbstractOperator} = identityoperator(T, b, b)
+identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:AbstractOperator,S} = throw(ArgumentError("Identity operator not defined for operator type $T."))
+identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:AbstractOperator,S} = identityoperator(T,S,b,b)
+identityoperator(::Type{T}, bases::Basis...) where T<:AbstractOperator = identityoperator(T,eltype(T),bases...)
+identityoperator(b::Basis) = identityoperator(b,b)
 identityoperator(op::T) where {T<:AbstractOperator} = identityoperator(T, op.basis_l, op.basis_r)
 
-one(b::Basis) = identityoperator(b)
-one(op::AbstractOperator) = identityoperator(op)
+# Catch case where eltype cannot be inferred from type; this is a bit hacky
+identityoperator(::Type{T}, ::Type{Any}, b1::Basis, b2::Basis) where T<:AbstractOperator = identityoperator(T, ComplexF64, b1, b2)
+
+one(x::Union{<:Basis,<:AbstractOperator}) = identityoperator(x)
 
 # Helper functions to check validity of arguments
 function check_ptrace_arguments(a::AbstractOperator, indices)
