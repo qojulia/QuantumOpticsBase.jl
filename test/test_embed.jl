@@ -35,15 +35,15 @@ y = op1 ⊗ op2 ⊗ I3
 
 x = embed(b, 1, op1)
 y = op1 ⊗ I2 ⊗ I3
-@test 0 ≈ abs(tracedistance_nh(x, y))
+@test 0 ≈ abs(tracedistance_nh(dense(x), y))
 
 x = embed(b, 2, op2)
 y = I1 ⊗ op2 ⊗ I3
-@test 0 ≈ abs(tracedistance_nh(x, y))
+@test 0 ≈ abs(tracedistance_nh(dense(x), y))
 
 x = embed(b, 3, op3)
 y = I1 ⊗ I2 ⊗ op3
-@test 0 ≈ abs(tracedistance_nh(x, y))
+@test 0 ≈ abs(tracedistance_nh(dense(x), y))
 
 
 # Test Dict(Int=>AbstractOperator)
