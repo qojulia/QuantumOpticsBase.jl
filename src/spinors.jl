@@ -128,6 +128,75 @@ function getblock(op::DataOperator{BL,BR}, i, j) where {BL<:SumBasis,BR<:SumBasi
 end
 
 """
+    embed(basis_l::SumBasis, basis_r::SumBasis,
+               index::Integer, operator)
+
+Embed an operator defined on a single subspace specified by the `index` into
+a [`SumBasis`](@ref).
+"""
+function embed(basis_l::SumBasis, basis_r::SumBasis,
+               index::Integer, op::T) where T<:DataOperator
+    @assert length(basis_r.bases) == length(basis_l.bases)
+
+    basis_l.bases[index] == op.basis_l || throw(IncompatibleBases())
+    basis_r.bases[index] == op.basis_r || throw(IncompatibleBases())
+
+    embedded_op = SparseOperator(eltype(op), basis_l, basis_r)
+    setblock!(embedded_op, op, index, index)
+    return embedded_op
+end
+
+"""
+    embed(basis_l::SumBasis, basis_r::SumBasis,
+                indices, operator)
+
+Embed an operator defined on multiple subspaces specified by the `indices` into
+a [`SumBasis`](@ref).
+"""
+function embed(basis_l::SumBasis, basis_r::SumBasis,
+               indices, op::T) where T<:DataOperator
+    @assert length(basis_r.bases) == length(basis_l.bases)
+
+    embedded_op = SparseOperator(eltype(op), basis_l, basis_r)
+    for i=1:length(indices), j=1:length(indices)
+        op_ = getblock(op, i, j)
+        setblock!(embedded_op, op_, indices[i], indices[j])
+    end
+    return embedded_op
+end
+
+"""
+    embed(basis_l::SumBasis, basis_r::SumBasis,
+               indices, operators)
+
+Embed a list of operators on subspaces specified by the `indices` into a
+[`SumBasis`](@ref).
+"""
+function embed(basis_l::SumBasis, basis_r::SumBasis,
+               indices, ops::Union{Tuple{Vararg{<:DataOperator}},Vector{<:DataOperator}})
+    @assert length(basis_r.bases) == length(basis_l.bases)
+
+    T = mapreduce(eltype, promote_type, ops)
+    embedded_op = SparseOperator(T, basis_l, basis_r)
+    for k=1:length(ops)
+        op = ops[k]
+        idx = indices[k]
+        if length(idx)==1
+            setblock!(embedded_op, op, idx[1], idx[1])
+        else
+            for i=1:length(idx), j=1:length(idx)
+                op_ = getblock(op, i, j)
+                setblock!(embedded_op, op_, idx[i], idx[j])
+            end
+        end
+    end
+    return embedded_op
+end
+
+embed(b::SumBasis, indices, ops) = embed(b, b, indices, ops)
+
+
+"""
     LazyDirectSum <: AbstractOperator
 
 Lazy implementation of `directsum`
@@ -145,13 +214,22 @@ LazyDirectSum(op1::AbstractOperator, op2::LazyDirectSum) = LazyDirectSum(directs
 LazyDirectSum(op1::LazyDirectSum, op2::LazyDirectSum) = LazyDirectSum(directsum(op1.basis_l,op2.basis_l),directsum(op1.basis_r,op2.basis_r),(op1.operators...,op2.operators...))
 LazyDirectSum(op::AbstractOperator...) = reduce(LazyDirectSum, op)
 
+function Base.:(==)(op1::LazyDirectSum,op2::LazyDirectSum)
+    (op1.basis_l == op2.basis_l && op1.basis_r == op2.basis_r) || return false
+    length(op1.operators)==length(op2.operators) || return false
+    for (o1,o2) = zip(op1.operators,op2.operators)
+        (o1 == o2) || return false
+    end
+    return true
+end
+
 # Algebra
 dense(x::LazyDirectSum) = directsum(dense.(x.operators)...)
 *(op1::LazyDirectSum{B1,B2},op2::LazyDirectSum{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}= LazyDirectSum(op1.basis_l,op2.basis_r,Tuple(op1.operators[i]*op2.operators[i] for i=1:length(op1.operators)))
 -(op::LazyDirectSum) = LazyDirectSum([-op.operators[1];op.operators[2:end]]...)
 +(op1::LazyDirectSum{B1,B2},op2::LazyDirectSum{B1,B2}) where {B1<:Basis,B2<:Basis} = LazyDirectSum((op1.operators .+ op2.operators)...)
 dagger(op::LazyDirectSum) = LazyDirectSum(op.basis_r, op.basis_l, dagger.(op.operators))
-Base.eltype(x::LazyDirectSum) = promote_type(eltype.(x.operators)...)
+Base.eltype(x::LazyDirectSum) = mapreduce(eltype, promote_type, x.operators)
 
 directsum(op1::AbstractOperator,op2::LazyDirectSum) = LazyDirectSum(op1,op2)
 directsum(op1::LazyDirectSum,op2::AbstractOperator) = LazyDirectSum(op1,op2)
@@ -161,6 +239,28 @@ directsum(op1::LazyDirectSum,op2::LazyDirectSum) = LazyDirectSum(op1,op2)
 transform(b1::SumBasis,b2::SumBasis; kwargs...) = LazyDirectSum([transform(b1.bases[i],b2.bases[i];kwargs...) for i=1:length(b1.bases)]...)
 directsum(op1::FFTOperator, op2::FFTOperator) = LazyDirectSum(op1,op2)
 
+# Lazy embed
+function embed(basis_l::SumBasis, basis_r::SumBasis, indices, op::LazyDirectSum)
+    bases_l = basis_l.bases
+    bases_r = basis_r.bases
+    N = length(bases_r)
+    @assert length(bases_l)==N
+
+    T = eltype(op)
+
+    function _get_op(i)
+        idx = findfirst(isequal(i), indices)
+        if idx === nothing
+            return SparseOperator(T, bases_l[i], bases_r[i])
+        else
+            return op.operators[idx]
+        end
+    end
+
+    ops = Tuple(_get_op(i) for i=1:N)
+    return LazyDirectSum(basis_l,basis_r,ops)
+end
+# TODO: embed for multiple LazyDirectums?
 
 # Fast in-place multiplication
 function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) where {B1,B2}
