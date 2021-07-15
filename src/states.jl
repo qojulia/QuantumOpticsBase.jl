@@ -157,8 +157,7 @@ end
 
 # Creation of basis states.
 """
-    basisstate(b, index)
-    basisstate(::Type{T}, b, index)
+    basisstate([T=ComplexF64, ]b, index)
 
 Basis vector specified by `index` as ket state.
 
@@ -179,8 +178,7 @@ end
 basisstate(b::Basis, indices) = basisstate(ComplexF64, b, indices)
 
 """
-    sparsebasisstate(b, index)
-    sparsebasisstate(::Type{T}, b, index)
+    sparsebasisstate([T=ComplexF64, ]b, index)
 
 Sparse version of [`basisstate`](@ref).
 """
