@@ -202,7 +202,7 @@ function momentum(::Type{T}, b::PositionBasis) where T
 end
 
 """
-    potentialoperator([T=ComplexF64,] b::PositionBasis, V(x))
+    potentialoperator([T=Float64,] b::PositionBasis, V(x))
 
 Operator representing a potential ``V(x)`` in real space.
 """
@@ -210,7 +210,7 @@ function potentialoperator(::Type{T}, b::PositionBasis, V) where T
     x = convert.(T, samplepoints(b))
     diagonaloperator(b, V.(x))
 end
-potentialoperator(b::Basis, V) = potentialoperator(ComplexF64, b, V)
+potentialoperator(b::PositionBasis, V) = potentialoperator(Float64, b, V)
 
 """
     potentialoperator([T=ComplexF64,] b::MomentumBasis, V(x))
@@ -221,9 +221,10 @@ function potentialoperator(::Type{T}, b::MomentumBasis, V) where T
     b_pos = PositionBasis(b)
     transform(b, b_pos)*dense(potentialoperator(T, b_pos, V))*transform(b_pos, b)
 end
+potentialoperator(b::Basis, V) = potentialoperator(ComplexF64, b, V)
 
 """
-    potentialoperator([T=ComplexF64,] b::CompositeBasis, V(x, y, z, ...))
+    potentialoperator([T=Float64,] b::CompositeBasis, V(x, y, z, ...))
 
 Operator representing a potential ``V`` in more than one dimension.
 
