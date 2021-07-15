@@ -131,7 +131,8 @@ end
     embed(basis_l::SumBasis, basis_r::SumBasis,
                index::Integer, operator)
 
-Embed an operator defined on a single subspace into a [`SumBasis`](@ref).
+Embed an operator defined on a single subspace specified by the `index` into
+a [`SumBasis`](@ref).
 """
 function embed(basis_l::SumBasis, basis_r::SumBasis,
                index::Integer, op::T) where T<:DataOperator
@@ -149,7 +150,8 @@ end
     embed(basis_l::SumBasis, basis_r::SumBasis,
                 indices, operator)
 
-Embed an operator defined on multiple subspaces into a [`SumBasis`](@ref).
+Embed an operator defined on multiple subspaces specified by the `indices` into
+a [`SumBasis`](@ref).
 """
 function embed(basis_l::SumBasis, basis_r::SumBasis,
                indices, op::T) where T<:DataOperator
@@ -166,6 +168,9 @@ end
 """
     embed(basis_l::SumBasis, basis_r::SumBasis,
                indices, operators)
+
+Embed a list of operators on subspaces specified by the `indices` into a
+[`SumBasis`](@ref).
 """
 function embed(basis_l::SumBasis, basis_r::SumBasis,
                indices, ops::Union{Tuple{Vararg{<:DataOperator}},Vector{<:DataOperator}})
