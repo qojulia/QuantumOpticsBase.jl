@@ -106,7 +106,7 @@ end
 """
     sparseprojector([T,] b1, b2)
 
-Sparse version of [projector](@ref).
+Sparse version of [`projector`](@ref).
 """
 function sparseprojector(::Type{T}, b1::SubspaceBasis, b2::SubspaceBasis) where T
     if b1.superbasis != b2.superbasis
