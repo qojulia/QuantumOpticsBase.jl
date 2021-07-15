@@ -197,6 +197,9 @@ function sparsebasisstate(::Type{T}, b::Basis, index::Integer) where T
 end
 sparsebasisstate(b::Basis, indices) = sparsebasisstate(ComplexF64, b, indices)
 
+SparseArrays.sparse(x::Ket) = Ket(x.basis,sparse(x.data))
+SparseArrays.sparse(x::Bra) = Bra(x.basis,sparse(x.data))
+
 # Helper functions to check validity of arguments
 function check_multiplicable(a::Bra, b::Ket)
     if a.basis != b.basis
