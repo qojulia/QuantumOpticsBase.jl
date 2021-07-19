@@ -345,8 +345,13 @@ permutesystems(a::AbstractOperator, perm) = arithmetic_unary_error("Permutations
 
 """
     identityoperator(a::Basis[, b::Basis])
+    identityoperator(::Type{<:AbstractOperator}, a::Basis[, b::Basis])
+    identityoperator(::Type{<:Number}, a::Basis[, b::Basis])
+    identityoperator(::Type{<:AbstractOperator}, ::Type{<:Number}, a::Basis[, b::Basis])
 
-Return an identityoperator in the given bases.
+Return an identityoperator in the given bases. One can optionally specify the container
+type which has to a subtype of [`AbstractOperator`](@ref) as well as the number type
+to be used in the identity matrix.
 """
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:AbstractOperator,S} = throw(ArgumentError("Identity operator not defined for operator type $T."))
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:AbstractOperator,S} = identityoperator(T,S,b,b)
