@@ -93,6 +93,22 @@ SparseArrays.sparse(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op
 # Arithmetic operations
 -(a::LazyTensor) = LazyTensor(a, -a.factor)
 
+function +(a::LazyTensor{B1,B2}, b::LazyTensor{B1,B2}) where {B1,B2}
+    if length(a.indices) == 1 && a.indices == b.indices
+        op = a.operators[1] * a.factor + b.operators[1] * b.factor
+        return LazyTensor(a.basis_l, a.basis_r, a.indices, (op,))
+    end
+    throw(ArgumentError("Addition of LazyTensor operators is only defined in case both operators act nontrivially on the same, single tensor factor."))
+end
+
+function -(a::LazyTensor{B1,B2}, b::LazyTensor{B1,B2}) where {B1,B2}
+    if length(a.indices) == 1 && a.indices == b.indices
+        op = a.operators[1] * a.factor - b.operators[1] * b.factor
+        return LazyTensor(a.basis_l, a.basis_r, a.indices, (op,))
+    end
+    throw(ArgumentError("Subtraction of LazyTensor operators is only defined in case both operators act nontrivially on the same, single tensor factor."))
+end
+
 function *(a::LazyTensor{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3}
     indices = sort(union(a.indices, b.indices))
     # ops = Vector{AbstractOperator}(undef, length(indices))
