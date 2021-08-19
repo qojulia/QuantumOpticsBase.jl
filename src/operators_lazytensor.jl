@@ -429,16 +429,18 @@ end
 
 #Apply a tensor product of operators to a vector.
 function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
-    n_ops = length(tp_ops[1])
     if iso_ops === nothing
+        n_ops = length(tp_ops[1])
         ops = zip(tp_ops...)
     else
-        n_ops += length(iso_ops[1])
+        n_ops = length(tp_ops[1]) + length(iso_ops[1])
         ops = Iterators.flatten((zip(tp_ops...), zip(iso_ops...)))
     end
 
     # TODO: Perhaps replace with a single for loop and branch inside?
-    if n_ops == 1
+    if n_ops == 0
+        result_data .= alpha .* b_data + beta .* result_data
+    elseif n_ops == 1
         # Can add directly to the output array.
         _tp_matmul!(result_data, first(ops)..., b_data, alpha, beta)
     elseif n_ops == 2
