@@ -1,6 +1,6 @@
 module QuantumOpticsBase
 
-using SparseArrays, LinearAlgebra
+using SparseArrays, LinearAlgebra, TensorOperations
 import LinearAlgebra: mul!, rmul!
 
 export bases, Basis, GenericBasis, CompositeBasis, basis,
