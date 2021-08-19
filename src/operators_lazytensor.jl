@@ -339,3 +339,250 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2},alpha,beta) where 
     gemm(alpha, a_data, b, beta, result_data)
     result
 end
+
+function _tp_matmul_first!(result, a::AbstractMatrix, b, α::Number, β::Number)
+    br = reshape(b, size(b, 1), :)
+    result_r = reshape(result, size(a, 1), size(br, 2))
+    mul!(result_r, a, br, α, β)
+    result
+end
+
+function _tp_matmul_last!(result, a::AbstractMatrix, b, α::Number, β::Number)
+    br = reshape(b, :, size(b, ndims(b)))
+    result_r = reshape(result, (size(br, 1), size(a, 1)))
+    mul!(result_r, br, transpose(a), α, β)
+    result
+end
+
+function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
+    shp_b_1 = 1
+    for i in 1:loc-1
+        shp_b_1 *= size(b,i)
+    end
+    shp_b_3 = 1
+    for i in loc+1:ndims(b)
+        shp_b_3 *= size(b,i)
+    end
+
+    # TODO: Perhaps we should avoid reshaping here... should be possible to infer
+    # contraction index tuple sizes
+    br = reshape(b, shp_b_1, size(b, loc), shp_b_3)
+    result_r = reshape(result, shp_b_1, size(a, 1), shp_b_3)
+
+    # If using BLAS, this will generally require intermediate storage
+    # TensorOperations will use its own cache for these.
+    
+    # In principle, we can use the @tensor macro here and have TensorOperations
+    # take care of the cache symbols. However, this seems to be broken...?
+    #@tensor result_r[a,b,c] = α * a[b,x] * br[a,x,c] + β * result_r[a,b,c]
+    
+    # these are used to identify objects in the cache (if used)
+    syms = (:_tp_matmul_a, :_tp_matmul_b, :_tp_matmul_c)
+    
+    oindA, cindA, oindB, cindB, indCinoAB = TensorOperations.contract_indices(
+      (-2, 1), (-1, 1, -3), (-1, -2, -3))
+    
+    TensorOperations.contract!(
+      α, a, :N, br, :N, β, result_r, oindA, cindA, oindB, cindB, indCinoAB, syms)
+
+    result
+end
+
+function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
+    """Apply a matrix `a` to one tensor factor of a tensor `b`.
+
+    If β is nonzero, add to β times `result`. In other words, we do:
+
+    result = α * a * b + β * result 
+
+    Parameters:
+        result: Array to hold the output tensor.
+        a: Matrix to apply.
+        loc: Index of the dimension of `b` to which `a` should be applied.
+        b: Array containing the tensor to which `a` should be applied.
+        α: Factor multiplying `a`.
+        β: Factor multiplying `result`.
+    Returns:
+        The modified `result`.
+    """
+    # Use GEMM directly where possible, otherwise TensorOperations
+    if loc == 1
+        return _tp_matmul_first!(result, a, b, α, β)
+    elseif loc == ndims(b)
+        return _tp_matmul_last!(result, a, b, α, β)
+    end
+    _tp_matmul_mid!(result, a, loc, b, α, β)
+end
+
+function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{T,N}, sym) where {T,N}
+    shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
+    if TensorOperations.use_cache()
+        tmp::Array{T,N} = get!(TensorOperations.cache, (sym, taskid(), T, shp)) do
+            Array{T,N}(undef, shp...)
+        end
+    else
+        tmp = Array{T,N}(undef, shp...)
+    end
+
+    tmp
+end
+
+#Apply a tensor product of operators to a vector.
+function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
+    n_ops = length(tp_ops[1])
+    if iso_ops === nothing
+        ops = zip(tp_ops...)
+    else
+        n_ops += length(iso_ops[1])
+        ops = Iterators.flatten((zip(tp_ops...), zip(iso_ops...)))
+    end
+
+    # TODO: Perhaps replace with a single for loop and branch inside?
+    if n_ops == 1
+        # Can add directly to the output array.
+        _tp_matmul!(result_data, first(ops)..., b_data, alpha, beta)
+    elseif n_ops == 2
+        # One temporary vector needed.
+        op1, istate = iterate(ops)
+        tmp = _tp_sum_get_tmp(op1..., b_data, :_tp_sum_matmul_tmp1)
+        _tp_matmul!(tmp, op1..., b_data, alpha, zero(beta))
+
+        op2, istate = iterate(ops, istate)
+        _tp_matmul!(result_data, op2..., tmp, one(alpha), beta)
+    else
+        # At least two temporary vectors needed.
+        # Symbols identify computation stages in the TensorOperations cache.
+        sym1 = :_tp_sum_matmul_tmp1
+        sym2 = :_tp_sum_matmul_tmp2
+
+        op1, istate = iterate(ops)
+        tmp1 = _tp_sum_get_tmp(op1..., b_data, sym1)
+        _tp_matmul!(tmp1, op1..., b_data, alpha, zero(beta))
+
+        next = iterate(ops, istate)
+        for _ in 2:n_ops-1
+            op, istate = next
+            tmp2 = _tp_sum_get_tmp(op..., tmp1, sym2)
+            _tp_matmul!(tmp2, op..., tmp1, one(alpha), zero(beta))
+            tmp1, tmp2 = tmp2, tmp1
+            sym1, sym2 = sym2, sym1
+            next = iterate(ops, istate)
+        end
+
+        op, istate = next
+        _tp_matmul!(result_data, op..., tmp1, one(alpha), beta)
+    end
+
+    result_data
+end
+
+# Represents a rectangular "identity" matrix of ones along the diagonal.
+struct _SimpleIsometry{I<:Integer}  # We have no need to subtype AbstractMatrix
+    shape::Tuple{I,I}
+    function _SimpleIsometry(d1::I, d2::I) where {I<:Integer}
+        new{I}((d1, d2))
+    end
+end
+Base.size(A::_SimpleIsometry) = A.shape
+Base.size(A::_SimpleIsometry, i) = A.shape[i]
+
+function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β::Number)
+    shp_b_1 = 1
+    for i in 1:loc-1
+        shp_b_1 *= size(b,i)
+    end
+    shp_b_3 = 1
+    for i in loc+1:ndims(b)
+        shp_b_3 *= size(b,i)
+    end
+
+    @assert size(b, loc) == size(a, 2)
+
+    br = Base.ReshapedArray(b, (shp_b_1, size(b, loc), shp_b_3), ())
+    result_r = Base.ReshapedArray(result, (shp_b_1, size(a, 1), shp_b_3), ())
+
+    d = min(size(a)...)
+
+    if β != 0
+        rmul!(result, β)
+        result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+    else
+        result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
+        result_r[:, d+1:end, :] .= zero(eltype(result))
+    end
+
+    result
+end
+
+function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
+    indices = Set(used_indices)
+    isos = nothing
+    iso_inds = nothing
+    for (i, (sl, sr)) in enumerate(zip(_comp_size(bl), _comp_size(br)))
+        if (sl != sr) && !(i + shift in indices)
+            if isos === nothing
+                isos = [_SimpleIsometry(sl, sr)]
+                iso_inds = [i + shift]
+            else
+                push!(isos, _SimpleIsometry(sl, sr))
+                push!(iso_inds, i + shift)
+            end
+        end
+    end
+    if isos === nothing
+        return nothing
+    end
+    isos, iso_inds
+end
+
+# To get the shape of a CompositeBasis with number of dims inferrable at compile-time 
+_comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
+_comp_size(b::Basis) = (length(b),)
+
+function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DenseOpType}}}
+    # We reshape here so that we have the proper shape information for the
+    # tensor contraction later on. Using ReshapedArray vs. reshape() avoids
+    # an allocation.
+    b_data = Base.ReshapedArray(b.data, _comp_size(basis(b)), ())
+    result_data = Base.ReshapedArray(result.data, _comp_size(basis(result)), ())
+
+    tp_ops = (tuple((op.data for op in a.operators)...), a.indices)
+    iso_ops = _explicit_isometries(a.indices, a.basis_l, a.basis_r)
+    _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha * a.factor, beta)
+
+    result
+end
+
+function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DenseOpType}}}
+    a_data = Base.ReshapedArray(a.data, _comp_size(basis(a)), ())
+    result_data = Base.ReshapedArray(result.data, _comp_size(basis(result)), ())
+
+    tp_ops = (tuple((transpose(op.data) for op in b.operators)...), b.indices)
+    iso_ops = _explicit_isometries(b.indices, b.basis_r, b.basis_l)
+    _tp_sum_matmul!(result_data, tp_ops, iso_ops, a_data, alpha * b.factor, beta)
+
+    result
+end
+
+function mul!(result::DenseOpType{B1,B2}, a::LazyTensor{B1,B1,F,I,T}, b::DenseOpType{B1,B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DenseOpType}}}
+    b_data = Base.ReshapedArray(b.data, (_comp_size(b.basis_l)..., _comp_size(b.basis_r)...), ())
+    result_data = Base.ReshapedArray(result.data, (_comp_size(result.basis_l)..., _comp_size(result.basis_r)...), ())
+
+    tp_ops = (tuple((op.data for op in a.operators)...), a.indices)
+    iso_ops = _explicit_isometries(a.indices, a.basis_l, a.basis_r)
+    _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha * a.factor, beta)
+
+    result
+end
+
+function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3,F,I,T}, alpha, beta) where {B1,B2,B3, F,I,T<:Tuple{Vararg{DenseOpType}}}
+    a_data = Base.ReshapedArray(a.data, (_comp_size(a.basis_l)..., _comp_size(a.basis_r)...), ())
+    result_data = Base.ReshapedArray(result.data, (_comp_size(result.basis_l)..., _comp_size(result.basis_r)...), ())
+
+    shft = length(a.basis_l.shape)  # b must be applied to the "B2" side of a
+    tp_ops = (tuple((transpose(op.data) for op in b.operators)...), tuple((i + shft for i in b.indices)...))
+    iso_ops = _explicit_isometries(tp_ops[2], b.basis_r, b.basis_l, shft)
+    _tp_sum_matmul!(result_data, tp_ops, iso_ops, a_data, alpha * b.factor, beta)
+
+    result
+end
