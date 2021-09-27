@@ -63,6 +63,7 @@ struct CompositeBasis{S,B} <: Basis
 end
 CompositeBasis(bases) = CompositeBasis([length(b) for b ∈ bases], bases)
 CompositeBasis(bases::Basis...) = CompositeBasis((bases...,))
+CompositeBasis(bases::Vector) = CompositeBasis((bases...,))
 
 Base.:(==)(b1::T, b2::T) where T<:CompositeBasis = equal_shape(b1.shape, b2.shape)
 
