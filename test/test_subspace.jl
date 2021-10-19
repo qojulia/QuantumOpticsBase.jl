@@ -33,9 +33,9 @@ bu2_orth = QuantumOpticsBase.orthonormalize(SubspaceBasis(u))
 @test bu2_orth.basisstates == bu.basisstates
 
 # Test sparse version
-T1 = projector(bu, b; sparse=true)
-T2 = projector(bv, b; sparse=true)
-T12 = projector(bu, bv; sparse=true)
+T1 = sparseprojector(bu, b)
+T2 = sparseprojector(bv, b)
+T12 = sparseprojector(bu, bv)
 
 @test isa(T1, SparseOpType)
 

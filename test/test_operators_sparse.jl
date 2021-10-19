@@ -150,6 +150,7 @@ state = randstate(b_l)
 state = randoperator(b_l)
 @test expect(op123, state) ≈ expect(op123_, state)
 
+@test_throws QuantumOpticsBase.IncompatibleBases expect(op1, op2)
 
 # Tensor product
 # ==============
@@ -370,8 +371,8 @@ dat = sprandop(b1, b1).data
 # Test Hermitian
 bspin = SpinBasis(1//2)
 bnlevel = NLevelBasis(2)
-@test ishermitian(SparseOperator(bspin, bspin, sparse([1.0 im; -im 2.0]))) == true
-@test ishermitian(SparseOperator(bspin, bnlevel, sparse([1.0 im; -im 2.0]))) == false
+@test ishermitian(SparseOperator(bspin, bspin, sparse([1.0 im; -im 2.0])))
+@test !ishermitian(SparseOperator(bspin, bnlevel, sparse([1.0 im; -im 2.0])))
 
 # Test broadcasting
 @test_throws DimensionMismatch op1 .+ op2

@@ -5,7 +5,7 @@ import LinearAlgebra: mul!, rmul!
 
 export bases, Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,
-        states, StateVector, Bra, Ket, basisstate, norm,
+        states, StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
                 dagger, normalize, normalize!,
         operators, AbstractOperator, DataOperator, expect, variance,
             identityoperator, ptrace, embed, dense, tr, sparse,
@@ -20,7 +20,7 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
                 fockstate, coherentstate, coherentstate!, displace,
         randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,
         spin, SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
-        subspace, SubspaceBasis, projector,
+        subspace, SubspaceBasis, projector, sparseprojector,
         particle, PositionBasis, MomentumBasis, samplepoints, spacing, gaussianstate,
                 position, momentum, potentialoperator, transform,
         nlevel, NLevelBasis, transition, nlevelstate,
@@ -32,7 +32,8 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
                 negativity, logarithmic_negativity, entanglement_entropy,
         PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
                 ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
-        SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!
+        SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
+        qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
 
 include("sortedindices.jl")
 include("polynomials.jl")
@@ -57,6 +58,7 @@ include("transformations.jl")
 include("pauli.jl")
 include("metrics.jl")
 include("spinors.jl")
+include("phasespace.jl")
 include("printing.jl")
 
 end # module

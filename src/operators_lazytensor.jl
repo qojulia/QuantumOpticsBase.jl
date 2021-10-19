@@ -6,55 +6,67 @@ import Base: ==, *, /, +, -
 Lazy implementation of a tensor product of operators.
 
 The suboperators are stored in the `operators` field. The `indices` field
-specifies in which subsystem the corresponding operator lives. Additionally,
-a complex factor is stored in the `factor` field which allows for fast
+specifies in which subsystem the corresponding operator lives. Note that these
+must be sorted.
+Additionally, a factor is stored in the `factor` field which allows for fast
 multiplication with numbers.
 """
-mutable struct LazyTensor{BL<:CompositeBasis,BR<:CompositeBasis,T<:Tuple{Vararg{AbstractOperator}}} <: AbstractOperator{BL,BR}
+mutable struct LazyTensor{BL,BR,F,I,T} <: AbstractOperator{BL,BR}
     basis_l::BL
     basis_r::BR
-    factor::ComplexF64
-    indices::Vector{Int}
+    factor::F
+    indices::I
     operators::T
-
-    function LazyTensor{BL,BR,T}(op::LazyTensor{BL,BR,T}, factor::Number) where {BL<:CompositeBasis,BR<:CompositeBasis,T<:Tuple{Vararg{AbstractOperator}}}
-        new(op.basis_l, op.basis_r, factor, op.indices, op.operators)
-    end
-
-    function LazyTensor(basis_l::Basis, basis_r::Basis,
-                        indices::Vector{Int}, ops::Vector,
-                        factor::Number=1)
-        if !isa(basis_l, CompositeBasis)
-            basis_l = CompositeBasis(basis_l.shape, Basis[basis_l])
-        end
-        if !isa(basis_r, CompositeBasis)
-            basis_r = CompositeBasis(basis_r.shape, Basis[basis_r])
-        end
-        N = length(basis_l.bases)
-        @assert N==length(basis_r.bases)
+    function LazyTensor(bl::BL, br::BR, indices::I, ops::T, factor::F=_default_factor(ops)) where {BL<:CompositeBasis,BR<:CompositeBasis,F,I,T<:Tuple}
+        N = length(bl.bases)
+        @assert N==length(br.bases)
         check_indices(N, indices)
         @assert length(indices) == length(ops)
+        @assert issorted(indices)
         for n=1:length(indices)
             @assert isa(ops[n], AbstractOperator)
-            @assert ops[n].basis_l == basis_l.bases[indices[n]]
-            @assert ops[n].basis_r == basis_r.bases[indices[n]]
+            @assert ops[n].basis_l == bl.bases[indices[n]]
+            @assert ops[n].basis_r == br.bases[indices[n]]
         end
-        if !issorted(indices)
-            perm = sortperm(indices)
-            indices = indices[perm]
-            ops = ops[perm]
-        end
-        ops_tup = (ops...,)
-        new{typeof(basis_l),typeof(basis_r),typeof(ops_tup)}(basis_l, basis_r, complex(factor), indices, ops_tup)
+        F_ = promote_type(F,map(eltype, ops)...)
+        factor_ = convert(F_, factor)
+        new{BL,BR,F_,I,T}(bl, br, factor_, indices, ops)
     end
 end
-LazyTensor(op::LazyTensor{BL,BR,T}, factor::Number) where {BL<:CompositeBasis,BR<:CompositeBasis,T<:Tuple{Vararg{AbstractOperator}}} = LazyTensor{BL,BR,T}(op::LazyTensor{BL,BR,T}, factor::Number)
-LazyTensor(basis::Basis, indices::Vector{Int}, ops::Vector, factor::Number=1) = LazyTensor(basis, basis, indices, ops, factor)
-LazyTensor(basis_l::Basis, basis_r::Basis, index::Int, operator::AbstractOperator, factor::Number=1) = LazyTensor(basis_l, basis_r, [index], AbstractOperator[operator], factor)
-LazyTensor(basis::Basis, index::Int, operators::AbstractOperator, factor::Number=1.) = LazyTensor(basis, basis, index, operators, factor)
+function LazyTensor(bl::CompositeBasis, br::CompositeBasis, indices, ops::Vector, factor=_default_factor(ops))
+    Base.depwarn("LazyTensor(bl, br, indices, ops::Vector, factor) is deprecated, use LazyTensor(bl, br, indices, Tuple(ops), factor) instead.",
+                :LazyTensor; force=true)
+    return LazyTensor(bl,br,indices,Tuple(ops),factor)
+end
 
-Base.copy(x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, copy(x.indices), [copy(op) for op in x.operators], x.factor)
+function LazyTensor(basis_l::CompositeBasis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+    br = CompositeBasis(basis_r.shape, [basis_r])
+    return LazyTensor(basis_l, br, indices, ops, factor)
+end
+function LazyTensor(basis_l::Basis, basis_r::CompositeBasis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+    bl = CompositeBasis(basis_l.shape, [basis_l])
+    return LazyTensor(bl, basis_r, indices, ops, factor)
+end
+function LazyTensor(basis_l::Basis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+    bl = CompositeBasis(basis_l.shape, [basis_l])
+    br = CompositeBasis(basis_r.shape, [basis_r])
+    return LazyTensor(bl, br, indices, ops, factor)
+end
+LazyTensor(op::T, factor) where {T<:LazyTensor} = LazyTensor(op.basis_l, op.basis_r, op.indices, op.operators, factor)
+LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, operator::T, factor=one(eltype(operator))) where T<:AbstractOperator = LazyTensor(basis_l, basis_r, [index], (operator,), factor)
+LazyTensor(basis::Basis, index, operators, factor=_default_factor(operators)) = LazyTensor(basis, basis, index, operators, factor)
+
+Base.copy(x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, copy(x.indices), Tuple(copy(op) for op in x.operators), x.factor)
 Base.eltype(x::LazyTensor) = promote_type(eltype(x.factor), eltype.(x.operators)...)
+
+function _default_factor(ops)
+    Ts = map(eltype, ops)
+    T = promote_type(Ts...)
+    return one(T)
+end
+function _default_factor(op::T) where T<:AbstractOperator
+    return one(eltype(op))
+end
 
 """
     suboperator(op::LazyTensor, index)
@@ -62,14 +74,15 @@ Base.eltype(x::LazyTensor) = promote_type(eltype(x.factor), eltype.(x.operators)
 Return the suboperator corresponding to the subsystem specified by `index`. Fails
 if there is no corresponding operator (i.e. it would be an identity operater).
 """
-suboperator(op::LazyTensor, index::Int) = op.operators[findfirst(isequal(index), op.indices)]
+suboperator(op::LazyTensor, index::Integer) = op.operators[findfirst(isequal(index), op.indices)]
+
 """
     suboperators(op::LazyTensor, index)
 
 Return the suboperators corresponding to the subsystems specified by `indices`. Fails
 if there is no corresponding operator (i.e. it would be an identity operater).
 """
-suboperators(op::LazyTensor, indices::Vector{Int}) = [op.operators[[findfirst(isequal(i), op.indices) for i in indices]]...]
+suboperators(op::LazyTensor, indices) = [op.operators[[findfirst(isequal(i), op.indices) for i in indices]]...]
 
 DenseOperator(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op.indices, DenseOpType[DenseOperator(x) for x in op.operators])
 SparseArrays.sparse(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op.indices, SparseOpType[SparseOperator(x) for x in op.operators])
@@ -80,33 +93,34 @@ SparseArrays.sparse(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op
 # Arithmetic operations
 -(a::LazyTensor) = LazyTensor(a, -a.factor)
 
-function *(a::LazyTensor{B1,B2}, b::LazyTensor{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function *(a::LazyTensor{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3}
     indices = sort(union(a.indices, b.indices))
-    ops = Vector{AbstractOperator}(undef, length(indices))
-    for n in 1:length(indices)
+    # ops = Vector{AbstractOperator}(undef, length(indices))
+    function _prod(n)
         i = indices[n]
         in_a = i in a.indices
         in_b = i in b.indices
         if in_a && in_b
-            ops[n] = suboperator(a, i)*suboperator(b, i)
+            return suboperator(a, i)*suboperator(b, i)
         elseif in_a
             a_i = suboperator(a, i)
-            ops[n] = a_i*identityoperator(typeof(a_i), b.basis_l.bases[i], b.basis_r.bases[i])
+            return a_i*identityoperator(typeof(a_i), b.basis_l.bases[i], b.basis_r.bases[i])
         elseif in_b
             b_i = suboperator(b, i)
-            ops[n] = identityoperator(typeof(b_i), a.basis_l.bases[i], a.basis_r.bases[i])*b_i
+            return identityoperator(typeof(b_i), a.basis_l.bases[i], a.basis_r.bases[i])*b_i
         end
     end
+    ops = Tuple(_prod(n) for n ∈ 1:length(indices))
     return LazyTensor(a.basis_l, b.basis_r, indices, ops, a.factor*b.factor)
 end
 *(a::LazyTensor, b::Number) = LazyTensor(a, a.factor*b)
 *(a::Number, b::LazyTensor) = LazyTensor(b, a*b.factor)
-function *(a::LazyTensor{B1,B2}, b::DenseOpType{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function *(a::LazyTensor{B1,B2}, b::DenseOpType{B2,B3}) where {B1,B2,B3}
     result = DenseOperator(a.basis_l, b.basis_r)
     mul!(result,a,b,complex(1.),complex(1.))
     result
 end
-function *(a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+function *(a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3}
     result = DenseOperator(a.basis_l, b.basis_r)
     mul!(result,a,b,complex(1.),complex(1.))
     result
@@ -115,9 +129,9 @@ end
 /(a::LazyTensor, b::Number) = LazyTensor(a, a.factor/b)
 
 
-dagger(op::LazyTensor) = LazyTensor(op.basis_r, op.basis_l, op.indices, AbstractOperator[dagger(x) for x in op.operators], conj(op.factor))
+dagger(op::LazyTensor) = LazyTensor(op.basis_r, op.basis_l, op.indices, Tuple(dagger(x) for x in op.operators), conj(op.factor))
 
-tensor(a::LazyTensor, b::LazyTensor) = LazyTensor(a.basis_l ⊗ b.basis_l, a.basis_r ⊗ b.basis_r, [a.indices; b.indices .+ length(a.basis_l.bases)], [a.operators..., b.operators...], a.factor*b.factor)
+tensor(a::LazyTensor, b::LazyTensor) = LazyTensor(a.basis_l ⊗ b.basis_l, a.basis_r ⊗ b.basis_r, [a.indices; b.indices .+ length(a.basis_l.bases)], (a.operators..., b.operators...), a.factor*b.factor)
 
 function tr(op::LazyTensor)
     b = basis(op)
@@ -132,7 +146,7 @@ function tr(op::LazyTensor)
     result
 end
 
-function ptrace(op::LazyTensor, indices::Vector{Int})
+function ptrace(op::LazyTensor, indices)
     check_ptrace_arguments(op, indices)
     N = length(op.basis_l.shape)
     rank = N - length(indices)
@@ -153,30 +167,27 @@ function ptrace(op::LazyTensor, indices::Vector{Int})
     if rank==1
         return factor * identityoperator(b_l, b_r)
     end
-    ops = Vector{AbstractOperator}(undef, length(remaining_indices))
-    for i in 1:length(ops)
-        ops[i] = suboperator(op, remaining_indices[i])
-    end
+    ops = Tuple(suboperator(op, idx) for idx ∈ remaining_indices)
     LazyTensor(b_l, b_r, shiftremove(op.indices, indices), ops, factor)
 end
 
 normalize!(op::LazyTensor) = (op.factor /= tr(op); op)
 
-function permutesystems(op::LazyTensor, perm::Vector{Int})
+function permutesystems(op::LazyTensor, perm)
     b_l = permutesystems(op.basis_l, perm)
     b_r = permutesystems(op.basis_r, perm)
     indices = [findfirst(isequal(i), perm) for i in op.indices]
     perm_ = sortperm(indices)
-    LazyTensor(b_l, b_r, indices[perm_], [op.operators[perm_]...], op.factor)
+    LazyTensor(b_l, b_r, indices[perm_], op.operators[perm_], op.factor)
 end
 
-identityoperator(::Type{LazyTensor}, b1::Basis, b2::Basis) = LazyTensor(b1, b2, Int[], AbstractOperator[])
+identityoperator(::Type{LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where T<:Number = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
 
 # Recursively calculate result_{IK} = \\sum_J op_{IJ} h_{JK}
-function _gemm_recursive_dense_lazy(i_k::Int, N_k::Int, K::Int, J::Int, val::Number,
-                        shape::Vector{Int}, strides_k::Vector{Int}, strides_j::Vector{Int},
-                        indices::Vector{Int}, h::LazyTensor,
+function _gemm_recursive_dense_lazy(i_k, N_k, K, J, val,
+                        shape, strides_k, strides_j,
+                        indices, h::LazyTensor,
                         op::Matrix, result::Matrix)
     if i_k > N_k
         for I=1:size(op, 1)
@@ -223,9 +234,9 @@ end
 
 
 # Recursively calculate result_{JI} = \\sum_K h_{JK} op_{KI}
-function _gemm_recursive_lazy_dense(i_k::Int, N_k::Int, K::Int, J::Int, val::Number,
-                        shape::Vector{Int}, strides_k::Vector{Int}, strides_j::Vector{Int},
-                        indices::Vector{Int}, h::LazyTensor,
+function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
+                        shape, strides_k, strides_j,
+                        indices, h::LazyTensor,
                         op::Matrix, result::Matrix)
     if i_k > N_k
         for I=1:size(op, 2)
@@ -270,7 +281,7 @@ function _gemm_recursive_lazy_dense(i_k::Int, N_k::Int, K::Int, J::Int, val::Num
     end
 end
 
-function gemm(alpha::Number, op::Matrix, h::LazyTensor, beta::Number, result::Matrix)
+function gemm(alpha, op::Matrix, h::LazyTensor, beta, result::Matrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -283,7 +294,7 @@ function gemm(alpha::Number, op::Matrix, h::LazyTensor, beta::Number, result::Ma
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-function gemm(alpha::Number, h::LazyTensor, op::Matrix, beta::Number, result::Matrix)
+function gemm(alpha, h::LazyTensor, op::Matrix, beta, result::Matrix)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -296,17 +307,17 @@ function gemm(alpha::Number, h::LazyTensor, op::Matrix, beta::Number, result::Ma
     _gemm_recursive_lazy_dense(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-mul!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2},op::DenseOpType{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm(alpha, h, op.data, beta, result.data); result)
-mul!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3},alpha,beta) where {B1<:Basis,B2<:Basis,B3<:Basis} = (gemm(alpha, op.data, h, beta, result.data); result)
+mul!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm(alpha, h, op.data, beta, result.data); result)
+mul!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm(alpha, op.data, h, beta, result.data); result)
 
-function mul!(result::Ket{B1},a::LazyTensor{B1,B2},b::Ket{B2},alpha,beta) where {B1<:Basis,B2<:Basis}
+function mul!(result::Ket{B1},a::LazyTensor{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
     b_data = reshape(b.data, length(b.data), 1)
     result_data = reshape(result.data, length(result.data), 1)
     gemm(alpha, a, b_data, beta, result_data)
     result
 end
 
-function mul!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2},alpha,beta) where {B1<:Basis,B2<:Basis}
+function mul!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2},alpha,beta) where {B1,B2}
     a_data = reshape(a.data, 1, length(a.data))
     result_data = reshape(result.data, 1, length(result.data))
     gemm(alpha, a_data, b, beta, result_data)

@@ -69,4 +69,17 @@ rho = dm(psi)
 @test 1e-13 > abs(variance(n, psi) - abs(alpha)^2)
 @test 1e-13 > abs(variance(n, rho) - abs(alpha)^2)
 
+# Test FockBasis with offset
+b_off = FockBasis(100,4)
+@test_throws AssertionError fockstate(b_off, 0)
+n = 55
+psi = fockstate(b_off, n)
+@test expect(number(b_off), psi)==n==expect(create(b_off)*destroy(b_off), psi)
+
+alpha = 5
+psi = coherentstate(b, alpha)
+psi_off = coherentstate(b_off, alpha)
+@test psi.data[b_off.offset+1:end] == psi_off.data
+@test isapprox(norm(psi_off), 1, atol=1e-7)
+
 end # testset

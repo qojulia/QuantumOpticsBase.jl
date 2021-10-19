@@ -7,7 +7,7 @@ Evaluate the given polynomial at position x using the Horner scheme.
 p(x) = \\sum_{n=0}^N c_n x^n
 ```
 """
-function horner(coefficients::Vector{T}, x::Number) where T<:Number
+function horner(coefficients, x)
     bn = coefficients[end]
     for n=length(coefficients)-1:-1:1
         bn = coefficients[n] + bn*x
@@ -30,8 +30,8 @@ H_n(x) = \\sum_{k=0}^n a_{n,k} x^k
 Returns a vector of length N+1 where the n-th entry contains all coefficients
 for the n-th Hermite polynomial.
 """
-function a(N::Int)
-    a = Vector{Vector{Int}}(undef, N+1)
+function a(N::T) where T
+    a = Vector{Vector{T}}(undef, N+1)
     a[1] = [1]
     a[2] = [0,2]
     am = a[2]
@@ -67,13 +67,13 @@ the relation ``A_{n,k} = \\frac{a_{n,k}}{\\sqrt{2^n n!}}``
 Returns a vector of length N+1 where the n-th entry contains all scaled
 coefficients for the n-th Hermite polynomial.
 """
-function A(N)
-    A = Vector{Vector{Float64}}(undef, N+1)
+function A(N::T) where T
+    A = Vector{Vector{float(T)}}(undef, N+1)
     A[1] = [1.]
     A[2] = [0., sqrt(2)]
     Am = A[2]
     for n=2:N
-        An = zeros(Float64, n+1)
+        An = zeros(float(T), n+1)
         A[n+1] = An
         if iseven(n)
             An[1] = -Am[2]/sqrt(2*n)

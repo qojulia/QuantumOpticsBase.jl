@@ -90,6 +90,10 @@ basisstate
 ```
 
 ```@docs
+sparsebasisstate
+```
+
+```@docs
 identityoperator
 ```
 
@@ -124,6 +128,10 @@ QuantumOpticsBase.check_samebases
 ```
 
 ```@docs
+@samebases
+```
+
+```@docs
 QuantumOpticsBase.multiplicable
 ```
 
@@ -147,6 +155,10 @@ tensor
 projector(a::Ket, b::Bra)
 projector(a::Ket)
 projector(a::Bra)
+```
+
+```@docs
+sparseprojector
 ```
 
 ```@docs
@@ -195,11 +207,6 @@ permutesystems
 exp(op::AbstractOperator)
 ```
 
-```@docs
-QuantumOpticsBase.mul!(Y::DataOperator,A::AbstractOperator,B::DataOperator,alpha,beta)
-QuantumOpticsBase.mul!(Y::StateVector,A::AbstractOperator,B::StateVector,alpha,beta)
-```
-
 * Conversion of operators
 
 ```@docs
@@ -226,15 +233,15 @@ FockBasis
 ```
 
 ```@docs
-number(::FockBasis)
+number(::Type{T}, ::FockBasis) where T
 ```
 
 ```@docs
-destroy(::FockBasis)
+destroy(::Type{C}, ::FockBasis) where C
 ```
 
 ```@docs
-create(::FockBasis)
+create(::Type{C}, ::FockBasis) where C
 ```
 
 ```@docs
@@ -261,7 +268,7 @@ NLevelBasis
 ```
 
 ```@docs
-transition(::NLevelBasis, ::Int, ::Int)
+transition(::Type{T}, ::NLevelBasis, ::Integer, ::Integer) where T
 ```
 
 ```@docs
@@ -321,13 +328,13 @@ samplepoints
 ```
 
 ```@docs
-position(b::PositionBasis)
-position(b::MomentumBasis)
+position(::Type{T}, b::PositionBasis) where T
+position(::Type{T}, b::MomentumBasis) where T
 ```
 
 ```@docs
-momentum(b::PositionBasis)
-momentum(b::MomentumBasis)
+momentum(::Type{T}, b::PositionBasis) where T
+momentum(::Type{T}, b::MomentumBasis) where T
 ```
 
 ```@docs
@@ -365,7 +372,7 @@ QuantumOpticsBase.orthonormalize
 ```
 
 ```@docs
-projector(b1::SubspaceBasis, b2::SubspaceBasis)
+projector(::Type{T}, b1::SubspaceBasis, b2::SubspaceBasis) where T
 ```
 
 ### [Many-body](@id API: Many-body)
@@ -383,20 +390,20 @@ bosonstates
 ```
 
 ```@docs
-number(::ManyBodyBasis, ::Int)
-number(::ManyBodyBasis)
+number(::Type{T}, ::ManyBodyBasis, index) where T
+number(::Type{T}, ::ManyBodyBasis) where T
 ```
 
 ```@docs
-destroy(::ManyBodyBasis, ::Int)
+destroy(::Type{T}, ::ManyBodyBasis, index) where T
 ```
 
 ```@docs
-create(::ManyBodyBasis, ::Int)
+create(::Type{T}, ::ManyBodyBasis, index) where T
 ```
 
 ```@docs
-transition(::ManyBodyBasis, ::Int, ::Int)
+transition(::Type{T}, ::ManyBodyBasis, i, j) where T
 ```
 
 ```@docs
