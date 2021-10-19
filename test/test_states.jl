@@ -1,6 +1,7 @@
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
+using SparseArrays
 
 @testset "states" begin
 
@@ -118,6 +119,10 @@ x2 = basisstate(b2, 1)
 @test norm(x1) == 1
 @test x1.data[2] == 1
 @test basisstate(b, [2, 1]) == x1 ⊗ x2
+
+# Conversion to sparse
+@test length(sparse(x1).data.nzval)==1
+@test sparse(x1').data isa SparseVector
 
 # Test permutating systems
 b1 = GenericBasis(2)

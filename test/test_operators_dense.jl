@@ -162,7 +162,7 @@ I = identityoperator(DenseOpType, b_l)
 @test I == identityoperator(DenseOpType, b1a) ⊗ identityoperator(DenseOpType, b2a) ⊗ identityoperator(DenseOpType, b3a)
 
 # Test tr and normalize
-op = DenseOperator(GenericBasis(3), [1 3 2;5 2 2;-1 2 5])
+op = DenseOperator(GenericBasis(3), float.([1 3 2;5 2 2;-1 2 5]))
 @test 8 == tr(op)
 op_normalized = normalize(op)
 @test 8 == tr(op)
@@ -248,6 +248,8 @@ state = randoperator(b_l)
 @test expect(1, op1, state) ≈ expect(op1, ptrace(state, [2, 3]))
 @test expect(2, op2, state) ≈ expect(op2, ptrace(state, [1, 3]))
 @test expect(3, op3, state) ≈ expect(op3, ptrace(state, [1, 2]))
+
+@test_throws QuantumOpticsBase.IncompatibleBases expect(op2, op1)
 
 # Permute systems
 op1 = randoperator(b1a, b1b)

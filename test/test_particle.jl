@@ -242,7 +242,7 @@ x0 = [5.1, -0.2]
 p0 = [-3.2, 1.33]
 sigma = [1., 0.9]
 sigma_x = sigma./sqrt(2)
-sigma_p = 1.0/(sigma.*sqrt(2))
+sigma_p = 1.0 ./ (sigma.*sqrt(2))
 
 Txp = transform(tensor(basis_position...), tensor(basis_momentum...))
 Tpx = transform(tensor(basis_momentum...), tensor(basis_position...))
@@ -362,7 +362,7 @@ bcomp_pos = tensor(basis_position...)
 Txp = transform(bcomp_pos, bcomp_mom)
 Tpx = transform(bcomp_mom, bcomp_pos)
 xsample, ysample = samplepoints.(basis_position)
-V_op = Tpx*dense(diagonaloperator(bcomp_pos, [V(x, y) for y in ysample for x in xsample]))*Txp
+V_op = Tpx*dense(diagonaloperator(bcomp_pos, [complex(V(x, y)) for y in ysample for x in xsample]))*Txp
 V_op2 = potentialoperator(bcomp_mom, V)
 @test V_op == V_op2
 

@@ -359,17 +359,17 @@ op2 = randtestoperator(b2a, b2b)
 op3 = randtestoperator(b3a, b3b)
 
 # Test creation
-@test_throws AssertionError LazyTensor(b_l, b_r, [1], [randtestoperator(b1a)])
-@test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], [op1])
-@test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], [op1, sparse(randtestoperator(b_l, b_l))])
-@test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], [randtestoperator(b_r, b_r), sparse(op2)])
+@test_throws AssertionError LazyTensor(b_l, b_r, [1], (randtestoperator(b1a),))
+@test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], (op1,))
+@test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], (op1, sparse(randtestoperator(b_l, b_l))))
+@test_throws AssertionError LazyTensor(b_l, b_r, [1, 2], (randtestoperator(b_r, b_r), sparse(op2)))
 
-@test LazyTensor(b_l, b_r, [2, 1], [op2, op1]) == LazyTensor(b_l, b_r, [1, 2], [op1, op2])
+# @test LazyTensor(b_l, b_r, [2, 1], [op2, op1]) == LazyTensor(b_l, b_r, [1, 2], [op1, op2])
 x = randtestoperator(b2a)
-@test LazyTensor(b_l, 2, x) == LazyTensor(b_l, b_l, [2], [x])
+@test LazyTensor(b_l, 2, x) == LazyTensor(b_l, b_l, [2], (x,))
 
 # Test copy
-x = 2*LazyTensor(b_l, b_r, [1,2], [randtestoperator(b1a, b1b), sparse(randtestoperator(b2a, b2b))])
+x = 2*LazyTensor(b_l, b_r, [1,2], (randtestoperator(b1a, b1b), sparse(randtestoperator(b2a, b2b))))
 x_ = copy(x)
 @test x == x_
 @test !(x === x_)
@@ -383,7 +383,7 @@ x_.indices[2] = 100
 
 # Test dense & sparse
 I2 = identityoperator(b2a, b2b)
-x = LazyTensor(b_l, b_r, [1, 3], [op1, sparse(op3)], 0.3)
+x = LazyTensor(b_l, b_r, [1, 3], (op1, sparse(op3)), 0.3)
 @test D(0.3*op1⊗dense(I2)⊗op3, dense(x))
 @test D(0.3*sparse(op1)⊗I2⊗sparse(op3), sparse(x))
 
@@ -400,9 +400,9 @@ subop3 = randtestoperator(b3a, b3b)
 I1 = dense(identityoperator(b1a, b1b))
 I2 = dense(identityoperator(b2a, b2b))
 I3 = dense(identityoperator(b3a, b3b))
-op1 = LazyTensor(b_l, b_r, [1, 3], [subop1, sparse(subop3)], 0.1)
+op1 = LazyTensor(b_l, b_r, [1, 3], (subop1, sparse(subop3)), 0.1)
 op1_ = 0.1*subop1 ⊗ I2 ⊗ subop3
-op2 = LazyTensor(b_l, b_r, [2, 3], [sparse(subop2), subop3], 0.7)
+op2 = LazyTensor(b_l, b_r, [2, 3], (sparse(subop2), subop3), 0.7)
 op2_ = 0.7*I1 ⊗ subop2 ⊗ subop3
 op3 = 0.3*LazyTensor(b_l, b_r, 3, subop3)
 op3_ = 0.3*I1 ⊗ I2 ⊗ subop3
