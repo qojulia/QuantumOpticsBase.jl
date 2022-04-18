@@ -199,147 +199,6 @@ end
 
 identityoperator(::Type{LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where T<:Number = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
-
-# Recursively calculate result_{IK} = \\sum_J op_{IJ} h_{JK}
-function _gemm_recursive_dense_lazy(i_k, N_k, K, J, val,
-                        shape, strides_k, strides_j,
-                        indices, h::LazyTensor,
-                        op::Matrix, result::Matrix)
-    if i_k > N_k
-        for I=1:size(op, 1)
-            result[I, K] += val*op[I, J]
-        end
-        return nothing
-    end
-    if i_k in indices
-        h_i = suboperator(h, i_k)
-        if isa(h_i, SparseOpPureType)
-            h_i_data = h_i.data
-            @inbounds for k=1:h_i_data.n
-                K_ = K + strides_k[i_k]*(k-1)
-                @inbounds for jptr=h_i_data.colptr[k]:h_i_data.colptr[k+1]-1
-                    j = h_i_data.rowval[jptr]
-                    J_ = J + strides_j[i_k]*(j-1)
-                    val_ = val*h_i_data.nzval[jptr]
-                    _gemm_recursive_dense_lazy(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
-                end
-            end
-        elseif isa(h_i, DataOperator)
-            h_i_data = h_i.data
-            Nk = size(h_i_data, 2)
-            Nj = size(h_i_data, 1)
-            @inbounds for k=1:Nk
-                K_ = K + strides_k[i_k]*(k-1)
-                @inbounds for j=1:Nj
-                    J_ = J + strides_j[i_k]*(j-1)
-                    val_ = val*h_i_data[j,k]
-                    _gemm_recursive_dense_lazy(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
-                end
-            end
-        else
-            throw(ArgumentError("gemm! of LazyTensor is not implemented for $(typeof(h_i))"))
-        end
-    else
-        @inbounds for k=1:shape[i_k]
-            K_ = K + strides_k[i_k]*(k-1)
-            J_ = J + strides_j[i_k]*(k-1)
-            _gemm_recursive_dense_lazy(i_k + 1, N_k, K_, J_, val, shape, strides_k, strides_j, indices, h, op, result)
-        end
-    end
-end
-
-
-# Recursively calculate result_{JI} = \\sum_K h_{JK} op_{KI}
-function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
-                        shape, strides_k, strides_j,
-                        indices, h::LazyTensor,
-                        op::Matrix, result::Matrix)
-    if i_k > N_k
-        for I=1:size(op, 2)
-            result[J, I] += val*op[K, I]
-        end
-        return nothing
-    end
-    if i_k in indices
-        h_i = suboperator(h, i_k)
-        if isa(h_i, SparseOpPureType) # TODO: adjoint sparse matrices
-            h_i_data = h_i.data
-            @inbounds for k=1:h_i_data.n
-                K_ = K + strides_k[i_k]*(k-1)
-                @inbounds for jptr=h_i_data.colptr[k]:h_i_data.colptr[k+1]-1
-                    j = h_i_data.rowval[jptr]
-                    J_ = J + strides_j[i_k]*(j-1)
-                    val_ = val*h_i_data.nzval[jptr]
-                    _gemm_recursive_lazy_dense(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
-                end
-            end
-        elseif isa(h_i, DataOperator)
-            h_i_data = h_i.data
-            Nk = size(h_i_data, 2)
-            Nj = size(h_i_data, 1)
-            @inbounds for k=1:Nk
-                K_ = K + strides_k[i_k]*(k-1)
-                @inbounds for j=1:Nj
-                    J_ = J + strides_j[i_k]*(j-1)
-                    val_ = val*h_i_data[j,k]
-                    _gemm_recursive_lazy_dense(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
-                end
-            end
-        else
-            throw(ArgumentError("gemm! of LazyTensor is not implemented for $(typeof(h_i))"))
-        end
-    else
-        @inbounds for k=1:shape[i_k]
-            K_ = K + strides_k[i_k]*(k-1)
-            J_ = J + strides_j[i_k]*(k-1)
-            _gemm_recursive_lazy_dense(i_k + 1, N_k, K_, J_, val, shape, strides_k, strides_j, indices, h, op, result)
-        end
-    end
-end
-
-function gemm(alpha, op::Matrix, h::LazyTensor, beta, result::Matrix)
-    if iszero(beta)
-        fill!(result, beta)
-    elseif !isone(beta)
-        rmul!(result, beta)
-    end
-    N_k = length(h.basis_r.bases)
-    shape = [min(h.basis_l.shape[i], h.basis_r.shape[i]) for i=1:length(h.basis_l.shape)]
-    strides_j = _strides(h.basis_l.shape)
-    strides_k = _strides(h.basis_r.shape)
-    _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
-end
-
-function gemm(alpha, h::LazyTensor, op::Matrix, beta, result::Matrix)
-    if iszero(beta)
-        fill!(result, beta)
-    elseif !isone(beta)
-        rmul!(result, beta)
-    end
-    N_k = length(h.basis_l.bases)
-    shape = [min(h.basis_l.shape[i], h.basis_r.shape[i]) for i=1:length(h.basis_l.shape)]
-    strides_j = _strides(h.basis_l.shape)
-    strides_k = _strides(h.basis_r.shape)
-    _gemm_recursive_lazy_dense(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
-end
-
-mul!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm(alpha, h, op.data, beta, result.data); result)
-mul!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm(alpha, op.data, h, beta, result.data); result)
-
-function mul!(result::Ket{B1},a::LazyTensor{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
-    b_data = reshape(b.data, length(b.data), 1)
-    result_data = reshape(result.data, length(result.data), 1)
-    gemm(alpha, a, b_data, beta, result_data)
-    result
-end
-
-function mul!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2},alpha,beta) where {B1,B2}
-    a_data = reshape(a.data, 1, length(a.data))
-    result_data = reshape(result.data, 1, length(result.data))
-    gemm(alpha, a_data, b, beta, result_data)
-    result
-end
-
 function _tp_matmul_first!(result, a::AbstractMatrix, b, α::Number, β::Number)
     br = reshape(b, size(b, 1), :)
     result_r = reshape(result, size(a, 1), size(br, 2))
@@ -559,7 +418,7 @@ end
 _comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
 _comp_size(b::Basis) = (length(b),)
 
-function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DenseOpType}}}
+function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DataOperator}}}
     # We reshape here so that we have the proper shape information for the
     # tensor contraction later on. Using ReshapedArray vs. reshape() avoids
     # an allocation.
@@ -573,7 +432,7 @@ function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, be
     result
 end
 
-function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DenseOpType}}}
+function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DataOperator}}}
     a_data = Base.ReshapedArray(a.data, _comp_size(basis(a)), ())
     result_data = Base.ReshapedArray(result.data, _comp_size(basis(result)), ())
 
@@ -584,7 +443,7 @@ function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, be
     result
 end
 
-function mul!(result::DenseOpType{B1,B2}, a::LazyTensor{B1,B1,F,I,T}, b::DenseOpType{B1,B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DenseOpType}}}
+function mul!(result::DenseOpType{B1,B2}, a::LazyTensor{B1,B1,F,I,T}, b::DenseOpType{B1,B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DataOperator}}}
     b_data = Base.ReshapedArray(b.data, (_comp_size(b.basis_l)..., _comp_size(b.basis_r)...), ())
     result_data = Base.ReshapedArray(result.data, (_comp_size(result.basis_l)..., _comp_size(result.basis_r)...), ())
 
@@ -595,7 +454,7 @@ function mul!(result::DenseOpType{B1,B2}, a::LazyTensor{B1,B1,F,I,T}, b::DenseOp
     result
 end
 
-function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3,F,I,T}, alpha, beta) where {B1,B2,B3, F,I,T<:Tuple{Vararg{DenseOpType}}}
+function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3,F,I,T}, alpha, beta) where {B1,B2,B3, F,I,T<:Tuple{Vararg{DataOperator}}}
     a_data = Base.ReshapedArray(a.data, (_comp_size(a.basis_l)..., _comp_size(a.basis_r)...), ())
     result_data = Base.ReshapedArray(result.data, (_comp_size(result.basis_l)..., _comp_size(result.basis_r)...), ())
 

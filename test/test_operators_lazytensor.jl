@@ -262,8 +262,8 @@ test_op = test_lazytensor(b1a, b1a, rand(2, 2))
 test_lazy = LazyTensor(tensor(b1a, b1a), [1, 2], (test_op, test_op))
 test_ket = Ket(tensor(b1a, b1a), rand(4))
 
-@test_throws ArgumentError QuantumOpticsBase.mul!(copy(test_ket),test_lazy,test_ket,alpha,beta)
-@test_throws ArgumentError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
+@test_throws MethodError QuantumOpticsBase.mul!(copy(test_ket),test_lazy,test_ket,alpha,beta)
+@test_throws MethodError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
 
 # Test type stability of constructor
 callT = typeof.((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
