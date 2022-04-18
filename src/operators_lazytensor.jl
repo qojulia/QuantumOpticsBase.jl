@@ -354,42 +354,68 @@ function _tp_matmul_last!(result, a::AbstractMatrix, b, α::Number, β::Number)
     result
 end
 
-function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
-    shp_b_1 = 1
-    for i in 1:loc-1
-        shp_b_1 *= size(b,i)
+# FIXME: Finish this by specifying a better maxsize.
+const lazytensor_cache = LRU{Any,Any}(; maxsize=2*10^9, by=sizeof)
+# FIXME: Make this toggleable.
+#        Is there a sensible way to turn the cache on only during
+#        relevant operations? QuantumOptics could turn it on while doing
+#        integration and other loops... Is it even bad if it is turned on by
+#        default? Python keeps a memory pool anyway... does Julia?
+#        Do other einsum/contraction packages do this differently?
+lazytensor_use_cache() = true
+
+taskid() = convert(UInt, pointer_from_objref(current_task()))
+
+function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym) where {T,N}
+    if lazytensor_use_cache()
+        tmp::Array{T,N} = get!(lazytensor_cache, (sym, taskid(), T, shp)) do
+            Array{T,N}(undef, shp...)
+        end
+    else
+        tmp = Array{T,N}(undef, shp...)
     end
-    shp_b_3 = 1
+
+    tmp
+end
+
+function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
+    sz_b_1 = 1
+    for i in 1:loc-1
+        sz_b_1 *= size(b,i)
+    end
+    sz_b_3 = 1
     for i in loc+1:ndims(b)
-        shp_b_3 *= size(b,i)
+        sz_b_3 *= size(b,i)
     end
 
     # TODO: Perhaps we should avoid reshaping here... should be possible to infer
     # contraction index tuple sizes
-    br = reshape(b, shp_b_1, size(b, loc), shp_b_3)
-    result_r = reshape(result, shp_b_1, size(a, 1), shp_b_3)
+    br = reshape(b, sz_b_1, size(b, loc), sz_b_3)
+    result_r = reshape(result, sz_b_1, size(a, 1), sz_b_3)
 
-    # If using BLAS, this will generally require intermediate storage
-    # TensorOperations will use its own cache for these.
-    
-    # In principle, we can use the @tensor macro here and have TensorOperations
-    # take care of the cache symbols. However, this seems to be broken...?
-    #@tensor result_r[a,b,c] = α * a[b,x] * br[a,x,c] + β * result_r[a,b,c]
-    
-    # these are used to identify objects in the cache (if used)
-    syms = (:_tp_matmul_a, :_tp_matmul_b, :_tp_matmul_c)
-    
-    oindA, cindA, oindB, cindB, indCinoAB = TensorOperations.contract_indices(
-      (-2, 1), (-1, 1, -3), (-1, -2, -3))
-    
-    TensorOperations.contract!(
-      α, a, :N, br, :N, β, result_r, oindA, cindA, oindB, cindB, indCinoAB, syms)
+    # Try to "minimize" the transpose for efficiency.
+    move_left = sz_b_1 < sz_b_3
+    perm = move_left ? [2,1,3] : [1,3,2]
 
+    br_p = _tp_matmul_get_tmp(eltype(br), size(br)[perm], :_tp_matmul_mid_in)
+    permutedims!(br_p, br, perm)  # TODO: Replace with Strided.jl implementation
+
+    result_r_p = _tp_matmul_get_tmp(eltype(result_r), size(result_r)[perm], :_tp_matmul_mid_out)
+    β == 0.0 || permutedims!(result_r_p, result_r, perm)  # TODO: Replace with Strided.jl implementation
+
+    if move_left
+        _tp_matmul_first!(result_r_p, a, br_p, α, β)
+    else
+        _tp_matmul_last!(result_r_p, a, br_p, α, β)
+    end
+
+    permutedims!(result_r, result_r_p, perm)  # TODO: Replace with Strided.jl implementation
+    
     result
 end
 
 function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
-    """Apply a matrix `a` to one tensor factor of a tensor `b`.
+    """Apply a matrix `α * a` to one tensor factor of a tensor `b`.
 
     If β is nonzero, add to β times `result`. In other words, we do:
 
@@ -405,7 +431,7 @@ function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β:
     Returns:
         The modified `result`.
     """
-    # Use GEMM directly where possible, otherwise TensorOperations
+    # Use GEMM directly where possible, otherwise we have to permute
     if loc == 1
         return _tp_matmul_first!(result, a, b, α, β)
     elseif loc == ndims(b)
@@ -416,15 +442,7 @@ end
 
 function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{T,N}, sym) where {T,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    if TensorOperations.use_cache()
-        tmp::Array{T,N} = get!(TensorOperations.cache, (sym, taskid(), T, shp)) do
-            Array{T,N}(undef, shp...)
-        end
-    else
-        tmp = Array{T,N}(undef, shp...)
-    end
-
-    tmp
+    _tp_matmul_get_tmp(T, shp, sym)
 end
 
 #Apply a tensor product of operators to a vector.
