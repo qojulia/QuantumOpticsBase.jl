@@ -10,23 +10,34 @@ The factors of the product are stored in the `operators` field. Additionally a
 complex factor is stored in the `factor` field which allows for fast
 multiplication with numbers.
 """
-mutable struct LazyProduct{BL,BR,F,T} <: AbstractOperator{BL,BR}
+
+mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: AbstractOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     factor::F
     operators::T
-    function LazyProduct{BL,BR,F,T}(operators::T, factor::F=1) where {BL,BR,F,T}
+    ket_l::KTL
+    bra_r::BTR
+    function LazyProduct{BL,BR,F,T,KTL,BTR}(operators::T, factor::F=1) where {BL,BR,F,T,KTL,BTR}
         for i = 2:length(operators)
             check_multiplicable(operators[i-1], operators[i])
         end
-        new(operators[1].basis_l, operators[end].basis_r, factor, operators)
+        ket_l=[Ket(operator.basis_l) for operator in operators]
+        bra_r=[Bra(operator.basis_r) for operator in operators]
+        new(operators[1].basis_l, operators[end].basis_r, factor, operators,ket_l,bra_r)
     end
 end
 function LazyProduct(operators::T, factor::F=1) where {T,F}
     BL = typeof(operators[1].basis_l)
     BR = typeof(operators[end].basis_r)
-    LazyProduct{BL,BR,F,T}(operators, factor)
+    KTL = typeof([Ket(operator.basis_l) for operator in operators])
+    BTR = typeof([Bra(operator.basis_r) for operator in operators])
+    LazyProduct{BL,BR,F,T,KTL,BTR}(operators, factor)
 end
+
+
+
+
 LazyProduct(operators::Vector{T}, factor=1) where T<:AbstractOperator = LazyProduct((operators...,), factor)
 LazyProduct(operators::AbstractOperator...) = LazyProduct((operators...,))
 LazyProduct() = throw(ArgumentError("LazyProduct needs at least one operator!"))
@@ -62,28 +73,21 @@ permutesystems(op::LazyProduct, perm::Vector{Int}) = LazyProduct(([permutesystem
 identityoperator(::Type{LazyProduct}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazyProduct(identityoperator(S, b1, b2))
 
 
-# Fast in-place multiplication
 function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
-    tmp1 = Ket(a.operators[end].basis_l)
-    mul!(tmp1,a.operators[end],b,a.factor,0)
+    mul!(a.ket_l[end],a.operators[end],b,a.factor,0)
     for i=length(a.operators)-1:-1:2
-        tmp2 = Ket(a.operators[i].basis_l)
-        mul!(tmp2,a.operators[i],tmp1)
-        tmp1 = tmp2
+        mul!(a.ket_l[i],a.operators[i],a.ket_l[i+1])
     end
-    mul!(result,a.operators[1],tmp1,alpha,beta)
+    mul!(result,a.operators[1],a.ket_l[2],alpha,beta)
     return result
 end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where {B1,B2}
-    tmp1 = Bra(b.operators[1].basis_r)
-    mul!(tmp1,a,b.operators[1],b.factor,0)
+    mul!(b.bra_r[1],a,b.operators[1],b.factor,0)
     for i=2:length(b.operators)-1
-        tmp2 = Bra(b.operators[i].basis_r)
-        mul!(tmp2,tmp1,b.operators[i])
-        tmp1 = tmp2
+        mul!(b.bra_r[i],b.bra_r[i-1],b.operators[i])
     end
-    mul!(result,tmp1,b.operators[end],alpha,beta)
+    mul!(result,b.bra_r[end-1],b.operators[end],alpha,beta)
     return result
 end
 
