@@ -28,8 +28,8 @@ end
 function LazyProduct(operators::T, factor::F=1) where {T,F}
     BL = typeof(operators[1].basis_l)
     BR = typeof(operators[end].basis_r)
-    ket_l=[Ket(operators[i].basis_l) for i in 2:length(operators)]
-    bra_r=[Bra(operators[i].basis_r) for i in 1:length(operators)-1]
+    ket_l=Tuple(Ket(operators[i].basis_l) for i in 2:length(operators))
+    bra_r=Tuple(Bra(operators[i].basis_r) for i in 1:length(operators)-1)
     KTL = typeof(ket_l)
     BTR = typeof(bra_r)
     LazyProduct{BL,BR,F,T,KTL,BTR}(operators, ket_l, bra_r, factor)
