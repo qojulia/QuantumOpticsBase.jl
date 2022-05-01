@@ -22,8 +22,6 @@ mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: AbstractOperator{BL,BR}
         for i = 2:length(operators)
             check_multiplicable(operators[i-1], operators[i])
         end
-        # ket_l=[Ket(operator.basis_l) for operator in operators]
-        # bra_r=[Bra(operator.basis_r) for operator in operators]
         new(operators[1].basis_l, operators[end].basis_r, factor, operators,ket_l,bra_r)
     end
 end
