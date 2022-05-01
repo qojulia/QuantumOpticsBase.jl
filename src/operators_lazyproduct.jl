@@ -18,21 +18,23 @@ mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: AbstractOperator{BL,BR}
     operators::T
     ket_l::KTL
     bra_r::BTR
-    function LazyProduct{BL,BR,F,T,KTL,BTR}(operators::T, factor::F=1) where {BL,BR,F,T,KTL,BTR}
+    function LazyProduct{BL,BR,F,T,KTL,BTR}(operators::T, ket_l::KTL, bra_r::BTR, factor::F=1) where {BL,BR,F,T,KTL,BTR}
         for i = 2:length(operators)
             check_multiplicable(operators[i-1], operators[i])
         end
-        ket_l=[Ket(operator.basis_l) for operator in operators]
-        bra_r=[Bra(operator.basis_r) for operator in operators]
+        # ket_l=[Ket(operator.basis_l) for operator in operators]
+        # bra_r=[Bra(operator.basis_r) for operator in operators]
         new(operators[1].basis_l, operators[end].basis_r, factor, operators,ket_l,bra_r)
     end
 end
 function LazyProduct(operators::T, factor::F=1) where {T,F}
     BL = typeof(operators[1].basis_l)
     BR = typeof(operators[end].basis_r)
-    KTL = typeof([Ket(operator.basis_l) for operator in operators])
-    BTR = typeof([Bra(operator.basis_r) for operator in operators])
-    LazyProduct{BL,BR,F,T,KTL,BTR}(operators, factor)
+    ket_l=[Ket(operators[i].basis_l) for i in 2:length(operators)]
+    bra_r=[Bra(operators[i].basis_r) for i in 1:length(operators)-1]
+    KTL = typeof(ket_l)
+    BTR = typeof(bra_r)
+    LazyProduct{BL,BR,F,T,KTL,BTR}(operators, ket_l, bra_r, factor)
 end
 
 
@@ -42,7 +44,7 @@ LazyProduct(operators::Vector{T}, factor=1) where T<:AbstractOperator = LazyProd
 LazyProduct(operators::AbstractOperator...) = LazyProduct((operators...,))
 LazyProduct() = throw(ArgumentError("LazyProduct needs at least one operator!"))
 
-Base.copy(x::T) where T<:LazyProduct = T(([copy(op) for op in x.operators]...,), x.factor)
+Base.copy(x::T) where T<:LazyProduct = T(([copy(op) for op in x.operators]...,),x.ket_l,x.bra_r, x.factor)
 Base.eltype(x::LazyProduct) = promote_type(eltype(x.factor), eltype.(x.operators)...)
 
 dense(op::LazyProduct) = op.factor*prod(dense.(op.operators))
@@ -53,7 +55,7 @@ SparseArrays.sparse(op::LazyProduct{B1,B2,F,T}) where {B1,B2,F,T<:Tuple{Abstract
 ==(x::LazyProduct{B1,B2}, y::LazyProduct{B1,B2}) where {B1,B2} = (x.basis_l == y.basis_l && x.basis_r == y.basis_r && x.operators==y.operators && x.factor == y.factor)
 
 # Arithmetic operations
--(a::T) where T<:LazyProduct = T(a.operators, -a.factor)
+-(a::T) where T<:LazyProduct = T(a.operators,a.ket_l,a.bra_r, -a.factor)
 
 *(a::LazyProduct{B1,B2}, b::LazyProduct{B2,B3}) where {B1,B2,B3} = LazyProduct((a.operators..., b.operators...), a.factor*b.factor)
 *(a::LazyProduct, b::Number) = LazyProduct(a.operators, a.factor*b)
@@ -74,20 +76,28 @@ identityoperator(::Type{LazyProduct}, ::Type{S}, b1::Basis, b2::Basis) where S<:
 
 
 function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
-    mul!(a.ket_l[end],a.operators[end],b,a.factor,0)
-    for i=length(a.operators)-1:-1:2
-        mul!(a.ket_l[i],a.operators[i],a.ket_l[i+1])
+    if length(a.operators)==1
+        mul!(result,a.operators[1],b,a.factor*alpha,beta)
+    else
+        mul!(a.ket_l[end],a.operators[end],b,a.factor,0)
+        for i=length(a.operators)-2:-1:1
+            mul!(a.ket_l[i],a.operators[i+1],a.ket_l[i+1])
+        end
+        mul!(result,a.operators[1],a.ket_l[1],alpha,beta)
     end
-    mul!(result,a.operators[1],a.ket_l[2],alpha,beta)
     return result
 end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where {B1,B2}
-    mul!(b.bra_r[1],a,b.operators[1],b.factor,0)
-    for i=2:length(b.operators)-1
-        mul!(b.bra_r[i],b.bra_r[i-1],b.operators[i])
+    if length(b.operators)==1
+        mul!(result, a, b.operators[1],b.factor*alpha,beta)
+    else
+        mul!(b.bra_r[1], a, b.operators[1], b.factor,0)
+        for i=2:length(b.operators)-1
+            mul!(b.bra_r[i],b.bra_r[i-1],b.operators[i])
+        end
+        mul!(result,b.bra_r[end],b.operators[end],alpha,beta)
     end
-    mul!(result,b.bra_r[end-1],b.operators[end],alpha,beta)
     return result
 end
 
