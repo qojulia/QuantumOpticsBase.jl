@@ -1,6 +1,6 @@
 import Base: position
 using FFTW
-
+include("turbo.jl")
 """
     PositionBasis(xmin, xmax, Npoints)
     PositionBasis(b::MomentumBasis)
@@ -504,13 +504,15 @@ tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(
 function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
     N = length(M.basis_r)
     if iszero(beta)
-        @inbounds for i=1:N
-            result.data[i] = M.mul_before[i] * b.data[i]
-        end
+        cvec_elmul!(result.data, M.mul_before, b.data)
+        # @inbounds for i=1:N
+        #     result.data[i] = M.mul_before[i] * b.data[i]
+        # end
         M.fft_r! * reshape(result.data, size(M.mul_before))
-        @inbounds for i=1:N
-            result.data[i] *= M.mul_after[i] * alpha
-        end
+        cvec_elmul!(result.data, result.data, M.mul_after, alpha)
+        # @inbounds for i=1:N
+        #     result.data[i] *= M.mul_after[i] * alpha
+        # end
     else
         psi_ = Ket(M.basis_l, copy(b.data))
         @inbounds for i=1:N
