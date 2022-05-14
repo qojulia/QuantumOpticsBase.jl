@@ -501,8 +501,7 @@ dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
 tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r))
 tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
 
-function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
-    N = length(M.basis_r)
+function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}    
     if iszero(beta)
         cvec_elmul!(result.data, M.mul_before, b.data)
         # @inbounds for i=1:N
@@ -514,6 +513,7 @@ function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where
         #     result.data[i] *= M.mul_after[i] * alpha
         # end
     else
+        N = length(M.basis_r)
         psi_ = Ket(M.basis_l, copy(b.data))
         cvec_elmul!(psi_.data, psi_.data, M.mul_before)
         # @inbounds for i=1:N
