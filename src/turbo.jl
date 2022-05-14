@@ -1,14 +1,14 @@
 using LoopVectorization
-function cvec_elmul!(cc::AbstractVector{Complex{T}}, ca::AbstractVector{Complex{T}}, cb::AbstractVector{Complex{T}}) where {T}
+function cvec_elmul!(cc::AbstractArray{Complex{T},N1}, ca::AbstractArray{Complex{T},N2}, cb::AbstractArray{Complex{T},N3}) where {T,N1,N2,N3}
     return cvec_elmul!(cc, ca, cb, true)
 end
-function cvec_elmul!(cc::AbstractVector{Complex{T}}, ca::AbstractVector{Complex{T}}, cb::AbstractVector{Complex{T}}, alpha::Union{Real,Bool}) where {T}
-    c = reinterpret(reshape, T, cc)
-    a = reinterpret(reshape, T, ca)
-    b = reinterpret(reshape, T, cb)
+function cvec_elmul!(cc::AbstractArray{Complex{T},N1}, ca::AbstractArray{Complex{T},N2}, cb::AbstractArray{Complex{T},N3}, alpha::Union{Real,Bool}) where {T,N1,N2,N3}
+    c = reinterpret(reshape, T,  vec(view(cc,ntuple(i->:,N1)...)))
+    a = reinterpret(reshape, T,  vec(view(ca,ntuple(i->:,N2)...)))
+    b = reinterpret(reshape, T,  vec(view(cb,ntuple(i->:,N3)...)))
     re = zero(T)
     im = zero(T)
-    @tturbo for i in eachindex(cc, ca, cb)
+    @tturbo for i in eachindex(axes(c,2), axes(a,2), axes(b,2))
         re = a[1, i] * b[1, i] - a[2, i] * b[2, i]
         im = a[1, i] * b[2, i] + a[2, i] * b[1, i]
         c[1,i]=re * alpha
@@ -16,13 +16,13 @@ function cvec_elmul!(cc::AbstractVector{Complex{T}}, ca::AbstractVector{Complex{
     end
 end
 
-function cvec_elmul!(cc::AbstractVector{Complex{T}}, ca::AbstractVector{Complex{T}}, cb::AbstractVector{Complex{T}}, calpha::Complex{T}) where {T}
-    c = reinterpret(reshape, T, cc)
-    a = reinterpret(reshape, T, ca)
-    b = reinterpret(reshape, T, cb)
+function cvec_elmul!(cc::AbstractArray{Complex{T},N1}, ca::AbstractArray{Complex{T},N2}, cb::AbstractArray{Complex{T},N3}, calpha::Complex{T}) where {T,N1,N2,N3}
+    c = reinterpret(reshape, T,  vec(view(cc,ntuple(i->:,N1)...)))
+    a = reinterpret(reshape, T,  vec(view(ca,ntuple(i->:,N2)...)))
+    b = reinterpret(reshape, T,  vec(view(cb,ntuple(i->:,N3)...)))
     re = zero(T)
     im = zero(T)
-    @tturbo for i in eachindex(cc, ca, cb)
+    @tturbo for i in eachindex(axes(c,2), axes(a,2), axes(b,2))
         re = a[1, i] * b[1, i] - a[2, i] * b[2, i]
         im = a[1, i] * b[2, i] + a[2, i] * b[1, i]
         c[1,i]=re * calpha.re - im * calpha.im

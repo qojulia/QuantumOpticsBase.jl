@@ -515,9 +515,10 @@ function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where
         # end
     else
         psi_ = Ket(M.basis_l, copy(b.data))
-        @inbounds for i=1:N
-            psi_.data[i] *= M.mul_before[i]
-        end
+        cvec_elmul!(psi_.data, psi_.data, M.mul_before)
+        # @inbounds for i=1:N
+        #     psi_.data[i] *= M.mul_before[i]
+        # end
         M.fft_r! * reshape(psi_.data, size(M.mul_before))
         @inbounds for i=1:N
             result.data[i] = beta*result.data[i] + alpha * psi_.data[i] * M.mul_after[i]
