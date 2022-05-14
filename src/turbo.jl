@@ -3,9 +3,9 @@ function cvec_elmul!(cc::AbstractArray{Complex{T},N1}, ca::AbstractArray{Complex
     return cvec_elmul!(cc, ca, cb, true)
 end
 function cvec_elmul!(cc::AbstractArray{Complex{T},N1}, ca::AbstractArray{Complex{T},N2}, cb::AbstractArray{Complex{T},N3}, alpha::Union{Real,Bool}) where {T,N1,N2,N3}
-    c = reinterpret(reshape, T,  vec(view(cc,ntuple(i->:,N1)...)))
-    a = reinterpret(reshape, T,  vec(view(ca,ntuple(i->:,N2)...)))
-    b = reinterpret(reshape, T,  vec(view(cb,ntuple(i->:,N3)...)))
+    c = reinterpret(reshape, T,  vec(cc))
+    a = reinterpret(reshape, T,  vec(ca))
+    b = reinterpret(reshape, T,  vec(cb))
     re = zero(T)
     im = zero(T)
     @tturbo for i in eachindex(axes(c,2), axes(a,2), axes(b,2))
@@ -17,9 +17,9 @@ function cvec_elmul!(cc::AbstractArray{Complex{T},N1}, ca::AbstractArray{Complex
 end
 
 function cvec_elmul!(cc::AbstractArray{Complex{T},N1}, ca::AbstractArray{Complex{T},N2}, cb::AbstractArray{Complex{T},N3}, calpha::Complex{T}) where {T,N1,N2,N3}
-    c = reinterpret(reshape, T,  vec(view(cc,ntuple(i->:,N1)...)))
-    a = reinterpret(reshape, T,  vec(view(ca,ntuple(i->:,N2)...)))
-    b = reinterpret(reshape, T,  vec(view(cb,ntuple(i->:,N3)...)))
+    c = reinterpret(reshape, T,  vec(cc))
+    a = reinterpret(reshape, T,  vec(ca))
+    b = reinterpret(reshape, T,  vec(cb))
     re = zero(T)
     im = zero(T)
     @tturbo for i in eachindex(axes(c,2), axes(a,2), axes(b,2))
