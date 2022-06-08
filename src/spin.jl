@@ -14,7 +14,7 @@ struct SpinBasis{S,T} <: Basis
         n = numerator(spinnumber)
         d = denominator(spinnumber)
         @assert d==2 || d==1
-        @assert n > 0
+        @assert n >= 0
         N = numerator(spinnumber*2 + 1)
         new{spinnumber,T}([N], spinnumber)
     end

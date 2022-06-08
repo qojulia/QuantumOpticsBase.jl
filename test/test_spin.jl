@@ -9,7 +9,7 @@ D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1
 # Test creation
 @test_throws AssertionError SpinBasis(1//3)
 @test_throws AssertionError SpinBasis(-1//2)
-@test_throws AssertionError SpinBasis(0)
+@test_throws AssertionError SpinBasis(-1)
 
 
 for spinnumber=[1//2, 1, 3//2, 4//2]
