@@ -344,7 +344,7 @@ function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only=fals
         throw(IncompatibleBases())
     end
     mul_before = exp.(-1im*basis_l.pmin*(samplepoints(basis_r) .- basis_r.xmin))
-    mul_after = exp.(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(basis_r.N)
+    mul_after = exp.(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(typeof(dx)(basis_r.N))
     x = Vector{eltype(mul_before)}(undef, length(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), mul_before, mul_after)
@@ -369,7 +369,7 @@ function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only=fals
         throw(IncompatibleBases())
     end
     mul_before = exp.(1im*basis_l.xmin*(samplepoints(basis_r) .- basis_r.pmin))
-    mul_after = exp.(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(basis_r.N)
+    mul_after = exp.(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(typeof(dx)(basis_r.N))
     x = Vector{eltype(mul_before)}(undef, length(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), mul_before, mul_after)
@@ -422,7 +422,7 @@ function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
 
     if index[1] == 1
         mul_before = exp.(1im*basis_l.bases[1].xmin*(samplepoints(basis_r.bases[1]) .- basis_r.bases[1].pmin))
-        mul_after = exp.(1im*basis_r.bases[1].pmin*samplepoints(basis_l.bases[1]))/sqrt(basis_r.bases[1].N)
+        mul_after = exp.(1im*basis_r.bases[1].pmin*samplepoints(basis_l.bases[1]))/sqrt(typeof(dx)(basis_r.bases[1].N))
     else
         mul_before = ones(N[1])
         mul_after = ones(N[1])
@@ -430,7 +430,7 @@ function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
     for i=2:n
         if any(i .== index)
             mul_before = kron(exp.(1im*basis_l.bases[i].xmin*(samplepoints(basis_r.bases[i]) .- basis_r.bases[i].pmin)), mul_before)
-            mul_after = kron(exp.(1im*basis_r.bases[i].pmin*samplepoints(basis_l.bases[i]))/sqrt(basis_r.bases[i].N), mul_after)
+            mul_after = kron(exp.(1im*basis_r.bases[i].pmin*samplepoints(basis_l.bases[i]))/sqrt(typeof(dx)(basis_r.bases[i].N)), mul_after)
         else
             mul_before = kron(ones(N[i]), mul_before)
             mul_after = kron(ones(N[i]), mul_after)
@@ -467,7 +467,7 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
 
     if index[1] == 1
         mul_before = exp.(-1im*basis_l.bases[1].pmin*(samplepoints(basis_r.bases[1]) .- basis_r.bases[1].xmin))
-        mul_after = exp.(-1im*basis_r.bases[1].xmin*samplepoints(basis_l.bases[1]))/sqrt(N[1])
+        mul_after = exp.(-1im*basis_r.bases[1].xmin*samplepoints(basis_l.bases[1]))/sqrt(typeof(dx)(N[1]))
     else
         mul_before = ones(N[1])
         mul_after = ones(N[1])
@@ -475,7 +475,7 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
     for i=2:n
         if i in index
             mul_before = kron(exp.(-1im*basis_l.bases[i].pmin*(samplepoints(basis_r.bases[i]) .- basis_r.bases[i].xmin)), mul_before)
-            mul_after = kron(exp.(-1im*basis_r.bases[i].xmin*samplepoints(basis_l.bases[i]))/sqrt(N[i]), mul_after)
+            mul_after = kron(exp.(-1im*basis_r.bases[i].xmin*samplepoints(basis_l.bases[i]))/sqrt(typeof(dx)(N[i])), mul_after)
         else
             mul_before = kron(ones(N[i]), mul_before)
             mul_after = kron(ones(N[i]), mul_after)
