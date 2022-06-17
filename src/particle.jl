@@ -340,7 +340,7 @@ function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only=fals
     Lx = (basis_r.xmax - basis_r.xmin)
     dp = spacing(basis_l)
     dx = spacing(basis_r)
-    if basis_l.N != basis_r.N || abs(2*pi/dp - Lx)/Lx > 1e-12
+    if basis_l.N != basis_r.N || abs(2*(pi/dp) - Lx)/Lx > eps(typeof(Lx))*100
         throw(IncompatibleBases())
     end
     mul_before = exp.(-1im*basis_l.pmin*(samplepoints(basis_r) .- basis_r.xmin))
@@ -365,7 +365,7 @@ function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only=fals
     Lx = (basis_l.xmax - basis_l.xmin)
     dp = spacing(basis_r)
     dx = spacing(basis_l)
-    if basis_l.N != basis_r.N || abs(2*pi/dp - Lx)/Lx > 1e-12
+    if basis_l.N != basis_r.N || abs(2*(pi/dp) - Lx)/Lx > eps(typeof(Lx))*100
         throw(IncompatibleBases())
     end
     mul_before = exp.(1im*basis_l.xmin*(samplepoints(basis_r) .- basis_r.pmin))
@@ -415,7 +415,7 @@ function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
         end
     end
     for i=1:length(index)
-        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > 1e-12
+        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > eps(typeof(Lx))*100
             throw(IncompatibleBases())
         end
     end
@@ -460,7 +460,7 @@ function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
         end
     end
     for i=1:length(index)
-        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > 1e-12
+        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > eps(typeof(Lx))*100
             throw(IncompatibleBases())
         end
     end
