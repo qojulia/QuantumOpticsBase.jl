@@ -202,7 +202,7 @@ identityoperator(::Type{LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where T<:N
 ## LazyTensor global cache
 
 function lazytensor_default_cache_size()
-    return min(1<<32, Int(Sys.total_memory())>>2)
+    return Int(min(1<<32, Sys.total_memory()>>2, typemax(Int)))
 end
 
 # NOTE: By specifying a union type here, the compiler should find it easy to
