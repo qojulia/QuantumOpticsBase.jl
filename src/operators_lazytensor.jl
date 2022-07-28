@@ -199,6 +199,70 @@ end
 
 identityoperator(::Type{LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where T<:Number = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
+## LazyTensor global cache
+
+function lazytensor_default_cache_size()
+    return min(1<<32, Int(Sys.total_memory())>>2)
+end
+
+# NOTE: By specifying a union type here, the compiler should find it easy to
+#       automatically specialize on the vector types and avoid runtime dispatch.
+const LazyTensorCacheable = Union{Vector{ComplexF64}, Vector{ComplexF32}, Vector{Float64}, Vector{Float32}}
+const lazytensor_cache = LRU{Tuple{Symbol, UInt, UInt, DataType}, LazyTensorCacheable}(; maxsize=lazytensor_default_cache_size(), by=sizeof)
+
+taskid() = convert(UInt, pointer_from_objref(current_task()))
+const _lazytensor_use_cache = Ref(true)
+lazytensor_use_cache() = _lazytensor_use_cache[]
+function lazytensor_disable_cache()
+    _lazytensor_use_cache[] = false
+    return
+end
+
+"""
+    lazytensor_clear_cache()
+Clear the current contents of the cache.
+"""
+function lazytensor_clear_cache()
+    empty!(lazytensor_cache)
+    return
+end
+
+"""
+    lazytensor_cachesize()
+Return the current memory size (in bytes) of all the objects in the cache.
+"""
+lazytensor_cachesize() = lazytensor_cache.currentsize
+
+"""
+    lazytensor_disable_cache()
+Disable the cache for further use but does not clear its current contents.
+Also see [`lazytensor_clear_cache()`](@ref)
+"""
+function lazytensor_disable_cache()
+    _lazytensor_use_cache[] = false
+    return
+end
+
+"""
+    lazytensor_enable_cache(; maxsize::Int = ..., maxrelsize::Real = ...)
+(Re)-enable the cache for further use; set the maximal size `maxsize` (as number of bytes)
+or relative size `maxrelsize`, as a fraction between 0 and 1, resulting in
+`maxsize = floor(Int, maxrelsize * Sys.total_memory())`. Default value is `maxsize = 2^32` bytes, which amounts to 4 gigabytes of memory.
+"""
+function lazytensor_enable_cache(; maxsize::Int = -1, maxrelsize::Real = 0.0)
+    if maxsize == -1 && maxrelsize == 0.0
+        maxsize = lazytensor_default_cache_size()
+    elseif maxrelsize > 0
+        maxsize = max(maxsize, floor(Int, maxrelsize*Sys.total_memory()))
+    else
+        @assert maxsize >= 0
+    end
+    _lazytensor_use_cache[] = true
+    resize!(lazytensor_cache; maxsize = maxsize)
+    return
+end
+
+
 function _tp_matmul_first!(result, a::AbstractMatrix, b, α::Number, β::Number)
     br = reshape(b, size(b, 1), :)
     result_r = reshape(result, size(a, 1), size(br, 2))
@@ -213,28 +277,20 @@ function _tp_matmul_last!(result, a::AbstractMatrix, b, α::Number, β::Number)
     result
 end
 
-# FIXME: Finish this by specifying a better maxsize.
-const lazytensor_cache = LRU{Any,Any}(; maxsize=2*10^9, by=sizeof)
-# FIXME: Make this toggleable.
-#        Is there a sensible way to turn the cache on only during
-#        relevant operations? QuantumOptics could turn it on while doing
-#        integration and other loops... Is it even bad if it is turned on by
-#        default? Python keeps a memory pool anyway... does Julia?
-#        Do other einsum/contraction packages do this differently?
-lazytensor_use_cache() = true
-
-taskid() = convert(UInt, pointer_from_objref(current_task()))
-
 function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym) where {T,N}
-    if lazytensor_use_cache()
-        tmp::Array{T,N} = get!(lazytensor_cache, (sym, taskid(), T, shp)) do
-            Array{T,N}(undef, shp...)
+    len = prod(shp)
+    use_cache = lazytensor_use_cache()
+    key = (sym, taskid(), UInt(len), T)
+    if use_cache && Vector{T} <: LazyTensorCacheable
+        cached = get!(lazytensor_cache, key) do
+            Vector{T}(undef, len)
         end
+        # Let's make sure the compiler knows we have the right type
+        tmp = Vector{T}(cached)
     else
-        tmp = Array{T,N}(undef, shp...)
+        tmp = Vector{T}(undef, len)
     end
-
-    tmp
+    Base.ReshapedArray(tmp, shp, ())
 end
 
 function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
@@ -249,18 +305,20 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
 
     # TODO: Perhaps we should avoid reshaping here... should be possible to infer
     # contraction index tuple sizes
-    br = reshape(b, sz_b_1, size(b, loc), sz_b_3)
-    result_r = reshape(result, sz_b_1, size(a, 1), sz_b_3)
+    br = Base.ReshapedArray(b, (sz_b_1, size(b, loc), sz_b_3), ())
+    result_r = Base.ReshapedArray(result, (sz_b_1, size(a, 1), sz_b_3), ())
 
     # Try to "minimize" the transpose for efficiency.
     move_left = sz_b_1 < sz_b_3
-    perm = move_left ? [2,1,3] : [1,3,2]
+    perm = move_left ? (2,1,3) : (1,3,2)
 
-    br_p = _tp_matmul_get_tmp(eltype(br), size(br)[perm], :_tp_matmul_mid_in)
-    permutedims!(br_p, br, perm)  # TODO: Replace with Strided.jl implementation
+    br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in)
+    @strided permutedims!(br_p, br, perm)
+    #permutedims!(br_p, br, perm)
 
-    result_r_p = _tp_matmul_get_tmp(eltype(result_r), size(result_r)[perm], :_tp_matmul_mid_out)
-    β == 0.0 || permutedims!(result_r_p, result_r, perm)  # TODO: Replace with Strided.jl implementation
+    result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out)
+    β == 0.0 || @strided permutedims!(result_r_p, result_r, perm)
+    #β == 0.0 || permutedims!(result_r_p, result_r, perm)
 
     if move_left
         _tp_matmul_first!(result_r_p, a, br_p, α, β)
@@ -268,7 +326,8 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
         _tp_matmul_last!(result_r_p, a, br_p, α, β)
     end
 
-    permutedims!(result_r, result_r_p, perm)  # TODO: Replace with Strided.jl implementation
+    @strided permutedims!(result_r, result_r_p, perm)
+    #permutedims!(result_r, result_r_p, perm)
     
     result
 end
@@ -299,13 +358,15 @@ function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β:
     _tp_matmul_mid!(result, a, loc, b, α, β)
 end
 
-function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{T,N}, sym) where {T,N}
+function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{S,N}, sym) where {T,S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    _tp_matmul_get_tmp(T, shp, sym)
+    _tp_matmul_get_tmp(promote_type(T,S), shp, sym)
 end
 
 #Apply a tensor product of operators to a vector.
 function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
+    iszero(alpha) && return rmul!(result_data, beta)
+
     if iso_ops === nothing
         n_ops = length(tp_ops[1])
         ops = zip(tp_ops...)
@@ -330,7 +391,7 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         _tp_matmul!(result_data, op2..., tmp, one(alpha), beta)
     else
         # At least two temporary vectors needed.
-        # Symbols identify computation stages in the TensorOperations cache.
+        # Symbols identify computation stages in the cache.
         sym1 = :_tp_sum_matmul_tmp1
         sym2 = :_tp_sum_matmul_tmp2
 
@@ -384,21 +445,20 @@ function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β
 
     if β != 0
         rmul!(result, β)
-        result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+        @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
     else
-        result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
-        result_r[:, d+1:end, :] .= zero(eltype(result))
+        @strided result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
+        @strided result_r[:, d+1:end, :] .= zero(eltype(result))
     end
 
     result
 end
 
 function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
-    indices = Set(used_indices)
     isos = nothing
     iso_inds = nothing
     for (i, (sl, sr)) in enumerate(zip(_comp_size(bl), _comp_size(br)))
-        if (sl != sr) && !(i + shift in indices)
+        if (sl != sr) && !(i + shift in used_indices)
             if isos === nothing
                 isos = [_SimpleIsometry(sl, sr)]
                 iso_inds = [i + shift]

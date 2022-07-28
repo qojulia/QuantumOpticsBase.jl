@@ -176,24 +176,37 @@ op_ = 0.1*subop1 ⊗ I2 ⊗ subop3
 @test 1e-14 > D(permutesystems(op, [3, 2, 1]), permutesystems(op_, [3, 2, 1]))
 
 
-# Test gemv
-subop1 = randoperator(b1a, b1b)
-subop2 = randoperator(b2a, b2b)
-subop3 = randoperator(b3a, b3b)
-op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, sparse(subop3)))*0.1
+# Test gemv, mixing precisions
+subop1 = randoperator(ComplexF32, b1a, b1b)
+subop2 = randoperator(b2b, b2a)'  # test adjoint explicitly
+subop3 = randoperator(b3b, b3a)'  # test adjoint explicitly
+op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, subop3))*0.1
 op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
-state = Ket(b_r, rand(ComplexF64, length(b_r)))
+state = Ket(b_r, rand(ComplexF32, length(b_r)))
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
-@test 1e-13 > D(result, op_*state)
+@test 1e-6 > D(result, op_*state)
+
+@test lazytensor_cachesize() > 0  # the cache should have some entries by now
+
+lazytensor_disable_cache()
+QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
+@test 1e-6 > D(result, op_*state)
+
+lazytensor_enable_cache(; maxsize=8)  # tiny cache that won't hold anything
+
+@test lazytensor_cachesize() <= 8
 
 result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
-@test 1e-13 > D(result, alpha*op_*state + beta*result_)
+@test 1e-6 > D(result, alpha*op_*state + beta*result_)
+
+lazytensor_clear_cache()
+lazytensor_enable_cache()
 
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
 result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
