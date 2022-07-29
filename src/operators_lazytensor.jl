@@ -213,10 +213,6 @@ const lazytensor_cache = LRU{Tuple{Symbol, UInt, UInt, DataType}, LazyTensorCach
 taskid() = convert(UInt, pointer_from_objref(current_task()))
 const _lazytensor_use_cache = Ref(true)
 lazytensor_use_cache() = _lazytensor_use_cache[]
-function lazytensor_disable_cache()
-    _lazytensor_use_cache[] = false
-    return
-end
 
 """
     lazytensor_clear_cache()
