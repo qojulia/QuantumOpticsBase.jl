@@ -181,12 +181,16 @@ subop1 = randoperator(ComplexF32, b1a, b1b)
 subop2 = randoperator(b2b, b2a)'  # test adjoint explicitly
 subop3 = randoperator(b3b, b3a)'  # test adjoint explicitly
 op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, subop3))*0.1
+op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
 op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
 state = Ket(b_r, rand(ComplexF32, length(b_r)))
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
+@test 1e-6 > D(result, op_*state)
+
+QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
 @test 1e-6 > D(result, op_*state)
 
 @test lazytensor_cachesize() > 0  # the cache should have some entries by now
@@ -205,6 +209,10 @@ beta = complex(2.1)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-6 > D(result, alpha*op_*state + beta*result_)
 
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
+@test 1e-6 > D(result, alpha*op_*state + beta*result_)
+
 lazytensor_clear_cache()
 lazytensor_enable_cache()
 
@@ -215,9 +223,17 @@ QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-13 > D(result, state*op_)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,op_sp,complex(1.),complex(0.))
+@test 1e-13 > D(result, state*op_)
+
+result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,state,op,alpha,beta)
+@test 1e-13 > D(result, alpha*state*op_ + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,op_sp,alpha,beta)
 @test 1e-13 > D(result, alpha*state*op_ + beta*result_)
 
 # Test gemm
@@ -227,6 +243,7 @@ subop1 = randoperator(b1a, b1b)
 subop2 = randoperator(b2a, b2b)
 subop3 = randoperator(b3a, b3b)
 op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, sparse(subop3)))*0.1
+op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
 op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
 state = randoperator(b_r, b_r2)
@@ -236,9 +253,17 @@ QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-12 > D(result, op_*state)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
+@test 1e-12 > D(result, op_*state)
+
+result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
 state = randoperator(b_l2, b_l)
@@ -248,9 +273,17 @@ QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*op_)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,op_sp,complex(1.),complex(0.))
+@test 1e-12 > D(result, state*op_)
+
+result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,state,op,alpha,beta)
+@test 1e-12 > D(result, alpha*state*op_ + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,op_sp,alpha,beta)
 @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
 
 # Test calling gemv with non-complex factors
@@ -260,10 +293,18 @@ result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state)
 @test 1e-13 > D(result, op_*state)
 
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op_sp,state)
+@test 1e-13 > D(result, op_*state)
+
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
 result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op)
+@test 1e-13 > D(result, state*op_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,op_sp)
 @test 1e-13 > D(result, state*op_)
 
 # Test gemm errors
