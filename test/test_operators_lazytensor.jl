@@ -86,7 +86,12 @@ x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
-# Addition
+# Allowed addition
+fac = randn()
+@test dense(op3 + fac * op3) ≈ dense(op3) * (1 + fac)
+@test dense(op3 - fac * op3) ≈ dense(op3) * (1 - fac)
+
+# Forbidden addition
 @test_throws ArgumentError op1 + op2
 @test_throws ArgumentError op1 - op2
 @test 1e-14 > D(-op1_, -op1)
@@ -196,10 +201,13 @@ QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
 @test lazytensor_cachesize() > 0  # the cache should have some entries by now
 
 lazytensor_disable_cache()
+@test !QuantumOpticsBase.lazytensor_use_cache()
+
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-6 > D(result, op_*state)
 
 lazytensor_enable_cache(; maxsize=8)  # tiny cache that won't hold anything
+@test QuantumOpticsBase.lazytensor_use_cache()
 
 @test lazytensor_cachesize() <= 8
 
@@ -306,6 +314,27 @@ QuantumOpticsBase.mul!(result,state,op)
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op_sp)
 @test 1e-13 > D(result, state*op_)
+
+# Test scaled isometry action
+op = LazyTensor(b_l, b_r, (), (), 0.5)
+op_ = sparse(op)
+state = randoperator(b_r, b_r2)
+result_ = randoperator(b_l, b_r2)
+alpha = complex(1.5)
+beta = complex(2.1)
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+
+# Test single operator
+op = LazyTensor(b_l, b_r, [1], (subop1,), 0.5)
+op_ = sparse(op)
+alpha = complex(1.5)
+beta = complex(2.1)
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+
 
 # Test gemm errors
 test_op = test_lazytensor(b1a, b1a, rand(2, 2))

@@ -426,6 +426,11 @@ end
 Base.size(A::_SimpleIsometry) = A.shape
 Base.size(A::_SimpleIsometry, i) = A.shape[i]
 
+function _tp_sum_get_tmp(op::_SimpleIsometry, loc::Integer, arr::AbstractArray{S,N}, sym) where {S,N}
+    shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
+    _tp_matmul_get_tmp(S, shp, sym)
+end
+
 function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β::Number)
     shp_b_1 = 1
     for i in 1:loc-1
@@ -477,24 +482,6 @@ end
 # To get the shape of a CompositeBasis with number of dims inferrable at compile-time 
 _comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
 _comp_size(b::Basis) = (length(b),)
-
-function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if all(o isa SparseOpPureType for o in a.operators)
-        return _mul_puresparse!(result, a, b, alpha, beta)
-    end
-
-    # We reshape here so that we have the proper shape information for the
-    # tensor contraction later on. Using ReshapedArray vs. reshape() avoids
-    # an allocation.
-    b_data = Base.ReshapedArray(b.data, _comp_size(basis(b)), ())
-    result_data = Base.ReshapedArray(result.data, _comp_size(basis(result)), ())
-
-    tp_ops = (tuple((op.data for op in a.operators)...), a.indices)
-    iso_ops = _explicit_isometries(a.indices, a.basis_l, a.basis_r)
-    _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha * a.factor, beta)
-
-    result
-end
 
 function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, beta) where {B1,B2, F,I,T<:Tuple{Vararg{DataOperator}}}
     if all(o isa SparseOpPureType for o in a.operators)
