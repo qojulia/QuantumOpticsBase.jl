@@ -223,6 +223,7 @@ QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
 
 lazytensor_clear_cache()
 lazytensor_enable_cache(; maxsize=2^30, maxrelsize=2^30 / Sys.total_memory())
+lazytensor_enable_cache()
 
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
 result_ = Bra(b_r, rand(ComplexF64, length(b_r)))

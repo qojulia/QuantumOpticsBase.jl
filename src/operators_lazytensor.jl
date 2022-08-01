@@ -329,22 +329,20 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
 end
 
 function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
-    """Apply a matrix `α * a` to one tensor factor of a tensor `b`.
-
-    If β is nonzero, add to β times `result`. In other words, we do:
-
-    result = α * a * b + β * result 
-
-    Parameters:
-        result: Array to hold the output tensor.
-        a: Matrix to apply.
-        loc: Index of the dimension of `b` to which `a` should be applied.
-        b: Array containing the tensor to which `a` should be applied.
-        α: Factor multiplying `a`.
-        β: Factor multiplying `result`.
-    Returns:
-        The modified `result`.
-    """
+    # Apply a matrix `α * a` to one tensor factor of a tensor `b`.
+    # If β is nonzero, add to β times `result`. In other words, we do:
+    # result = α * a * b + β * result 
+    #
+    # Parameters:
+    #     result: Array to hold the output tensor.
+    #     a: Matrix to apply.
+    #     loc: Index of the dimension of `b` to which `a` should be applied.
+    #     b: Array containing the tensor to which `a` should be applied.
+    #     α: Factor multiplying `a`.
+    #     β: Factor multiplying `result`.
+    # Returns:
+    #     The modified `result`.
+    #
     # Use GEMM directly where possible, otherwise we have to permute
     if loc == 1
         return _tp_matmul_first!(result, a, b, α, β)
