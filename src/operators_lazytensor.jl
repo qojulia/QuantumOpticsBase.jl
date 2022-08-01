@@ -249,7 +249,7 @@ function lazytensor_enable_cache(; maxsize::Int = -1, maxrelsize::Real = 0.0)
     if maxsize == -1 && maxrelsize == 0.0
         maxsize = lazytensor_default_cache_size()
     elseif maxrelsize > 0
-        maxsize = Int(max(maxsize, floor(Int64, maxrelsize*Sys.total_memory())))
+        maxsize = max(maxsize, floor(Int, maxrelsize*Sys.total_memory()))
     else
         @assert maxsize >= 0
     end
