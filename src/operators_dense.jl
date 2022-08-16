@@ -1,4 +1,4 @@
-import Base: ==, +, -, *, /, Broadcast
+import Base: isequal, ==, +, -, *, /, Broadcast
 import Adapt
 using Base.Cartesian
 
@@ -58,6 +58,7 @@ Convert an arbitrary Operator into a [`DenseOperator`](@ref).
 """
 dense(x::AbstractOperator) = DenseOperator(x)
 
+isequal(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL,BR} = (samebases(x,y) && isequal(x.data, y.data))
 ==(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL,BR} = (samebases(x,y) && x.data==y.data)
 ==(x::DataOperator, y::DataOperator) = false
 Base.isapprox(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}; kwargs...) where {BL,BR} = (samebases(x,y) && isapprox(x.data, y.data; kwargs...))

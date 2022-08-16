@@ -39,6 +39,8 @@ op2 = sparse(DenseOperator(b1b, b1a, [1 1; 1 1; 1 1]))
 # Test copy
 op1 = sparse(randoperator(b1a))
 op2 = copy(op1)
+@test isequal(op1, op2)
+@test op1 == op2
 @test !(op1.data === op2.data)
 op2.data[1,1] = complex(10.)
 @test op1.data[1,1] != op2.data[1,1]

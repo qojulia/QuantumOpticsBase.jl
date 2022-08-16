@@ -1,4 +1,4 @@
-import Base: ==, *, /, +, -
+import Base: isqeual, ==, *, /, +, -
 
 """
     LazyProduct(operators[, factor=1])
@@ -50,7 +50,8 @@ dense(op::LazyProduct{B1,B2,F,T}) where {B1,B2,F,T<:Tuple{AbstractOperator}} = o
 SparseArrays.sparse(op::LazyProduct) = op.factor*prod(sparse.(op.operators))
 SparseArrays.sparse(op::LazyProduct{B1,B2,F,T}) where {B1,B2,F,T<:Tuple{AbstractOperator}} = op.factor*sparse(op.operators[1])
 
-==(x::LazyProduct{B1,B2}, y::LazyProduct{B1,B2}) where {B1,B2} = (x.basis_l == y.basis_l && x.basis_r == y.basis_r && x.operators==y.operators && x.factor == y.factor)
+isequal(x::LazyProduct{B1,B2}, y::LazyProduct{B1,B2}) where {B1,B2} = (samebases(x,y) && isequal(x.operators, y.operators) && isequal(x.factor, y.factor))
+==(x::LazyProduct{B1,B2}, y::LazyProduct{B1,B2}) where {B1,B2} = (samebases(x,y) && x.operators==y.operators && x.factor == y.factor)
 
 # Arithmetic operations
 -(a::T) where T<:LazyProduct = T(a.operators,a.ket_l,a.bra_r, -a.factor)

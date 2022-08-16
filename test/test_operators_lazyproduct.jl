@@ -29,6 +29,7 @@ b_r = b1b⊗b2b⊗b3b
 op1 = 2*LazyProduct(randoperator(b_l, b_r), sparse(randoperator(b_r, b_l)))
 op2 = copy(op1)
 @test op1 == op2
+@test isequal(op1, op2)
 @test !(op1 === op2)
 op2.operators[1].data[1,1] = complex(10.)
 @test op1.operators[1].data[1,1] != op2.operators[1].data[1,1]

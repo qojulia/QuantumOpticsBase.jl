@@ -45,6 +45,7 @@ x = randoperator(b2a)
 x = 2*LazyTensor(b_l, b_r, [1,2], (randoperator(b1a, b1b), sparse(randoperator(b2a, b2b))))
 x_ = copy(x)
 @test x == x_
+@test isequal(x, x_)
 @test !(x === x_)
 x_.operators[1].data[1,1] = complex(10.)
 @test x.operators[1].data[1,1] != x_.operators[1].data[1,1]

@@ -1,4 +1,4 @@
-import Base: ==, *, /, +, -
+import Base: isequal, ==, *, /, +, -
 import SparseArrays: sparse, spzeros
 
 """
@@ -46,7 +46,8 @@ Base.eltype(x::LazySum) = promote_type(eltype(x.factors), eltype.(x.operators)..
 dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
 SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* sparse.(op.operators)) : Operator(op.basis_l, op.basis_r, spzeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
 
-==(x::LazySum, y::LazySum) = (x.basis_l == y.basis_l && x.basis_r == y.basis_r && x.operators==y.operators && x.factors==y.factors)
+isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.operators) && isequal(x.factors, y.factors)
+==(x::LazySum, y::LazySum) = (samebases(x,y) && x.operators==y.operators && x.factors==y.factors)
 
 # Arithmetic operations
 +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2} = LazySum([a.factors; b.factors], (a.operators..., b.operators...))
