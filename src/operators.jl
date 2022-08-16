@@ -119,7 +119,7 @@ end
 Embed operator acting on a joint Hilbert space where missing indices are filled up with identity operators.
 """
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-               indices, op::T) where T<:AbstractOperator
+               indices, op::T) where T<:DataOperator
     N = length(basis_l.bases)
     @assert length(basis_r.bases) == N
 
@@ -166,6 +166,9 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
 
     return unpermuted_op
 end
+# The dictionary implementation works for non-DataOperators
+embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices, op::T) where T<:AbstractOperator = embed(basis_l, basis_r, Dict(indices=>op))
+
 embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::AbstractOperator) = embed(basis_l, basis_r, index, [op])
 embed(basis::CompositeBasis, indices, operators::Vector{T}) where {T<:AbstractOperator} = embed(basis, basis, indices, operators)
 embed(basis::CompositeBasis, indices, op::AbstractOperator) = embed(basis, basis, indices, op)
@@ -220,7 +223,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     indices_flat = [indices...;]
     start_indices_flat = [i[1] for i in indices]
     complement_indices_flat = Int[i for i=1:N if i ∉ indices_flat]
-    operators_flat = T[]
+    operators_flat = AbstractOperator[]
     if all([minimum(I):maximum(I);]==I for I in indices)
         for i in 1:N
             if i in complement_indices_flat

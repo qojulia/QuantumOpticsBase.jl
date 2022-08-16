@@ -42,6 +42,14 @@ op2 = sparse(randoperator(b_l, b_r))
 @test 0.1*op1 + 0.3*dense(op2) == dense(LazySum([0.1, 0.3], [op1, op2]))
 @test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], [op1, op2]))
 
+# Test embed
+x1 = randoperator(b1a,b1b)
+y1 = randoperator(b1a,b1b)
+xy1 = LazySum([1., 2.], (x1, y1))
+x = LazySum([1.], (embed(b_l, b_r, 1, x1),))
+y = LazySum([2.], (embed(b_l, b_r, 1, y1),))
+xy = x + y
+@test embed(b_l, b_r, [1], xy1) == xy
 
 # Arithmetic operations
 # =====================

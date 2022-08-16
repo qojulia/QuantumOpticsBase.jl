@@ -65,6 +65,16 @@ x = LazyTensor(b_l, b_r, [1, 3], (op1, sparse(op3)), 0.3)
 @test QuantumOpticsBase.suboperator(x, 3) == sparse(op3)
 @test QuantumOpticsBase.suboperators(x, [1, 3]) == [op1, sparse(op3)]
 
+# Test embed
+x_1 = LazyTensor(b_l, b_r, [1], (op1,), 0.3)
+x_1_sub = LazyTensor(b1a⊗b2a, b1b⊗b2b, [1], (op1,), 0.3)
+@test embed(b_l, b_r, Dict([1,2]=>x_1_sub)) == x_1
+@test embed(b_l, b_r, [1,2], x_1_sub) == x_1
+
+x_12 = LazyTensor(b1a⊗b3a, b1b⊗b3b, [1,2], (op1, sparse(op3)), 0.3)
+@test embed(b_l, b_r, Dict([1,3]=>x_12)) == x
+@test embed(b_l, b_r, [1,3], x_12) == x
+
 
 # Arithmetic operations
 # =====================

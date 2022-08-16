@@ -74,6 +74,9 @@ permutesystems(op::LazySum, perm) = LazySum(op.factors, ([permutesystems(op_i, p
 
 identityoperator(::Type{<:LazySum}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazySum(identityoperator(S, b1, b2))
 
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices, op::LazySum)
+    LazySum(basis_l, basis_r, op.factors, ((embed(basis_l, basis_r, indices, o) for o in op.operators)...,))
+end
 
 # Fast in-place multiplication
 function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
