@@ -88,10 +88,10 @@ function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1
     if length(a.operators) == 0
         result.data .*= beta
     else
-    mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
-    for i=2:length(a.operators)
-        mul!(result,a.operators[i],b,alpha*a.factors[i],1)
-    end
+        mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
+        for i=2:length(a.operators)
+            mul!(result,a.operators[i],b,alpha*a.factors[i],1)
+        end
     end
     return result
 end
@@ -100,9 +100,9 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1
     if length(b.operators) == 0
         result.data .*= beta
     else
-    mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
-    for i=2:length(b.operators)
-        mul!(result,a,b.operators[i],alpha*b.factors[i],1)
+        mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
+        for i=2:length(b.operators)
+            mul!(result,a,b.operators[i],alpha*b.factors[i],1)
         end
     end
     return result
@@ -112,9 +112,9 @@ function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha
     if length(a.operators) == 0
         result.data .*= beta
     else
-    mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
-    for i=2:length(a.operators)
-        mul!(result,a.operators[i],b,alpha*a.factors[i],1)
+        mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
+        for i=2:length(a.operators)
+            mul!(result,a.operators[i],b,alpha*a.factors[i],1)
         end
     end
     return result
@@ -123,9 +123,9 @@ function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha
     if length(b.operators) == 0
         result.data .*= beta
     else
-    mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
-    for i=2:length(b.operators)
-        mul!(result,a,b.operators[i],alpha*b.factors[i],1)
+        mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
+        for i=2:length(b.operators)
+            mul!(result,a,b.operators[i],alpha*b.factors[i],1)
         end
     end
     return result

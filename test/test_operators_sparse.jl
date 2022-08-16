@@ -6,7 +6,6 @@ using Random, SparseArrays, LinearAlgebra
 # Custom operator type for testing error msg
 mutable struct TestOperator{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}; end
 
-
 @testset "operators-sparse" begin
 
 Random.seed!(0)
