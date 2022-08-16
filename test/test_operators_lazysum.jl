@@ -22,7 +22,7 @@ b_r = b1b⊗b2b⊗b3b
 
 # Test creation
 @test_throws ArgumentError LazySum()
-@test_throws AssertionError LazySum([1., 2.], [randoperator(b_l)])
+@test_throws ArgumentError LazySum([1., 2.], [randoperator(b_l)])
 @test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_l)))
 @test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_r, b_r)))
 
@@ -176,6 +176,10 @@ op3 = randoperator(b_l, b_r)
 op = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
 op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
+zero_op = LazySum(b_l, b_r)
+zero_op_ = sparse(zero_op)
+@test dense(zero_op) == zero_op_
+
 state = Ket(b_r, rand(ComplexF64, length(b_r)))
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = deepcopy(result_)
@@ -183,16 +187,28 @@ QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-13 > D(result, op_*state)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,complex(1.),complex(0.))
+@test 1e-13 > D(result, zero_op_*state)
+
+result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-13 > D(result, alpha*op_*state + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,alpha,beta)
+@test 1e-13 > D(result, beta*result_)
 
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
 result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-13 > D(result, state*op_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,zero_op,complex(1.),complex(0.))
+@test 1e-13 > D(result, state*zero_op_)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
@@ -214,10 +230,18 @@ QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-12 > D(result, op_*state)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,complex(1.),complex(0.))
+@test 1e-12 > D(result, zero_op_*state)
+
 alpha = complex(1.5)
 beta = complex(2.1)
+result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,alpha,beta)
+@test 1e-12 > D(result, beta*result_)
 
 state = randoperator(b_l, b_l)
 result_ = randoperator(b_l, b_r)
@@ -226,9 +250,17 @@ QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*op_)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,zero_op,complex(1.),complex(0.))
+@test 1e-12 > D(result, state*zero_op_)
+
 alpha = complex(1.5)
 beta = complex(2.1)
+result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,zero_op,alpha,beta)
+@test 1e-12 > D(result, beta*result_)
 
 end # testset
