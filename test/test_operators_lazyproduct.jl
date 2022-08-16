@@ -124,11 +124,13 @@ op_ = 0.3*op1*op2*op3
 op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_r, b_l)
 op3 = randoperator(b_l, b_r)
-op = LazyProduct([op1, sparse(op2), op3], 0.2)
-op_ = 0.2*op1*op2*op3
+op4 = randoperator(b_r, b_l)
+for N=1:3
+    op = LazyProduct([op1, sparse(op2), op3, op4][1:N], 0.2)
+    op_ = 0.2*prod([op1,op2,op3,op4][1:N])
 
-state = Ket(b_r, rand(ComplexF64, length(b_r)))
-result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
+    state = randstate(iseven(N) ? b_l : b_r)
+    result_ = randstate(b_l)
 result = copy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-11 > D(result, op_*state)
@@ -140,7 +142,7 @@ QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
-result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
+    result_ = randstate(iseven(N) ? b_l : b_r)'
 result = copy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-11 > D(result, state*op_)
@@ -152,13 +154,7 @@ QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
 
 # Test gemm
-op1 = randoperator(b_l, b_r)
-op2 = randoperator(b_r, b_l)
-op3 = randoperator(b_l, b_r)
-op = LazyProduct([op1, sparse(op2), op3], 0.2)
-op_ = 0.2*op1*op2*op3
-
-state = randoperator(b_r, b_r)
+    state = randoperator(iseven(N) ? b_l : b_r, b_r)
 result_ = randoperator(b_l, b_r)
 result = copy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
@@ -171,7 +167,7 @@ QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
 state = randoperator(b_l, b_l)
-result_ = randoperator(b_l, b_r)
+    result_ = randoperator(b_l, iseven(N) ? b_l : b_r)
 result = copy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-11 > D(result, state*op_)
@@ -181,5 +177,6 @@ alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+end
 
 end # testset

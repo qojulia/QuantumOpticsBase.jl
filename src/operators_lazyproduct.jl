@@ -100,6 +100,9 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where
 end
 
 function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3,T}
+    if length(a.operators) == 1
+        mul!(result,a.operators[1],b,a.factor*alpha,beta)
+    else
     tmp1 = Operator(a.operators[end].basis_l,b.basis_r,similar(result.data,length(a.operators[end].basis_l),length(b.basis_r)))
     mul!(tmp1,a.operators[end],b,a.factor,0)
     for i=length(a.operators)-1:-1:2
@@ -108,10 +111,14 @@ function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3}
         tmp1 = tmp2
     end
     mul!(result,a.operators[1],tmp1,alpha,beta)
+    end
     return result
 end
 
 function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3},alpha,beta) where {B1,B2,B3,T}
+    if length(b.operators) == 1
+        mul!(result, a, b.operators[1],b.factor*alpha,beta)
+    else
     tmp1 = Operator(a.basis_l,b.operators[1].basis_r,similar(result.data,length(a.basis_l),length(b.operators[1].basis_r)))
     mul!(tmp1,a,b.operators[1],b.factor,0)
     for i=2:length(b.operators)-1
@@ -120,5 +127,6 @@ function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3}
         tmp1 = tmp2
     end
     mul!(result,tmp1,b.operators[end],alpha,beta)
+    end
     return result
 end
