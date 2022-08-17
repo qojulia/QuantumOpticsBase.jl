@@ -40,6 +40,9 @@ op2.factors[1] = 3.
 # Test dense & sparse
 op1 = randoperator(b_l, b_r)
 op2 = sparse(randoperator(b_l, b_r))
+@test 0.1*op1 == dense(LazySum([0.1], (op1,)))
+@test 0.3*op2 == sparse(LazySum([0.3], (op2,)))
+@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], [op1, op2]))
 @test 0.1*op1 + 0.3*dense(op2) == dense(LazySum([0.1, 0.3], [op1, op2]))
 @test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], [op1, op2]))
 

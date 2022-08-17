@@ -28,6 +28,8 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 @test basis(op1) == b1
 @test length(op1) == length(op1.data) == length(b1)^2
 
+@test isequal(+op_test, op_test)
+
 @test_throws ArgumentError op_test*op_test
 @test_throws ArgumentError -op_test
 

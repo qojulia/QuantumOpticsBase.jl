@@ -39,6 +39,7 @@ Base.broadcastable(x::AbstractOperator) = Ref(x)
 +(a::AbstractOperator, b::AbstractOperator) = arithmetic_binary_error("Addition", a, b)
 +(a::Number, b::AbstractOperator) = addnumbererror()
 +(a::AbstractOperator, b::Number) = addnumbererror()
++(a::AbstractOperator) = a
 
 -(a::AbstractOperator) = arithmetic_unary_error("Negation", a)
 -(a::AbstractOperator, b::AbstractOperator) = arithmetic_binary_error("Subtraction", a, b)
