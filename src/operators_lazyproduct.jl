@@ -1,4 +1,4 @@
-import Base: isqeual, ==, *, /, +, -
+import Base: isequal, ==, *, /, +, -
 
 """
     LazyProduct(operators[, factor=1])
