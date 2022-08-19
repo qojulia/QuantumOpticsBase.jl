@@ -1,6 +1,6 @@
 module QuantumOpticsBase
 
-using SparseArrays, LinearAlgebra
+using SparseArrays, LinearAlgebra, LRUCache, Strided
 import LinearAlgebra: mul!, rmul!
 
 export bases, Basis, GenericBasis, CompositeBasis, basis,
@@ -13,7 +13,8 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
         operators_sparse, SparseOperator, diagonaloperator, SparseOpType,
         operators_lazysum, LazySum,
         operators_lazyproduct, LazyProduct,
-        operators_lazytensor, LazyTensor,
+        operators_lazytensor, LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
+        lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
         superoperators, SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType, spre, spost, liouvillian,
         fock, FockBasis, number, destroy, create,
