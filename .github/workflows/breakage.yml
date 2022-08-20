@@ -56,61 +56,9 @@ jobs:
             PKG, TAG, VERSION = ENV["PKG"], ENV["TAG"], ENV["VERSION"]
             joburl = joinpath(ENV["GITHUB_SERVER_URL"], ENV["GITHUB_REPOSITORY"], "actions/runs", ENV["GITHUB_RUN_ID"])
             open("../pr/$PKG-$VERSION", "w") do io
-              try
-                TAG == "no_tag" && error("No tag for $VERSION")
-                pkg"activate .";
-                pkg"instantiate";
-                pkg"dev ../";
-                pkg"build";
-                pkg"test";
-                print(io, "[![](https://img.shields.io/badge/$TAG-Pass-green)]($joburl)");
-              catch e
-                @error e;
-                print(io, "[![](https://img.shields.io/badge/$TAG-Fail-red)]($joburl)");
-              end;
-            end'
-      - uses: actions/upload-artifact@v2
-        with:
-          name: pr
-          path: pr/
-
-  upload:
-    needs: break
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/download-artifact@v2
-        with:
-          name: pr
-          path: pr/
-
-      - run: ls
-      - run: |
-          cd pr
-          echo "| Package name | latest |" > MSG
-          echo "|--|--|" >> MSG
-          count=0
-          for file in *
-          do
-            [ "$file" == "NR" ] && continue
-            [ "$file" == "MSG" ] && continue
-            if [ $count == "0" ]; then
-              name=$(echo $file | cut -f1 -d-)
-              echo -n "| $name | "
-            else
-              echo -n "| "
-            fi
-            cat $file
-            if [ $count == "0" ]; then
-              echo -n " "
-              count=1
-            else
-              echo " |"
-              count=0
-            fi
-          done >> MSG
-      - uses: actions/upload-artifact@v2
-        with:
-          name: pr
-          path: pr/
+            TAG == "no_tag" && error("No tag for $VERSION")
+            pkg"activate .";
+            pkg"instantiate";
+            pkg"dev ../";
+            pkg"build";
+            pkg"test";
