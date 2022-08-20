@@ -1,4 +1,4 @@
-import Base: ==, *, /, +, -
+import Base: isequal, ==, *, /, +, -
 
 """
     LazyTensor(b1[, b2], indices, operators[, factor=1])
@@ -87,7 +87,8 @@ suboperators(op::LazyTensor, indices) = [op.operators[[findfirst(isequal(i), op.
 DenseOperator(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op.indices, DenseOpType[DenseOperator(x) for x in op.operators])
 SparseArrays.sparse(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op.indices, SparseOpType[SparseOperator(x) for x in op.operators])
 
-==(x::LazyTensor, y::LazyTensor) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && x.operators==y.operators && x.factor==y.factor
+isequal(x::LazyTensor, y::LazyTensor) = samebases(x,y) && isequal(x.indices, y.indices) && isequal(x.operators, y.operators) && isequal(x.factor, y.factor)
+==(x::LazyTensor, y::LazyTensor) = samebases(x,y) && x.indices==y.indices && x.operators==y.operators && x.factor==y.factor
 
 
 # Arithmetic operations
@@ -197,7 +198,7 @@ function permutesystems(op::LazyTensor, perm)
     LazyTensor(b_l, b_r, indices[perm_], op.operators[perm_], op.factor)
 end
 
-identityoperator(::Type{LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where T<:Number = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
+identityoperator(::Type{<:LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where {T<:Number} = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
 ## LazyTensor global cache
 

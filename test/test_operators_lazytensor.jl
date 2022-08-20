@@ -45,6 +45,7 @@ x = randoperator(b2a)
 x = 2*LazyTensor(b_l, b_r, [1,2], (randoperator(b1a, b1b), sparse(randoperator(b2a, b2b))))
 x_ = copy(x)
 @test x == x_
+@test isequal(x, x_)
 @test !(x === x_)
 x_.operators[1].data[1,1] = complex(10.)
 @test x.operators[1].data[1,1] != x_.operators[1].data[1,1]
@@ -64,6 +65,16 @@ x = LazyTensor(b_l, b_r, [1, 3], (op1, sparse(op3)), 0.3)
 @test QuantumOpticsBase.suboperator(x, 1) == op1
 @test QuantumOpticsBase.suboperator(x, 3) == sparse(op3)
 @test QuantumOpticsBase.suboperators(x, [1, 3]) == [op1, sparse(op3)]
+
+# Test embed
+x_1 = LazyTensor(b_l, b_r, [1], (op1,), 0.3)
+x_1_sub = LazyTensor(b1a⊗b2a, b1b⊗b2b, [1], (op1,), 0.3)
+@test embed(b_l, b_r, Dict([1,2]=>x_1_sub)) == x_1
+@test embed(b_l, b_r, [1,2], x_1_sub) == x_1
+
+x_12 = LazyTensor(b1a⊗b3a, b1b⊗b3b, [1,2], (op1, sparse(op3)), 0.3)
+@test embed(b_l, b_r, Dict([1,3]=>x_12)) == x
+@test embed(b_l, b_r, [1,3], x_12) == x
 
 
 # Arithmetic operations
