@@ -367,7 +367,7 @@ test_ket = Ket(tensor(b1a, b1a), rand(4))
 @test_throws MethodError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
 
 # Test type stability of constructor
-callT = typeof.((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
+callT = typeof((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
 T = Core.Compiler.return_type(LazyTensor, callT)
 @test all(map(isconcretetype, T.parameters))
 
