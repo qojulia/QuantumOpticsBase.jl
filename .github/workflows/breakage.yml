@@ -56,9 +56,10 @@ jobs:
             PKG, TAG, VERSION = ENV["PKG"], ENV["TAG"], ENV["VERSION"]
             joburl = joinpath(ENV["GITHUB_SERVER_URL"], ENV["GITHUB_REPOSITORY"], "actions/runs", ENV["GITHUB_RUN_ID"])
             open("../pr/$PKG-$VERSION", "w") do io
-            TAG == "no_tag" && error("No tag for $VERSION")
-            pkg"activate .";
-            pkg"instantiate";
-            pkg"dev ../";
-            pkg"build";
-            pkg"test";'
+                TAG == "no_tag" && error("No tag for $VERSION")
+                pkg"activate .";
+                pkg"instantiate";
+                pkg"dev ../";
+                pkg"build";
+                pkg"test";
+            end'
