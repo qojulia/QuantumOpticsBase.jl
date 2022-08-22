@@ -61,4 +61,4 @@ jobs:
             pkg"instantiate";
             pkg"dev ../";
             pkg"build";
-            pkg"test";
+            pkg"test";'
