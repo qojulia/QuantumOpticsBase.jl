@@ -371,4 +371,17 @@ callT = typeof((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
 T = Core.Compiler.return_type(LazyTensor, callT)
 @test all(map(isconcretetype, T.parameters))
 
+# Test mul! of adjoint dense operator with sparse lazy tensor
+## adjoint from the left
+lop = LazyTensor(b1a⊗b1b, b2a⊗b2b, 1, SparseOperator(randoperator(b1a,b2a)))
+dop = randoperator(b1a⊗b1b, b3a⊗b3b)
+@test dop'*lop ≈ dop'*lop ≈ Operator(dop.basis_r, lop.basis_r, dop.data'*dense(lop).data)
+@test lop'*dop ≈ Operator(lop.basis_r, dop.basis_r, dense(lop).data'*dop.data)
+## adjoint from the right
+lop = LazyTensor(b1a⊗b1b, b2a⊗b2b, 1, SparseOperator(randoperator(b1a,b2a)))
+dop = randoperator(b3a⊗b3b, b2a⊗b2b)
+@test dop*lop' ≈ Operator(dop.basis_l, lop.basis_l, dop.data*dense(lop).data')
+@test lop*dop' ≈ Operator(lop.basis_l, dop.basis_l, dense(lop).data*dop.data')
+
+
 end # testset
