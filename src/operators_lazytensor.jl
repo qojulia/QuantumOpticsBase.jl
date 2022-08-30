@@ -512,7 +512,7 @@ function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, be
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::LazyTensor{B1,B2,F,I,T}, b::DenseOpType{B2,B3}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(a.operators) > 0 && all(o isa SparseOpPureType for o in a.operators)
+    if length(a.operators) > 0 && all(o isa SparseOpPureType for o in a.operators) && (b isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
@@ -527,7 +527,7 @@ function mul!(result::DenseOpType{B1,B3}, a::LazyTensor{B1,B2,F,I,T}, b::DenseOp
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3,F,I,T}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(b.operators) > 0 && all(o isa SparseOpPureType for o in b.operators)
+    if length(b.operators) > 0 && all(o isa SparseOpPureType for o in b.operators) && (a isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
