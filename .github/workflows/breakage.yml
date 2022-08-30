@@ -6,6 +6,7 @@ name: Breakage
 # no access to secrets
 on:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   break:
