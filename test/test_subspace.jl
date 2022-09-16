@@ -26,7 +26,7 @@ using QuantumOpticsBase
 
     @test T1 * state == state_u
     @test T2 * state == state_v
-    @test Ty * state_1 == state_y
+    @test Ty * state_1 ≈ state_y
 
     state_v = Ket(bv, [1, -1])
     state_u = Ket(bu, [-1, 1])
