@@ -41,6 +41,7 @@ using QuantumOpticsBase
     T1 = sparseprojector(bu, b)
     T2 = sparseprojector(bv, b)
     T12 = sparseprojector(bu, bv)
+    Ty = sparseprojector(by, b)
 
     @test isa(T1, SparseOpType)
 
@@ -49,6 +50,7 @@ using QuantumOpticsBase
 
     @test T1 * state == state_u
     @test T2 * state == state_v
+    @test Ty * state_1 ≈ state_y
 
     state_v = Ket(bv, [1, -1])
     state_u = Ket(bu, [-1, 1])
