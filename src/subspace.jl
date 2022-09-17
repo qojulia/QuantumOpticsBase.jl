@@ -79,7 +79,7 @@ function projector(::Type{T}, b1::SubspaceBasis, b2::Basis) where T
     end
     data = zeros(T, length(b1), length(b2))
     for (i, state) = enumerate(b1.basisstates)
-        data[i,:] = state.data
+        data[i,:] = state.data'
     end
     return Operator(b1, b2, data)
 end
@@ -131,7 +131,7 @@ function sparseprojector(::Type{T}, b1::SubspaceBasis, b2::Basis) where T
     end
     data = spzeros(T, length(b1), length(b2))
     for (i, state) = enumerate(b1.basisstates)
-        data[i,:] = state.data
+        data[i,:] = state.data'
     end
     return Operator(b1, b2, data)
 end

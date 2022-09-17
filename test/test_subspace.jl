@@ -7,17 +7,23 @@ b = FockBasis(3)
 
 u = Ket[fockstate(b, 1), fockstate(b, 2)]
 v = Ket[fockstate(b, 2), fockstate(b, 1)]
+w = Ket[Ket(b, [1 + 1im, 1 - 0.5im, 0, 0] / norm([1 + 1im, 1 - 0.5im, 0, 0]))]
 
 bu = SubspaceBasis(u)
 bv = SubspaceBasis(v)
+bw = SubspaceBasis(w)
 
 T1 = projector(bu, b)
 T2 = projector(bv, b)
 T12 = projector(bu, bv)
+Tw = projector(bw, b)
 
 state = fockstate(b, 2)
+state_1 = Ket(b, [1 + 1im, 1 - 0.5im, 0, 0] / norm([1 + 1im, 1 - 0.5im, 0, 0]))
 state_u = Ket(bu, [0, 1])
 state_v = Ket(bv, [1., 0])
+state_w = Ket(bw, [1.0])
+@test Tw * state_1 ≈ state_w
 
 @test T1*state == state_u
 @test T2*state == state_v
