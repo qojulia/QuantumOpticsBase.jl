@@ -259,18 +259,29 @@ function lazytensor_enable_cache(; maxsize::Int = -1, maxrelsize::Real = 0.0)
     return
 end
 
-
-function _tp_matmul_first!(result, a::AbstractMatrix, b, α::Number, β::Number)
-    br = reshape(b, size(b, 1), :)
-    result_r = reshape(result, size(a, 1), size(br, 2))
-    mul!(result_r, a, br, α, β)
+function _tp_matmul_first!(result::Base.ReshapedArray, a::AbstractMatrix, b::Base.ReshapedArray, α::Number, β::Number)
+    d_first = size(b, 1)
+    d_rest = length(b)÷d_first
+    bp = b.parent
+    rp = result.parent
+    @uviews bp rp begin  # avoid allocations on reshape
+        br = reshape(bp, (d_first, d_rest))
+        result_r = reshape(rp, (size(a, 1), d_rest))
+        mul!(result_r, a, br, α, β)
+    end
     result
 end
 
-function _tp_matmul_last!(result, a::AbstractMatrix, b, α::Number, β::Number)
-    br = reshape(b, :, size(b, ndims(b)))
-    result_r = reshape(result, (size(br, 1), size(a, 1)))
-    mul!(result_r, br, transpose(a), α, β)
+function _tp_matmul_last!(result::Base.ReshapedArray, a::AbstractMatrix, b::Base.ReshapedArray, α::Number, β::Number)
+    d_last = size(b, ndims(b))
+    d_rest = length(b)÷d_last
+    bp = b.parent
+    rp = result.parent
+    @uviews a bp rp begin  # avoid allocations on reshape
+        br = reshape(bp, (d_rest, d_last))
+        result_r = reshape(rp, (d_rest, size(a, 1)))
+        mul!(result_r, br, transpose(a), α, β)
+    end
     result
 end
 
@@ -290,7 +301,7 @@ function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym) where {T,N}
     Base.ReshapedArray(tmp, shp, ())
 end
 
-function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
+function _tp_matmul_mid!(result::Base.ReshapedArray, a::AbstractMatrix, loc::Integer, b::Base.ReshapedArray, α::Number, β::Number)
     sz_b_1 = 1
     for i in 1:loc-1
         sz_b_1 *= size(b,i)
@@ -455,9 +466,13 @@ function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β
 end
 
 function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
+    shp_l = _comp_size(bl)
+    shp_r = _comp_size(br)
+    shp_l != shp_r || return nothing
+
     isos = nothing
     iso_inds = nothing
-    for (i, (sl, sr)) in enumerate(zip(_comp_size(bl), _comp_size(br)))
+    for (i, (sl, sr)) in enumerate(zip(shp_l, shp_r))
         if (sl != sr) && !(i + shift in used_indices)
             if isos === nothing
                 isos = [_SimpleIsometry(sl, sr)]
