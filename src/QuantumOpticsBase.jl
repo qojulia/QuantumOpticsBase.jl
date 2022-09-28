@@ -1,6 +1,6 @@
 module QuantumOpticsBase
 
-using SparseArrays, LinearAlgebra, LRUCache, Strided
+using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays
 import LinearAlgebra: mul!, rmul!
 
 export bases, Basis, GenericBasis, CompositeBasis, basis,
