@@ -31,10 +31,13 @@ LazySum(basis_l::BL,basis_r::BR,factors::F,operators::T) where {BL,BR,F,T} =
 LazySum(::Type{T}, basis_l::Basis, basis_r::Basis) where T = LazySum(basis_l,basis_r,T[],())
 LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)
 
-function LazySum(factors, operators)
-    Tf = promote_type(eltype(factors), eltype.(operators)...)
+function LazySum(::Type{Tf}, factors, operators) where Tf
     factors_ = Tf.(factors)
     LazySum(operators[1].basis_l, operators[1].basis_r, factors_, operators)
+end
+function LazySum(factors, operators)
+    Tf = promote_type(eltype(factors), mapreduce(eltype, promote_type, AbstractOperator[operators...]))
+    LazySum(Tf, factors, operators)
 end
 LazySum(operators::AbstractOperator...) = LazySum(ones(ComplexF64, length(operators)), (operators...,))
 LazySum(factors, operators::Vector) = LazySum(factors, (operators...,))
@@ -50,19 +53,31 @@ isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.opera
 ==(x::LazySum, y::LazySum) = (samebases(x,y) && x.operators==y.operators && x.factors==y.factors)
 
 # Arithmetic operations
-+(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2} = LazySum([a.factors; b.factors], (a.operators..., b.operators...))
+function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
+    factors = [a.factors; b.factors]
+    LazySum(eltype(factors), factors, (a.operators..., b.operators...))
+end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
--(a::LazySum) = LazySum(-a.factors, a.operators)
--(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2} = LazySum([a.factors; -b.factors], (a.operators..., b.operators...))
+-(a::LazySum) = LazySum(eltype(a.factors), -a.factors, a.operators)
+function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2} 
+    factors = [a.factors; -b.factors]
+    LazySum(eltype(factors), factors, (a.operators..., b.operators...))
+end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
-*(a::LazySum, b::Number) = LazySum(b*a.factors, a.operators)
-*(a::Number, b::LazySum) = LazySum(a*b.factors, b.operators)
+function *(a::LazySum, b::Number) 
+    factors = b*a.factors
+    LazySum(eltype(factors), factors, a.operators)
+end
+*(a::Number, b::LazySum) = b*a
 
-/(a::LazySum, b::Number) = LazySum(a.factors/b, a.operators)
+function /(a::LazySum, b::Number) 
+    factors = a.factors/b
+    LazySum(eltype(factors), factors, a.operators)
+end
 
-dagger(op::LazySum) = LazySum(conj.(op.factors), dagger.(op.operators))
+dagger(op::LazySum) = LazySum(eltype(op.factors), conj.(op.factors), dagger.(op.operators))
 
 tr(op::LazySum) = sum(op.factors .* tr.(op.operators))
 
@@ -75,7 +90,7 @@ end
 
 normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
-permutesystems(op::LazySum, perm) = LazySum(op.factors, ([permutesystems(op_i, perm) for op_i in op.operators]...,))
+permutesystems(op::LazySum, perm) = LazySum(eltype(op.factors), op.factors, ([permutesystems(op_i, perm) for op_i in op.operators]...,))
 
 identityoperator(::Type{<:LazySum}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazySum(identityoperator(S, b1, b2))
 
