@@ -36,7 +36,7 @@ function LazySum(::Type{Tf}, factors, operators) where Tf
     LazySum(operators[1].basis_l, operators[1].basis_r, factors_, operators)
 end
 function LazySum(factors, operators)
-    Tf = promote_type(eltype(factors), mapreduce(eltype, promote_type, AbstractOperator[operators...]))
+    Tf = promote_type(eltype(factors), mapreduce(eltype, promote_type, operators))
     LazySum(Tf, factors, operators)
 end
 LazySum(operators::AbstractOperator...) = LazySum(ones(ComplexF64, length(operators)), (operators...,))
