@@ -1,6 +1,13 @@
 import Base: isequal, ==, *, /, +, -
 import SparseArrays: sparse, spzeros
 
+function _check_bases(basis_l, basis_r, operators)
+    for o in operators
+        basis_l == o.basis_l || throw(IncompatibleBases())
+        basis_r == o.basis_r || throw(IncompatibleBases())
+    end
+end
+
 """
     LazySum([factors,] operators)
     LazySum(basis_l, basis_r, [factors,] [operators])
@@ -16,28 +23,20 @@ mutable struct LazySum{BL,BR,F,T} <: AbstractOperator{BL,BR}
     basis_r::BR
     factors::F
     operators::T
-    function LazySum{BL,BR,F,T}(basis_l::BL,basis_r::BR,factors::F,operators::T) where {BL,BR,F,T}
-        length(operators)==length(factors) || throw(ArgumentError("LazySum `operators` and `factors` have different lengths."))
-        for o in operators
-            basis_l == o.basis_l || throw(IncompatibleBases())
-            basis_r == o.basis_r || throw(IncompatibleBases())
-        end
-        new(basis_l, basis_r, factors, operators)
-    end
 end
-LazySum(basis_l::BL,basis_r::BR,factors::F,operators::T) where {BL,BR,F,T} =
+function LazySum(basis_l::BL,basis_r::BR,factors::F, operators::T) where {BL,BR,F,T}
+    length(operators)==length(factors) || throw(ArgumentError("LazySum `operators` and `factors` have different lengths."))
+    _check_bases(basis_l, basis_r, operators)
     LazySum{BL,BR,F,T}(basis_l,basis_r,factors,operators)
+end
 
 LazySum(::Type{T}, basis_l::Basis, basis_r::Basis) where T = LazySum(basis_l,basis_r,T[],())
 LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)
 
-function LazySum(::Type{Tf}, factors, operators) where Tf
-    factors_ = Tf.(factors)
-    LazySum(operators[1].basis_l, operators[1].basis_r, factors_, operators)
-end
 function LazySum(factors, operators)
     Tf = promote_type(eltype(factors), mapreduce(eltype, promote_type, operators))
-    LazySum(Tf, factors, operators)
+    factors_ = eltype(factors) != Tf ? Tf.(factors) : factors
+    LazySum(operators[1].basis_l, operators[1].basis_r, factors_, operators)
 end
 LazySum(operators::AbstractOperator...) = LazySum(ones(ComplexF64, length(operators)), (operators...,))
 LazySum(factors, operators::Vector) = LazySum(factors, (operators...,))
@@ -54,15 +53,13 @@ isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.opera
 
 # Arithmetic operations
 function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
-    factors = [a.factors; b.factors]
-    LazySum(eltype(factors), factors, (a.operators..., b.operators...))
+    samebases(a,b) || throw(IncompatibleBases())
 end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
 -(a::LazySum) = LazySum(eltype(a.factors), -a.factors, a.operators)
 function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2} 
-    factors = [a.factors; -b.factors]
-    LazySum(eltype(factors), factors, (a.operators..., b.operators...))
+    samebases(a,b) || throw(IncompatibleBases())
 end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
