@@ -32,18 +32,22 @@ mutable struct LazySum{BL,BR,F,T} <: AbstractOperator{BL,BR}
     end
 end
 
-LazySum(::Type{T}, basis_l::Basis, basis_r::Basis) where T = LazySum(basis_l,basis_r,T[],())
+LazySum(::Type{Tf}, basis_l::Basis, basis_r::Basis) where Tf = LazySum(basis_l,basis_r,Tf[],())
 LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)
 
-function LazySum(factors, operators)
+function LazySum(::Type{Tf}, factors, operators) where Tf
     if operators isa AbstractVector
         @info "LazySum operators with vector storage of operators may not perform well in time evolution."
     end
-    Tf = promote_type(eltype(factors), mapreduce(eltype, promote_type, operators))
     factors_ = eltype(factors) != Tf ? Tf.(factors) : factors
     LazySum(operators[1].basis_l, operators[1].basis_r, factors_, operators)
 end
-LazySum(operators::AbstractOperator...) = LazySum(ones(ComplexF64, length(operators)), (operators...,))
+function LazySum(factors, operators)
+    Tf = promote_type(eltype(factors), mapreduce(eltype, promote_type, operators))
+    LazySum(Tf, factors, operators)
+end
+LazySum(::Type{Tf}, operators::AbstractOperator...) where Tf = LazySum(ones(Tf, length(operators)), (operators...,))
+LazySum(operators::AbstractOperator...) = LazySum(ComplexF64, operators...)
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 
 Base.copy(x::LazySum) = LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators); skip_checks=true)
