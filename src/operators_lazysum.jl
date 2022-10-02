@@ -34,12 +34,14 @@ LazySum(::Type{T}, basis_l::Basis, basis_r::Basis) where T = LazySum(basis_l,bas
 LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)
 
 function LazySum(factors, operators)
+    if operators isa AbstractVector
+        @info "LazySum operators with vector storage of operators may not perform well in time evolution."
+    end
     Tf = promote_type(eltype(factors), mapreduce(eltype, promote_type, operators))
     factors_ = eltype(factors) != Tf ? Tf.(factors) : factors
     LazySum(operators[1].basis_l, operators[1].basis_r, factors_, operators)
 end
 LazySum(operators::AbstractOperator...) = LazySum(ones(ComplexF64, length(operators)), (operators...,))
-LazySum(factors, operators::Vector) = LazySum(factors, (operators...,))
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 
 Base.copy(x::LazySum) = LazySum(copy(x.factors), ([copy(op) for op in x.operators]...,))
