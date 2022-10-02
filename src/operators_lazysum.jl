@@ -23,11 +23,13 @@ mutable struct LazySum{BL,BR,F,T} <: AbstractOperator{BL,BR}
     basis_r::BR
     factors::F
     operators::T
-end
-function LazySum(basis_l::BL,basis_r::BR,factors::F, operators::T) where {BL,BR,F,T}
-    length(operators)==length(factors) || throw(ArgumentError("LazySum `operators` and `factors` have different lengths."))
-    _check_bases(basis_l, basis_r, operators)
-    LazySum{BL,BR,F,T}(basis_l,basis_r,factors,operators)
+    function LazySum(basis_l::BL,basis_r::BR,factors::F, operators::T; skip_checks=false) where {BL,BR,F,T}
+        if !skip_checks
+            length(operators)==length(factors) || throw(ArgumentError("LazySum `operators` and `factors` have different lengths."))
+            _check_bases(basis_l, basis_r, operators)
+        end
+        new{BL,BR,F,T}(basis_l,basis_r,factors,operators)
+    end
 end
 
 LazySum(::Type{T}, basis_l::Basis, basis_r::Basis) where T = LazySum(basis_l,basis_r,T[],())
@@ -44,7 +46,7 @@ end
 LazySum(operators::AbstractOperator...) = LazySum(ones(ComplexF64, length(operators)), (operators...,))
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 
-Base.copy(x::LazySum) = LazySum(copy(x.factors), ([copy(op) for op in x.operators]...,))
+Base.copy(x::LazySum) = LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators); skip_checks=true)
 Base.eltype(x::LazySum) = promote_type(eltype(x.factors), eltype.(x.operators)...)
 
 dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
@@ -63,33 +65,33 @@ function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     samebases(a,b) || throw(IncompatibleBases())
     factors = _cat(a.factors, b.factors)
     ops = _cat(a.operators, b.operators)
-    LazySum{B1,B2,typeof(factors), typeof(ops)}(a.basis_l, a.basis_r, factors, ops)
+    LazySum(a.basis_l, a.basis_r, factors, ops; skip_checks=true)
 end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
--(a::LazySum{B1,B2,F,T}) where {B1,B2,F,T} = LazySum{B1,B2,F,T}(a.basis_l, a.basis_r, -a.factors, a.operators)
+-(a::LazySum) where {B1,B2,F,T} = LazySum(a.basis_l, a.basis_r, -a.factors, a.operators; skip_checks=true)
 function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     samebases(a,b) || throw(IncompatibleBases())
     factors = _cat(a.factors, -b.factors)
     ops = _cat(a.operators, b.operators)
-    LazySum{B1,B2,typeof(factors), typeof(ops)}(a.basis_l, a.basis_r, factors, ops)
+    LazySum(a.basis_l, a.basis_r, factors, ops; skip_checks=true)
 end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
-function *(a::LazySum{B1,B2,F,T}, b::Number) where {B1,B2,F,T}
+function *(a::LazySum, b::Number)
     factors = b*a.factors
-    LazySum{B1,B2,typeof(factors),T}(a.basis_l, a.basis_r, factors, a.operators)
+    LazySum(a.basis_l, a.basis_r, factors, a.operators; skip_checks=true)
 end
 *(a::Number, b::LazySum) = b*a
 
-function /(a::LazySum{B1,B2,F,T}, b::Number) where {B1,B2,F,T}
+function /(a::LazySum, b::Number)
     factors = a.factors/b
-    LazySum{B1,B2,typeof(factors),T}(a.basis_l, a.basis_r, factors, a.operators)
+    LazySum(a.basis_l, a.basis_r, factors, a.operators; skip_checks=true)
 end
 
-function dagger(op::LazySum{B1,B2,F,T}) where {B1,B2,F,T}
+function dagger(op::LazySum)
     ops = dagger.(op.operators)
-    LazySum{B1,B2,F,typeof(ops)}(op.basis_r, op.basis_l, conj.(op.factors), ops)
+    LazySum(op.basis_r, op.basis_l, conj.(op.factors), ops; skip_checks=true)
 end
 
 tr(op::LazySum) = sum(op.factors .* tr.(op.operators))
@@ -106,11 +108,11 @@ normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
 _permute(ops::AbstractVector, perm) = [permutesystems(op_i, perm) for op_i in ops]
 _permute(ops, perm) = ((permutesystems(op_i, perm) for op_i in ops)...,)
-function permutesystems(op::LazySum{B1,B2,F,T}, perm) where {B1,B2,F,T}
+function permutesystems(op::LazySum, perm)
     ops = _permute(op.operators, perm)
     bl = ops[1].basis_l
     br = ops[1].basis_r
-    LazySum{typeof(bl),typeof(br),F,typeof(ops)}(op.basis_l, op.basis_r, op.factors, ops)
+    LazySum(bl, br, op.factors, ops; skip_checks=true)
 end
 
 identityoperator(::Type{<:LazySum}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazySum(identityoperator(S, b1, b2))
