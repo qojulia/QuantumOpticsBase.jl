@@ -51,43 +51,65 @@ SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* 
 isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.operators) && isequal(x.factors, y.factors)
 ==(x::LazySum, y::LazySum) = (samebases(x,y) && x.operators==y.operators && x.factors==y.factors)
 
+_cat(opsA::Tuple, opsB::Tuple) = (opsA..., opsB...)
+_cat(opsA::Tuple, opsB) = (opsA..., opsB...)
+_cat(opsA, opsB::Tuple) = (opsA..., opsB...)
+_cat(opsA, opsB) = vcat(opsA, opsB)
+
 # Arithmetic operations
 function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     samebases(a,b) || throw(IncompatibleBases())
+    factors = _cat(a.factors, b.factors)
+    ops = _cat(a.operators, b.operators)
+    LazySum{B1,B2,typeof(factors), typeof(ops)}(a.basis_l, a.basis_r, factors, ops)
 end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
--(a::LazySum) = LazySum(eltype(a.factors), -a.factors, a.operators)
-function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2} 
+-(a::LazySum{B1,B2,F,T}) where {B1,B2,F,T} = LazySum{B1,B2,F,T}(a.basis_l, a.basis_r, -a.factors, a.operators)
+function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     samebases(a,b) || throw(IncompatibleBases())
+    factors = _cat(a.factors, -b.factors)
+    ops = _cat(a.operators, b.operators)
+    LazySum{B1,B2,typeof(factors), typeof(ops)}(a.basis_l, a.basis_r, factors, ops)
 end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
-function *(a::LazySum, b::Number) 
+function *(a::LazySum{B1,B2,F,T}, b::Number) where {B1,B2,F,T}
     factors = b*a.factors
-    LazySum(eltype(factors), factors, a.operators)
+    LazySum{B1,B2,typeof(factors),T}(a.basis_l, a.basis_r, factors, a.operators)
 end
 *(a::Number, b::LazySum) = b*a
 
-function /(a::LazySum, b::Number) 
+function /(a::LazySum{B1,B2,F,T}, b::Number) where {B1,B2,F,T}
     factors = a.factors/b
-    LazySum(eltype(factors), factors, a.operators)
+    LazySum{B1,B2,typeof(factors),T}(a.basis_l, a.basis_r, factors, a.operators)
 end
 
-dagger(op::LazySum) = LazySum(eltype(op.factors), conj.(op.factors), dagger.(op.operators))
+function dagger(op::LazySum{B1,B2,F,T}) where {B1,B2,F,T}
+    ops = dagger.(op.operators)
+    LazySum{B1,B2,F,typeof(ops)}(op.basis_r, op.basis_l, conj.(op.factors), ops)
+end
 
 tr(op::LazySum) = sum(op.factors .* tr.(op.operators))
 
+_ptrace(ops::AbstractVector, indices) = [ptrace(op_i, indices) for op_i in ops]
+_ptrace(ops, indices) = ((ptrace(op_i, indices) for op_i in ops)...,)
 function ptrace(op::LazySum, indices)
     check_ptrace_arguments(op, indices)
-    rank = length(op.basis_l.shape) - length(indices)
-    D = ([ptrace(op_i, indices) for op_i in op.operators]...,)
-    LazySum(op.factors, D)
+    #rank = length(op.basis_l.shape) - length(indices) #????
+    LazySum(op.factors, _ptrace(op.operators, indices))
 end
 
 normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
-permutesystems(op::LazySum, perm) = LazySum(eltype(op.factors), op.factors, ([permutesystems(op_i, perm) for op_i in op.operators]...,))
+_permute(ops::AbstractVector, perm) = [permutesystems(op_i, perm) for op_i in ops]
+_permute(ops, perm) = ((permutesystems(op_i, perm) for op_i in ops)...,)
+function permutesystems(op::LazySum{B1,B2,F,T}, perm) where {B1,B2,F,T}
+    ops = _permute(op.operators, perm)
+    bl = ops[1].basis_l
+    br = ops[1].basis_r
+    LazySum{typeof(bl),typeof(br),F,typeof(ops)}(op.basis_l, op.basis_r, op.factors, ops)
+end
 
 identityoperator(::Type{<:LazySum}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazySum(identityoperator(S, b1, b2))
 
