@@ -37,7 +37,7 @@ LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)
 
 function LazySum(::Type{Tf}, factors, operators) where Tf
     if operators isa AbstractVector
-        @info "LazySum operators with vector storage of operators may not perform well in time evolution."
+        @warn "Creating a LazySum with a vector for operator storage. These may not perform well in time evolution." maxlog=3
     end
     factors_ = eltype(factors) != Tf ? Tf.(factors) : factors
     LazySum(operators[1].basis_l, operators[1].basis_r, factors_, operators)
@@ -101,20 +101,16 @@ end
 
 tr(op::LazySum) = sum(op.factors .* tr.(op.operators))
 
-_ptrace(ops::AbstractVector, indices) = [ptrace(op_i, indices) for op_i in ops]
-_ptrace(ops, indices) = ((ptrace(op_i, indices) for op_i in ops)...,)
 function ptrace(op::LazySum, indices)
     check_ptrace_arguments(op, indices)
     #rank = length(op.basis_l.shape) - length(indices) #????
-    LazySum(op.factors, _ptrace(op.operators, indices))
+    LazySum(op.factors, map(o->ptrace(o, indices), op.operators))
 end
 
 normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
-_permute(ops::AbstractVector, perm) = [permutesystems(op_i, perm) for op_i in ops]
-_permute(ops, perm) = ((permutesystems(op_i, perm) for op_i in ops)...,)
 function permutesystems(op::LazySum, perm)
-    ops = _permute(op.operators, perm)
+    ops = map(o->permutesystems(o, perm), op.operators)
     bl = ops[1].basis_l
     br = ops[1].basis_r
     LazySum(bl, br, op.factors, ops; skip_checks=true)
