@@ -51,7 +51,7 @@ LazySum(operators::AbstractOperator...) = LazySum(ComplexF64, operators...)
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 
 Base.copy(x::LazySum) = LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators); skip_checks=true)
-Base.eltype(x::LazySum) = promote_type(eltype(x.factors), eltype.(x.operators)...)
+Base.eltype(x::LazySum) = promote_type(eltype(x.factors), mapreduce(eltype, promote_type, x.operators))
 
 dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
 SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* sparse.(op.operators)) : Operator(op.basis_l, op.basis_r, spzeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
@@ -59,6 +59,7 @@ SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* 
 isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.operators) && isequal(x.factors, y.factors)
 ==(x::LazySum, y::LazySum) = (samebases(x,y) && x.operators==y.operators && x.factors==y.factors)
 
+# Make tuples contagious in LazySum arithmetic, but preserve "vector-only" cases
 _cat(opsA::Tuple, opsB::Tuple) = (opsA..., opsB...)
 _cat(opsA::Tuple, opsB) = (opsA..., opsB...)
 _cat(opsA, opsB::Tuple) = (opsA..., opsB...)
