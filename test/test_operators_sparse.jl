@@ -390,3 +390,38 @@ op_ .+= op1
 @test_throws ErrorException cos.(op_)
 
 end # testset
+
+@testset "State-operator tensor products, sparse" begin
+    b = FockBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2)
+    b1, b2, b3 = b.bases
+
+    o1 = sparse(randoperator(b1))
+    v1 = sparse(randstate(b1))
+    p1 = sparse(projector(v1))
+    o2 = sparse(randoperator(b2))
+    v2 = sparse(randstate(b2))
+    p2 = sparse(projector(v2))
+    o3 = sparse(randoperator(b3))
+    v3 = sparse(randstate(b3))
+    p3 = sparse(projector(v3))
+
+    res = ((o1 ⊗ v2) * (o1 ⊗ v2'))
+    @test res isa SparseOpType
+    @test res.data ≈ (o1^2 ⊗ p2).data
+
+    res = ((o1 ⊗ v2') * (o1 ⊗ v2))
+    @test res isa SparseOpType
+    @test res.data ≈ (o1^2).data
+
+    res = ((o1 ⊗ v2 ⊗ o3) * (o1 ⊗ v2' ⊗ o3))
+    @test res isa SparseOpType
+    @test res.data ≈ (o1^2 ⊗ p2 ⊗ o3^2).data
+
+    res = ((v1 ⊗ o2 ⊗ o3) * (v1' ⊗ o2 ⊗ o3))
+    @test res isa SparseOpType
+    @test res.data ≈ (p1 ⊗ o2^2 ⊗ o3^2).data
+
+    res = ((v1 ⊗ o2 ⊗ v3) * (v1' ⊗ o2 ⊗ v3'))
+    @test res isa SparseOpType
+    @test res.data ≈ (p1 ⊗ o2^2 ⊗ p3).data
+end

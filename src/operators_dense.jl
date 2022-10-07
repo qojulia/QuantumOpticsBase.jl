@@ -122,6 +122,48 @@ Outer product ``|x⟩⟨y|`` of the given states.
 """
 tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), length(a.basis), length(b.basis)))
 
+"""
+    tensor(a::AbstractOperator, b::Bra)
+    tensor(a::Bra, b::AbstractOperator)
+    tensor(a::AbstractOperator, b::Ket)
+    tensor(a::Ket, b::AbstractOperator)
+
+Products of operators and state vectors ``a ⊗ <b|``. The result is an isometry
+in case the operator is unitary and state is normalized.
+"""
+function tensor(a::AbstractOperator, b::Bra)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    # NOTE: copy() works around non-sparse-preserving kron in case b.data is a SparseVector.
+    b_op = Operator(GenericBasis(1), basis(b), copy(reshape(b.data, (1,:))))
+    ab_op = tensor(a, b_op)
+    # squeeze out the trivial dimension
+    Operator(a.basis_l, ab_op.basis_r, ab_op.data)
+end
+
+function tensor(a::Bra, b::AbstractOperator)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    a_op = Operator(GenericBasis(1), basis(a), copy(reshape(a.data, (1,:))))
+    ab_op = tensor(a_op, b)
+    # squeeze out the trivial dimension
+    Operator(b.basis_l, ab_op.basis_r, ab_op.data)
+end
+
+function tensor(a::AbstractOperator, b::Ket)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    b_op = Operator(basis(b), GenericBasis(1), copy(reshape(b.data, (:,1))))
+    ab_op = tensor(a, b_op)
+    # squeeze out the trivial dimension
+    Operator(ab_op.basis_l, a.basis_r, ab_op.data)
+end
+
+function tensor(a::Ket, b::AbstractOperator)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    a_op = Operator(basis(a), GenericBasis(1), copy(reshape(a.data, (:,1))))
+    ab_op = tensor(a_op, b)
+    # squeeze out the trivial dimension
+    Operator(ab_op.basis_l, b.basis_r, ab_op.data)
+end
+
 tr(op::Operator{B,B}) where B = tr(op.data)
 
 function ptrace(a::DataOperator, indices)
