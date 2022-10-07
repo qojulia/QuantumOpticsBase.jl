@@ -403,7 +403,7 @@ end # testset
     p2 = sparse(projector(v2))
     o3 = sparse(randoperator(b3))
     v3 = sparse(randstate(b3))
-    p3 = spasrse(projector(v3))
+    p3 = sparse(projector(v3))
 
     res = ((o1 ⊗ v2) * (o1 ⊗ v2'))
     @test res isa SparseOpType
