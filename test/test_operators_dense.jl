@@ -365,3 +365,30 @@ op3 = randoperator(bf)
 @test_throws ErrorException cos.(op1)
 
 end # testset
+
+@testset "State-operator tensor products" begin
+    b = FockBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2)
+    b1, b2, b3 = b.bases
+
+    o1 = randoperator(b1)
+    v1 = randstate(b1)
+    p1 = projector(v1)
+    o2 = randoperator(b2)
+    v2 = randstate(b2)
+    p2 = projector(v2)
+    o3 = randoperator(b3)
+    v3 = randstate(b3)
+    p3 = projector(v3)
+
+    @test (v1 ⊗ o2).basis_l == b1 ⊗ b2
+    @test (v1 ⊗ o2).basis_r == b2
+    @test (v1' ⊗ o2).basis_l == b2
+    @test (v1' ⊗ o2).basis_r == b1 ⊗ b2
+
+    @test ((o1 ⊗ v2) * (o1 ⊗ v2')).data ≈ (o1^2 ⊗ p2).data
+    @test ((o1 ⊗ v2') * (o1 ⊗ v2)).data ≈ (o1^2).data
+
+    @test ((o1 ⊗ v2 ⊗ o3) * (o1 ⊗ v2' ⊗ o3)).data ≈ (o1^2 ⊗ p2 ⊗ o3^2).data
+    @test ((v1 ⊗ o2 ⊗ o3) * (v1' ⊗ o2 ⊗ o3)).data ≈ (p1 ⊗ o2^2 ⊗ o3^2).data
+    @test ((v1 ⊗ o2 ⊗ v3) * (v1' ⊗ o2 ⊗ v3')).data ≈ (p1 ⊗ o2^2 ⊗ p3).data
+end
