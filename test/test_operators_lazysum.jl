@@ -42,9 +42,9 @@ op1 = randoperator(b_l, b_r)
 op2 = sparse(randoperator(b_l, b_r))
 @test 0.1*op1 == dense(LazySum([0.1], (op1,)))
 @test 0.3*op2 == sparse(LazySum([0.3], (op2,)))
-@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], [op1, op2]))
-@test 0.1*op1 + 0.3*dense(op2) == dense(LazySum([0.1, 0.3], [op1, op2]))
-@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], [op1, op2]))
+@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], (op1, op2)))
+@test 0.1*op1 + 0.3*dense(op2) == dense(LazySum([0.1, 0.3], (op1, op2)))
+@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], (op1, op2)))
 
 # Test embed
 x1 = randoperator(b1a,b1b)
@@ -62,7 +62,7 @@ op1b = randoperator(b_l, b_r)
 op2a = randoperator(b_l, b_r)
 op2b = randoperator(b_l, b_r)
 op3a = randoperator(b_l, b_r)
-op1 = LazySum([0.1, 0.3], [op1a, sparse(op1b)])
+op1 = LazySum([0.1, 0.3], (op1a, sparse(op1b)))
 op1_ = 0.1*op1a + 0.3*op1b
 op2 = LazySum([0.7, 0.9], [sparse(op2a), op2b])
 op2_ = 0.7*op2a + 0.9*op2b
@@ -85,8 +85,8 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Test multiplication
 @test_throws ArgumentError op1*op2
-@test LazySum([0.1, 0.1], [op1a, op2a]) == LazySum(op1a, op2a)*0.1
-@test LazySum([0.1, 0.1], [op1a, op2a]) == 0.1*LazySum(op1a, op2a)
+@test LazySum([0.1, 0.1], (op1a, op2a)) == LazySum(op1a, op2a)*0.1
+@test LazySum([0.1, 0.1], (op1a, op2a)) == 0.1*LazySum(op1a, op2a)
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
@@ -94,6 +94,12 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
+
+# Test tuples vs. vectors
+@test (op1+op1).operators isa Tuple
+@test (op1+op2).operators isa Tuple
+@test (op2+op1).operators isa Tuple
+@test (op2+op2).operators isa Vector
 
 # Test identityoperator
 Idense = identityoperator(DenseOpType, b_r)
@@ -112,7 +118,7 @@ id = identityoperator(LazySum, b_l)
 op1 = randoperator(b_l)
 op2 = randoperator(b_l)
 op3 = randoperator(b_l)
-op = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
 op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 @test tr(op_) ≈ tr(op)
@@ -130,7 +136,8 @@ normalize!(op_copy)
 op1 = randoperator(b_l)
 op2 = randoperator(b_l)
 op3 = randoperator(b_l)
-op123 = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op123 = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
+op123_v = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
 op123_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 @test 1e-14 > D(ptrace(op123_, 3), ptrace(op123, 3))
@@ -140,6 +147,8 @@ op123_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 @test 1e-14 > D(ptrace(op123_, [2,3]), ptrace(op123, [2,3]))
 @test 1e-14 > D(ptrace(op123_, [1,3]), ptrace(op123, [1,3]))
 @test 1e-14 > D(ptrace(op123_, [1,2]), ptrace(op123, [1,2]))
+
+@test 1e-14 > D(ptrace(op123_v, [1,2]), ptrace(op123, [1,2]))
 
 @test_throws ArgumentError ptrace(op123, [1,2,3])
 
@@ -177,7 +186,7 @@ op_ = 0.3*op123a + 0.7*op123b + 1.2*op123c
 op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_l, b_r)
 op3 = randoperator(b_l, b_r)
-op = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
 op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 zero_op = LazySum(b_l, b_r)
@@ -224,7 +233,7 @@ QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_l, b_r)
 op3 = randoperator(b_l, b_r)
-op = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
 op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 state = randoperator(b_r, b_r)

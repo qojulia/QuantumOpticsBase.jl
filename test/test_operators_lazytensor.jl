@@ -61,6 +61,9 @@ x = LazyTensor(b_l, b_r, [1, 3], (op1, sparse(op3)), 0.3)
 @test 1e-12 > D(0.3*op1⊗dense(I2)⊗op3, dense(x))
 @test 1e-12 > D(0.3*sparse(op1)⊗I2⊗sparse(op3), sparse(x))
 
+# Test eltype
+@test eltype(x) == ComplexF64
+
 # Test suboperators
 @test QuantumOpticsBase.suboperator(x, 1) == op1
 @test QuantumOpticsBase.suboperator(x, 3) == sparse(op3)

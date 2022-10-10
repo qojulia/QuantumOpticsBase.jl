@@ -28,7 +28,7 @@ mutable struct LazyTensor{BL,BR,F,I,T} <: AbstractOperator{BL,BR}
             @assert ops[n].basis_l == bl.bases[indices[n]]
             @assert ops[n].basis_r == br.bases[indices[n]]
         end
-        F_ = promote_type(F,map(eltype, ops)...)
+        F_ = promote_type(F, mapreduce(eltype, promote_type, ops; init=F))
         factor_ = convert(F_, factor)
         new{BL,BR,F_,I,T}(bl, br, factor_, indices, ops)
     end
@@ -57,11 +57,13 @@ LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, ope
 LazyTensor(basis::Basis, index, operators, factor=_default_factor(operators)) = LazyTensor(basis, basis, index, operators, factor)
 
 Base.copy(x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, copy(x.indices), Tuple(copy(op) for op in x.operators), x.factor)
-Base.eltype(x::LazyTensor) = promote_type(eltype(x.factor), eltype.(x.operators)...)
+function Base.eltype(x::LazyTensor)
+    F = eltype(x.factor)
+    promote_type(F, mapreduce(eltype, promote_type, x.operators; init=F))
+end
 
 function _default_factor(ops)
-    Ts = map(eltype, ops)
-    T = promote_type(Ts...)
+    T = mapreduce(eltype, promote_type, ops)
     return one(T)
 end
 function _default_factor(op::T) where T<:AbstractOperator
