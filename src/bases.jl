@@ -218,6 +218,23 @@ function check_multiplicable(b1, b2)
     end
 end
 
+"""
+    reduced(a, indices)
+
+Reduced basis, state or operator on the specified subsystems.
+
+The `indices` argument, which can be a single integer or a vector of integers,
+specifies which subsystems are kept. At least one index must be specified.
+"""
+function reduced(b::CompositeBasis, indices)
+    if length(indices)==0
+        throw(ArgumentError("At least one subsystem must be specified in reduced."))
+    elseif length(indices)==1
+        return b.bases[indices[1]]
+    else
+        return CompositeBasis(b.shape[indices], b.bases[indices])
+    end
+end
 
 """
     ptrace(a, indices)
@@ -231,13 +248,8 @@ full trace.
 """
 function ptrace(b::CompositeBasis, indices)
     J = [i for i in 1:length(b.bases) if i ∉ indices]
-    if length(J)==0
-        throw(ArgumentError("Tracing over all indices is not allowed in ptrace."))
-    elseif length(J)==1
-        return b.bases[J[1]]
-    else
-        return CompositeBasis(b.shape[J], b.bases[J])
-    end
+    length(J) > 0 || throw(ArgumentError("Tracing over all indices is not allowed in ptrace."))
+    reduced(b, J)
 end
 
 
