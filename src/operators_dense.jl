@@ -192,7 +192,7 @@ function ptrace(psi::Bra, indices)
     return Operator(b_, b_, result)
 end
 
-_index_complement(b::CompositeBasis, indices) = setdiff(1:length(b.bases), indices)
+_index_complement(b::CompositeBasis, indices) = complement(length(b.bases), indices)
 reduced(a, indices) = ptrace(a, _index_complement(basis(a), indices))
 
 normalize!(op::Operator) = (rmul!(op.data, 1.0/tr(op)); op)
