@@ -76,10 +76,14 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 # Addition
 @test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(op1+op2, op1_+op2_)
+@test 1e-14 > D(op1+op2_, op1_+op2_)
+@test 1e-14 > D(op1_+op2, op1_+op2_)
 
 # Subtraction
 @test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op2)
 @test 1e-14 > D(op1 - op2, op1_ - op2_)
+@test 1e-14 > D(op1 - op2_, op1_ - op2_)
+@test 1e-14 > D(op1_ - op2, op1_ - op2_)
 @test 1e-14 > D(op1 + (-op2), op1_ - op2_)
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 
