@@ -197,6 +197,8 @@ psi123 = psi1 ⊗ psi2 ⊗ psi3
 
 @test_throws ArgumentError ptrace(psi123, [1, 2, 3])
 
+@test reduced(psi123, [3]).data == ptrace(psi123, [1, 2]).data
+
 # Test partial tr of operators
 b1 = GenericBasis(3)
 b2 = GenericBasis(5)
