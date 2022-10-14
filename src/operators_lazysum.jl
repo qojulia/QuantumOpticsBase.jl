@@ -80,6 +80,8 @@ function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
++(a::LazySum, b::AbstractOperator) = a + LazySum(b)
++(a::AbstractOperator, b::LazySum) = LazySum(a) + b
 
 -(a::LazySum) = @samebases LazySum(a.basis_l, a.basis_r, -a.factors, a.operators)
 function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
@@ -89,6 +91,8 @@ function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
+-(a::LazySum, b::AbstractOperator) = a - LazySum(b)
+-(a::AbstractOperator, b::LazySum) = LazySum(a) - b
 
 function *(a::LazySum, b::Number)
     factors = b*a.factors
