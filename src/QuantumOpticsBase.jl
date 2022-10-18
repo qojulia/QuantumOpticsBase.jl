@@ -15,6 +15,7 @@ export bases, Basis, GenericBasis, CompositeBasis, basis,
         operators_lazyproduct, LazyProduct,
         operators_lazytensor, LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
         lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
+        LazyKet,
         superoperators, SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType, spre, spost, liouvillian,
         fock, FockBasis, number, destroy, create,
@@ -47,6 +48,7 @@ include("operators_sparse.jl")
 include("operators_lazysum.jl")
 include("operators_lazyproduct.jl")
 include("operators_lazytensor.jl")
+include("operators_lazyket.jl")
 include("superoperators.jl")
 include("spin.jl")
 include("fock.jl")

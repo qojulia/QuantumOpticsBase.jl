@@ -301,6 +301,7 @@ expect(index::Integer, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:C
 expect(op::AbstractOperator, states::Vector) = [expect(op, state) for state=states]
 expect(indices, op::AbstractOperator, states::Vector) = [expect(indices, op, state) for state=states]
 
+
 """
     variance(op, state)
 

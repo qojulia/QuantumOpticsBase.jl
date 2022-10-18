@@ -79,7 +79,7 @@ if there is no corresponding operator (i.e. it would be an identity operater).
 suboperator(op::LazyTensor, index::Integer) = op.operators[findfirst(isequal(index), op.indices)]
 
 """
-    suboperators(op::LazyTensor, index)
+    suboperators(op::LazyTensor, indices)
 
 Return the suboperators corresponding to the subsystems specified by `indices`. Fails
 if there is no corresponding operator (i.e. it would be an identity operater).
@@ -338,14 +338,14 @@ function _tp_matmul_mid!(result::Base.ReshapedArray, a::AbstractMatrix, loc::Int
 
     @strided permutedims!(result_r, result_r_p, perm)
     #permutedims!(result_r, result_r_p, perm)
-    
+
     result
 end
 
 function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
     # Apply a matrix `α * a` to one tensor factor of a tensor `b`.
     # If β is nonzero, add to β times `result`. In other words, we do:
-    # result = α * a * b + β * result 
+    # result = α * a * b + β * result
     #
     # Parameters:
     #     result: Array to hold the output tensor.
@@ -491,7 +491,7 @@ function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
     isos, iso_inds
 end
 
-# To get the shape of a CompositeBasis with number of dims inferrable at compile-time 
+# To get the shape of a CompositeBasis with number of dims inferrable at compile-time
 _comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
 _comp_size(b::Basis) = (length(b),)
 
