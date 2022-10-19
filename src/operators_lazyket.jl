@@ -28,12 +28,13 @@ function LazyKet(b::CompositeBasis, kets::Vector)
 end
 
 function expect(op::LazyTensor, state::LazyKet)
+    @assert basis(op) == basis(state)
     ops = op.operators
+    inds = op.indices
     kets = state.kets
-    @assert length(ops) == length(kets) && length(kets) > 1
-    prod(expect(ops[i],kets[i]) for i=1:length(kets))
+    prod(expect(ops[i],kets[inds[i]]) for i=1:length(ops))
 end
 
-Base.copy(x::LazyKet) = LazyKet(x.basis, Tuple(copy(op) for op in x.kets))
-isequal(x::LazyKet, y::LazyKet) = samebases(x,y) && isequal(x.kets, y.kets)
-==(x::LazyKet, y::LazyKet) = samebases(x,y) && x.kets==y.kets
+# Base.copy(x::LazyKet) = LazyKet(x.basis, Tuple(copy(op) for op in x.kets))
+# isequal(x::LazyKet, y::LazyKet) = samebases(x,y) && isequal(x.kets, y.kets)
+# ==(x::LazyKet, y::LazyKet) = samebases(x,y) && x.kets==y.kets

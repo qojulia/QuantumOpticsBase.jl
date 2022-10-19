@@ -386,5 +386,17 @@ dop = randoperator(b3a⊗b3b, b2a⊗b2b)
 @test dop*lop' ≈ Operator(dop.basis_l, lop.basis_l, dop.data*dense(lop).data')
 @test lop*dop' ≈ Operator(lop.basis_l, dop.basis_l, dense(lop).data*dop.data')
 
+# LazyKet
+b1 = SpinBasis(1//2)
+b2 = SpinBasis(1)
+b = b1⊗b2
+ψ1 = spindown(b1)
+ψ2 = spinup(b2)
+ψ = LazyKet(b, (ψ1,ψ2))
+sz1 = LazyTensor(b,1,(sigmaz(b1),))
+sz2 = LazyTensor(b,2,(sigmaz(b2),))
+sz = sz1*sz2
+@test expect(sz, ψ) == expect(sigmaz(b1)⊗sigmaz(b2), ψ1⊗ψ2)
+
 
 end # testset
