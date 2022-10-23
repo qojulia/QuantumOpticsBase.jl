@@ -3,31 +3,46 @@ module QuantumOpticsBase
 using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays
 import LinearAlgebra: mul!, rmul!
 
-export bases, Basis, GenericBasis, CompositeBasis, basis,
+export Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,
-        states, StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
+        #states
+                StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
                 dagger, normalize, normalize!,
-        operators, AbstractOperator, DataOperator, expect, variance,
-            identityoperator, ptrace, reduced, embed, dense, tr, sparse,
-        operators_dense, Operator, DenseOperator, DenseOpType, projector, dm,
-        operators_sparse, SparseOperator, diagonaloperator, SparseOpType,
-        operators_lazysum, LazySum,
-        operators_lazyproduct, LazyProduct,
-        operators_lazytensor, LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
-        lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
-        superoperators, SuperOperator, DenseSuperOperator, DenseSuperOpType,
+        #operators
+                AbstractOperator, DataOperator, expect, variance,
+                identityoperator, ptrace, reduced, embed, dense, tr, sparse,
+        #operators_dense
+                Operator, DenseOperator, DenseOpType, projector, dm,
+        #operators_sparse
+                SparseOperator, diagonaloperator, SparseOpType,
+        #operators_lazysum
+                LazySum,
+        #operators_lazyproduct
+                LazyProduct,
+        #operators_lazytensor
+                LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
+                lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
+        #superoperators
+                SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType, spre, spost, liouvillian,
-        fock, FockBasis, number, destroy, create,
+        #fock
+                FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!, displace,
         randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,
-        spin, SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
-        subspace, SubspaceBasis, projector, sparseprojector,
-        particle, PositionBasis, MomentumBasis, samplepoints, spacing, gaussianstate,
+        #spin
+                SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
+        #subspace
+                SubspaceBasis, projector, sparseprojector,
+        #particle
+                PositionBasis, MomentumBasis, samplepoints, spacing, gaussianstate,
                 position, momentum, potentialoperator, transform,
-        nlevel, NLevelBasis, transition, nlevelstate,
-        manybody, ManyBodyBasis, fermionstates, bosonstates,
-                manybodyoperator, onebodyexpect, occupation,
-        metrics, tracenorm, tracenorm_h, tracenorm_nh,
+        #nlevel
+                NLevelBasis, transition, nlevelstate,
+        #manybody
+                ManyBodyBasis, fermionstates, bosonstates,
+                manybodyoperator, onebodyexpect,
+        #metrics
+                tracenorm, tracenorm_h, tracenorm_nh,
                 tracedistance, tracedistance_h, tracedistance_nh,
                 entropy_vn, entropy_renyi, fidelity, ptranspose, PPT,
                 negativity, logarithmic_negativity, entanglement_entropy,
