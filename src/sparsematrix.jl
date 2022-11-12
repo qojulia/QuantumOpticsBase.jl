@@ -208,7 +208,7 @@ function gemv!(alpha, v::AbstractVector, M::SparseMatrixCSC, beta, result::Abstr
     end
 end
 
-function sub2sub(shape1, shape2, I) where {N, M}
+function sub2sub(shape1, shape2, I)
     linearindex = LinearIndices(shape1)[I.I...]
     CartesianIndices(shape2)[linearindex]
 end

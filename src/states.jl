@@ -249,12 +249,12 @@ find_basis(a::StateVector, rest) = a.basis
 find_basis(::Any, rest) = find_basis(rest)
 
 const BasicMathFunc = Union{typeof(+),typeof(-),typeof(*)}
-function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{Vararg{<:T}}, axes) where T<:StateVector
+function Broadcasted_restrict_f(f::BasicMathFunc, args::NTuple{N,<:T}, axes) where {T<:StateVector,N}
     args_ = Tuple(a.data for a=args)
     return Broadcast.Broadcasted(f, args_, axes)
 end
-function Broadcasted_restrict_f(f, args::Tuple{Vararg{<:T}}, axes) where T<:StateVector
-    throw(error("Cannot broadcast function `$f` on type `$T`"))
+function Broadcasted_restrict_f(f, args, axes)
+    throw(error("Cannot broadcast function `$f` on $(typeof(args))"))
 end
 
 
