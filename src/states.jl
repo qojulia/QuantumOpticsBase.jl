@@ -253,10 +253,12 @@ function Broadcasted_restrict_f(f::BasicMathFunc, args::NTuple{N,<:T}, axes) whe
     args_ = Tuple(a.data for a=args)
     return Broadcast.Broadcasted(f, args_, axes)
 end
-function Broadcasted_restrict_f(f, args, axes)
+function Broadcasted_restrict_f(f, args::Tuple, axes)
     throw(error("Cannot broadcast function `$f` on $(typeof(args))"))
 end
-
+function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{}, axes) # Defined to avoid method ambiguities
+    throw(error("Cannot broadcast function `$f` on an empty set of arguments"))
+end
 
 # In-place broadcasting for Kets
 @inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:KetStyle{B},Axes,F,Args}

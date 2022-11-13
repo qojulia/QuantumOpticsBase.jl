@@ -33,21 +33,21 @@ mutable struct LazyTensor{BL,BR,F,I,T} <: AbstractOperator{BL,BR}
         new{BL,BR,F_,I,T}(bl, br, factor_, indices, ops)
     end
 end
-function LazyTensor(bl::CompositeBasis, br::CompositeBasis, indices, ops::Vector, factor=_default_factor(ops))
+function LazyTensor(bl::CompositeBasis, br::CompositeBasis, indices::I, ops::Vector, factor::F=_default_factor(ops)) where {F,I}
     Base.depwarn("LazyTensor(bl, br, indices, ops::Vector, factor) is deprecated, use LazyTensor(bl, br, indices, Tuple(ops), factor) instead.",
                 :LazyTensor; force=true)
     return LazyTensor(bl,br,indices,Tuple(ops),factor)
 end
 
-function LazyTensor(basis_l::CompositeBasis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::CompositeBasis, basis_r::Basis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     br = CompositeBasis(basis_r.shape, [basis_r])
     return LazyTensor(basis_l, br, indices, ops, factor)
 end
-function LazyTensor(basis_l::Basis, basis_r::CompositeBasis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::Basis, basis_r::CompositeBasis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     bl = CompositeBasis(basis_l.shape, [basis_l])
     return LazyTensor(bl, basis_r, indices, ops, factor)
 end
-function LazyTensor(basis_l::Basis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::Basis, basis_r::Basis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     bl = CompositeBasis(basis_l.shape, [basis_l])
     br = CompositeBasis(basis_r.shape, [basis_r])
     return LazyTensor(bl, br, indices, ops, factor)
@@ -338,14 +338,14 @@ function _tp_matmul_mid!(result::Base.ReshapedArray, a::AbstractMatrix, loc::Int
 
     @strided permutedims!(result_r, result_r_p, perm)
     #permutedims!(result_r, result_r_p, perm)
-    
+
     result
 end
 
 function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
     # Apply a matrix `α * a` to one tensor factor of a tensor `b`.
     # If β is nonzero, add to β times `result`. In other words, we do:
-    # result = α * a * b + β * result 
+    # result = α * a * b + β * result
     #
     # Parameters:
     #     result: Array to hold the output tensor.
@@ -491,7 +491,7 @@ function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
     isos, iso_inds
 end
 
-# To get the shape of a CompositeBasis with number of dims inferrable at compile-time 
+# To get the shape of a CompositeBasis with number of dims inferrable at compile-time
 _comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
 _comp_size(b::Basis) = (length(b),)
 

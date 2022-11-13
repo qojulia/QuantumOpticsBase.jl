@@ -3,8 +3,5 @@ using QuantumOpticsBase
 using Aqua
 
 @testset "aqua" begin
-    Aqua.test_all(QuantumOpticsBase,
-                  ambiguities=false,
-                  )
-    @test_broken false # fix the ambiguities test above
+    Aqua.test_all(QuantumOpticsBase)
 end # testset
