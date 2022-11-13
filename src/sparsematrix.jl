@@ -165,16 +165,16 @@ function gemm!(alpha, B::AbstractMatrix, M::Adjoint{T,<:SparseMatrixCSC{T}}, bet
 end
 
 function gemm!(alpha, A::Adjoint{T, <:SparseMatrixCSC{T}}, B::Adjoint{S, <:SparseMatrixCSC{S}}, beta, result::AbstractMatrix) where {T,S}
-    throw(error("Matrix multiplication between Adjoint{SparseCSC} and SparseCSC matrices is not implemented yet. Submit an issue to the developers."))
+    error("Matrix multiplication between Adjoint{SparseCSC} and SparseCSC matrices is not implemented yet. Submit an issue to the developers.")
 end
 function gemm!(alpha, A::Adjoint{T, <:SparseMatrixCSC{T}}, B::SparseMatrixCSC, beta, result::AbstractMatrix) where T
-    throw(error("Matrix multiplication between Adjoint{SparseCSC} and Adjoint{SparseCSC} matrices is not implemented yet. Submit an issue to the developers."))
+    error("Matrix multiplication between Adjoint{SparseCSC} and Adjoint{SparseCSC} matrices is not implemented yet. Submit an issue to the developers.")
 end
 function gemm!(alpha, A::SparseMatrixCSC, B::Adjoint{T, <:SparseMatrixCSC{T}}, beta, result::AbstractMatrix) where T
-    throw(error("Matrix multiplication between SparseCSC and Adjoint{SparseCSC} matrices is not implemented yet. Submit an issue to the developers."))
+    error("Matrix multiplication between SparseCSC and Adjoint{SparseCSC} matrices is not implemented yet. Submit an issue to the developers.")
 end
 function gemm!(alpha, A::SparseMatrixCSC, B::SparseMatrixCSC, beta, result::AbstractMatrix)
-    throw(error("Matrix multiplication between SparseCSC and SparseCSC matrices is not implemented yet. Submit an issue to the developers."))
+    error("Matrix multiplication between SparseCSC and SparseCSC matrices is not implemented yet. Submit an issue to the developers.")
 end
 
 function gemv!(alpha, M::SparseMatrixCSC, v::AbstractVector, beta, result::AbstractVector)

@@ -78,8 +78,8 @@ Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = false
 *(a::Bra, b::DataOperator) = throw(IncompatibleBases())
 *(a::Operator{B1,B2}, b::Operator{B2,B3}) where {B1,B2,B3} = Operator(a.basis_l, b.basis_r, a.data*b.data)
 *(a::DataOperator, b::DataOperator) = throw(IncompatibleBases())
-*(a::DataOperator{B1, B2}, b::Operator{B2, B3, T}) where {B1, B2, B3, T} = throw(error("no `*` method defined for DataOperator subtype $(typeof(a))")) # defined to avoid method ambiguity
-*(a::Operator{B1, B2, T}, b::DataOperator{B2, B3}) where {B1, B2, B3, T} = throw(error("no `*` method defined for DataOperator subtype $(typeof(b))")) # defined to avoid method ambiguity
+*(a::DataOperator{B1, B2}, b::Operator{B2, B3, T}) where {B1, B2, B3, T} = error("no `*` method defined for DataOperator subtype $(typeof(a))") # defined to avoid method ambiguity
+*(a::Operator{B1, B2, T}, b::DataOperator{B2, B3}) where {B1, B2, B3, T} = error("no `*` method defined for DataOperator subtype $(typeof(b))") # defined to avoid method ambiguity
 *(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, b*a.data)
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
 function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1,B2,B3,T}
