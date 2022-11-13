@@ -391,11 +391,11 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         _tp_matmul!(result_data, first(ops)..., b_data, alpha, beta)
     elseif n_ops == 2
         # One temporary vector needed.
-        op1, istate = iterate(ops)
+        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
         tmp = _tp_sum_get_tmp(op1..., b_data, :_tp_sum_matmul_tmp1)
         _tp_matmul!(tmp, op1..., b_data, alpha, zero(beta))
 
-        op2, istate = iterate(ops, istate)
+        op2, istate = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         _tp_matmul!(result_data, op2..., tmp, one(alpha), beta)
     else
         # At least two temporary vectors needed.
@@ -403,18 +403,18 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         sym1 = :_tp_sum_matmul_tmp1
         sym2 = :_tp_sum_matmul_tmp2
 
-        op1, istate = iterate(ops)
+        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
         tmp1 = _tp_sum_get_tmp(op1..., b_data, sym1)
         _tp_matmul!(tmp1, op1..., b_data, alpha, zero(beta))
 
-        next = iterate(ops, istate)
+        next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         for _ in 2:n_ops-1
             op, istate = next
             tmp2 = _tp_sum_get_tmp(op..., tmp1, sym2)
             _tp_matmul!(tmp2, op..., tmp1, one(alpha), zero(beta))
             tmp1, tmp2 = tmp2, tmp1
             sym1, sym2 = sym2, sym1
-            next = iterate(ops, istate)
+            next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         end
 
         op, istate = next
