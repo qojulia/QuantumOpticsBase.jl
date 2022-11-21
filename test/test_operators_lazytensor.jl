@@ -344,13 +344,19 @@ QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 # Test single operator, no isometries
 subop1 = randoperator(b1a, b1a)
 op = LazyTensor(b_l, b_l, [1], (subop1,), 0.5)
+op_sp = LazyTensor(b_l, b_l, [1], (sparse(subop1),), 0.5)
 op_ = sparse(op)
 state = randoperator(b_l, b_r2)
 result_ = randoperator(b_l, b_r2)
 alpha = complex(1.5)
 beta = complex(2.1)
+
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
 # Test scaled identity
