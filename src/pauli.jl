@@ -1,21 +1,5 @@
 import Base: isapprox
-
-"""
-    PauliBasis(num_qubits::Int)
-
-Basis for an N-qubit space where `num_qubits` specifies the number of qubits.
-The dimension of the basis is 2²ᴺ.
-"""
-struct PauliBasis{S,B} <: Basis
-    shape::S
-    bases::B
-    function PauliBasis(num_qubits::T) where {T<:Integer}
-        shape = [2 for _ in 1:num_qubits]
-        bases = Tuple(SpinBasis(1//2) for _ in 1:num_qubits)
-        return new{typeof(shape),typeof(bases)}(shape, bases)
-    end
-end
-==(pb1::PauliBasis, pb2::PauliBasis) = length(pb1.bases) == length(pb2.bases)
+import QuantumCore: PauliBasis
 
 """
     Base class for Pauli transfer matrix classes.

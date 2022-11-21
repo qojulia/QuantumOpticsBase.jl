@@ -3,6 +3,8 @@ module QuantumOpticsBase
 using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays
 import LinearAlgebra: mul!, rmul!
 
+import QuantumCore: dagger, directsum, ⊕, embed, expect, permutesystems, ptrace, reduced, tensor, ⊗
+
 export Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,
         #states

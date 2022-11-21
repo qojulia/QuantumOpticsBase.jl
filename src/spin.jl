@@ -1,28 +1,4 @@
-"""
-    SpinBasis(n)
-
-Basis for spin-n particles.
-
-The basis can be created for arbitrary spinnumbers by using a rational number,
-e.g. `SpinBasis(3//2)`. The Pauli operators are defined for all possible
-spin numbers.
-"""
-struct SpinBasis{S,T} <: Basis
-    shape::Vector{T}
-    spinnumber::Rational{T}
-    function SpinBasis{S}(spinnumber::Rational{T}) where {S,T<:Integer}
-        n = numerator(spinnumber)
-        d = denominator(spinnumber)
-        @assert d==2 || d==1
-        @assert n >= 0
-        N = numerator(spinnumber*2 + 1)
-        new{spinnumber,T}([N], spinnumber)
-    end
-end
-SpinBasis(spinnumber::Rational) = SpinBasis{spinnumber}(spinnumber)
-SpinBasis(spinnumber) = SpinBasis(convert(Rational{Int}, spinnumber))
-
-==(b1::SpinBasis, b2::SpinBasis) = b1.spinnumber==b2.spinnumber
+import QuantumCore: SpinBasis
 
 """
     sigmax([T=ComplexF64,] b::SpinBasis)

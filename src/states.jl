@@ -1,22 +1,13 @@
 import Base: ==, +, -, *, /, length, copy, eltype
 import LinearAlgebra: norm, normalize, normalize!
-
-"""
-Abstract base class for [`Bra`](@ref) and [`Ket`](@ref) states.
-
-The state vector class stores the coefficients of an abstract state
-in respect to a certain basis. These coefficients are stored in the
-`data` field and the basis is defined in the `basis`
-field.
-"""
-abstract type StateVector{B,T} end
+import QuantumCore: StateVector, AbstractKet, AbstractBra
 
 """
     Bra(b::Basis[, data])
 
 Bra state defined by coefficients in respect to the basis.
 """
-mutable struct Bra{B,T} <: StateVector{B,T}
+mutable struct Bra{B,T} <: AbstractBra{B,T}
     basis::B
     data::T
     function Bra{B,T}(b::B, data::T) where {B,T}
@@ -30,7 +21,7 @@ end
 
 Ket state defined by coefficients in respect to the given basis.
 """
-mutable struct Ket{B,T} <: StateVector{B,T}
+mutable struct Ket{B,T} <: AbstractKet{B,T}
     basis::B
     data::T
     function Ket{B,T}(b::B, data::T) where {B,T}

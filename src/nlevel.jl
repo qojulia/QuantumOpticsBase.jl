@@ -1,21 +1,4 @@
-"""
-    NLevelBasis(N)
-
-Basis for a system consisting of N states.
-"""
-struct NLevelBasis{T} <: Basis
-    shape::Vector{T}
-    N::T
-    function NLevelBasis(N::T) where T<:Integer
-        if N < 1
-            throw(DimensionMismatch())
-        end
-        new{T}([N], N)
-    end
-end
-
-==(b1::NLevelBasis, b2::NLevelBasis) = b1.N == b2.N
-
+import QuantumCore: NLevelBasis
 
 """
     transition([T=ComplexF64,] b::NLevelBasis, to::Integer, from::Integer)
