@@ -292,11 +292,9 @@ function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym) where {T,N}
     use_cache = lazytensor_use_cache()
     key = (sym, taskid(), UInt(len), T)
     if use_cache && Vector{T} <: LazyTensorCacheable
-        cached = get!(lazytensor_cache, key) do
+        tmp::Vector{T} = get!(lazytensor_cache, key) do
             Vector{T}(undef, len)
         end
-        # Let's make sure the compiler knows we have the right type
-        tmp = Vector{T}(cached)
     else
         tmp = Vector{T}(undef, len)
     end
