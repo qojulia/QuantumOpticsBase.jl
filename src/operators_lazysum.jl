@@ -129,8 +129,11 @@ end
 
 identityoperator(::Type{<:LazySum}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazySum(identityoperator(S, b1, b2))
 
-function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices::AbstractVector, op::LazySum)
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices, op::LazySum)
     LazySum(basis_l, basis_r, op.factors, ((embed(basis_l, basis_r, indices, o) for o in op.operators)...,))
+end
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::LazySum) # defined to avoid method ambiguity
+    LazySum(basis_l, basis_r, op.factors, ((embed(basis_l, basis_r, index, o) for o in op.operators)...,)) # dispatch to fast-path single-index `embed`
 end
 
 # Fast in-place multiplication

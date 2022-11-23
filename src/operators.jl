@@ -191,7 +191,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     data[1] = one(Tnum)
     i = N
     while i > 0
-        if i ∈ index
+        if i == index
             data = kron(data, op.data)
             i -= length(index)
         else
