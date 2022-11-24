@@ -242,9 +242,6 @@ function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{Vararg{<:SuperOper
     args_ = Tuple(a.data for a=args)
     return Broadcast.Broadcasted(f, args_, axes)
 end
-function Broadcasted_restrict_f(f, args::Tuple{Vararg{<:SuperOperator}}, axes)
-    throw(error("Cannot broadcast function `$f` on type `$(eltype(args))`"))
-end
 
 # In-place broadcasting
 @inline function Base.copyto!(dest::SuperOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL,BR,Style<:SuperOperatorStyle{BL,BR},Axes,F,Args}

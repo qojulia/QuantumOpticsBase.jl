@@ -33,21 +33,21 @@ mutable struct LazyTensor{BL,BR,F,I,T} <: AbstractOperator{BL,BR}
         new{BL,BR,F_,I,T}(bl, br, factor_, indices, ops)
     end
 end
-function LazyTensor(bl::CompositeBasis, br::CompositeBasis, indices, ops::Vector, factor=_default_factor(ops))
+function LazyTensor(bl::CompositeBasis, br::CompositeBasis, indices::I, ops::Vector, factor::F=_default_factor(ops)) where {F,I}
     Base.depwarn("LazyTensor(bl, br, indices, ops::Vector, factor) is deprecated, use LazyTensor(bl, br, indices, Tuple(ops), factor) instead.",
                 :LazyTensor; force=true)
     return LazyTensor(bl,br,indices,Tuple(ops),factor)
 end
 
-function LazyTensor(basis_l::CompositeBasis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::CompositeBasis, basis_r::Basis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     br = CompositeBasis(basis_r.shape, [basis_r])
     return LazyTensor(basis_l, br, indices, ops, factor)
 end
-function LazyTensor(basis_l::Basis, basis_r::CompositeBasis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::Basis, basis_r::CompositeBasis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     bl = CompositeBasis(basis_l.shape, [basis_l])
     return LazyTensor(bl, basis_r, indices, ops, factor)
 end
-function LazyTensor(basis_l::Basis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::Basis, basis_r::Basis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     bl = CompositeBasis(basis_l.shape, [basis_l])
     br = CompositeBasis(basis_r.shape, [basis_r])
     return LazyTensor(bl, br, indices, ops, factor)
@@ -336,14 +336,14 @@ function _tp_matmul_mid!(result::Base.ReshapedArray, a::AbstractMatrix, loc::Int
 
     @strided permutedims!(result_r, result_r_p, perm)
     #permutedims!(result_r, result_r_p, perm)
-    
+
     result
 end
 
 function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
     # Apply a matrix `α * a` to one tensor factor of a tensor `b`.
     # If β is nonzero, add to β times `result`. In other words, we do:
-    # result = α * a * b + β * result 
+    # result = α * a * b + β * result
     #
     # Parameters:
     #     result: Array to hold the output tensor.
@@ -389,11 +389,11 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         _tp_matmul!(result_data, first(ops)..., b_data, alpha, beta)
     elseif n_ops == 2
         # One temporary vector needed.
-        op1, istate = iterate(ops)
+        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
         tmp = _tp_sum_get_tmp(op1..., b_data, :_tp_sum_matmul_tmp1)
         _tp_matmul!(tmp, op1..., b_data, alpha, zero(beta))
 
-        op2, istate = iterate(ops, istate)
+        op2, istate = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         _tp_matmul!(result_data, op2..., tmp, one(alpha), beta)
     else
         # At least two temporary vectors needed.
@@ -401,18 +401,18 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         sym1 = :_tp_sum_matmul_tmp1
         sym2 = :_tp_sum_matmul_tmp2
 
-        op1, istate = iterate(ops)
+        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
         tmp1 = _tp_sum_get_tmp(op1..., b_data, sym1)
         _tp_matmul!(tmp1, op1..., b_data, alpha, zero(beta))
 
-        next = iterate(ops, istate)
+        next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         for _ in 2:n_ops-1
             op, istate = next
             tmp2 = _tp_sum_get_tmp(op..., tmp1, sym2)
             _tp_matmul!(tmp2, op..., tmp1, one(alpha), zero(beta))
             tmp1, tmp2 = tmp2, tmp1
             sym1, sym2 = sym2, sym1
-            next = iterate(ops, istate)
+            next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         end
 
         op, istate = next
@@ -489,7 +489,7 @@ function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
     isos, iso_inds
 end
 
-# To get the shape of a CompositeBasis with number of dims inferrable at compile-time 
+# To get the shape of a CompositeBasis with number of dims inferrable at compile-time
 _comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
 _comp_size(b::Basis) = (length(b),)
 

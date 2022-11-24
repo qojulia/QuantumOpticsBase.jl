@@ -33,7 +33,10 @@ names = [
 
     "test_abstractdata.jl",
 
-    "test_printing.jl"
+    "test_printing.jl",
+
+    "test_aqua.jl",
+    "test_jet.jl"
 ]
 
 detected_tests = filter(
