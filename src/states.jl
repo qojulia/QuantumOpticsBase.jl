@@ -249,14 +249,16 @@ find_basis(a::StateVector, rest) = a.basis
 find_basis(::Any, rest) = find_basis(rest)
 
 const BasicMathFunc = Union{typeof(+),typeof(-),typeof(*)}
-function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{Vararg{<:T}}, axes) where T<:StateVector
+function Broadcasted_restrict_f(f::BasicMathFunc, args::NTuple{N,<:T}, axes) where {T<:StateVector,N}
     args_ = Tuple(a.data for a=args)
     return Broadcast.Broadcasted(f, args_, axes)
 end
-function Broadcasted_restrict_f(f, args::Tuple{Vararg{<:T}}, axes) where T<:StateVector
-    throw(error("Cannot broadcast function `$f` on type `$T`"))
+function Broadcasted_restrict_f(f, args::Tuple, axes)
+    error("Cannot broadcast function `$f` on $(typeof(args))")
 end
-
+function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{}, axes) # Defined to avoid method ambiguities
+    error("Cannot broadcast function `$f` on an empty set of arguments")
+end
 
 # In-place broadcasting for Kets
 @inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:KetStyle{B},Axes,F,Args}

@@ -28,8 +28,8 @@ Generate all fermionic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
 particle number.
 """
-fermionstates(Nmodes::T, Nparticles::T) where T = _distribute_fermions(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
-fermionstates(Nmodes::T, Nparticles::Vector{T}) where T = vcat([fermionstates(Nmodes, N) for N in Nparticles]...)
+fermionstates(Nmodes::Int, Nparticles::Int) = _distribute_fermions(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
+fermionstates(Nmodes::Int, Nparticles::Vector{Int}) = vcat([fermionstates(Nmodes, N) for N in Nparticles]...)
 fermionstates(onebodybasis::Basis, Nparticles) = fermionstates(length(onebodybasis), Nparticles)
 
 """
@@ -40,8 +40,8 @@ Generate all bosonic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
 particle number.
 """
-bosonstates(Nmodes::T, Nparticles::T) where T = _distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
-bosonstates(Nmodes::T, Nparticles::Vector{T}) where T = vcat([bosonstates(Nmodes, N) for N in Nparticles]...)
+bosonstates(Nmodes::Int, Nparticles::Int) = _distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[])
+bosonstates(Nmodes::Int, Nparticles::Vector{Int}) = vcat([bosonstates(Nmodes, N) for N in Nparticles]...)
 bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis), Nparticles)
 
 ==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash==b2.occupations_hash && b1.onebodybasis==b2.onebodybasis

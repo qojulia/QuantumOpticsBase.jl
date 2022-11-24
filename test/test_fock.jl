@@ -52,6 +52,23 @@ a = destroy(b)
 @test 1e-12 > D(dagger(d), displace(b, -alpha))
 @test 1e-15 > norm(coherentstate(b, alpha) - displace(b, alpha)*fockstate(b, 0))
 
+
+α = complex(rand(0.0:0.1:2.0), rand(0.0:0.1:2.0))
+for ofs in 0:3
+    b = FockBasis(100, ofs)
+    D = displace_analytical(b, α).data
+    D̂ = displace(b, α).data
+    
+    chunk = 20
+    imin = ofs > 0 ? chunk : 1
+    imax = imin + 10
+    @test D[imin:imax,imin:imax] ≈ D̂[imin:imax,imin:imax]
+
+    m = rand(ofs:100)
+    n = rand(ofs:100)
+    @test D[m-ofs + 1, n-ofs + 1] == displace_analytical(α, m, n)
+end
+
 # Test Fock states
 b = FockBasis(5)
 @test expect(number(b), fockstate(b, 3)) == complex(3.)
