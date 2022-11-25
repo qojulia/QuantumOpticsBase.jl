@@ -20,9 +20,9 @@ end
 Operator{BL,BR}(basis_l::BL,basis_r::BR,data::T) where {BL,BR,T} = Operator{BL,BR,T}(basis_l,basis_r,data)
 Operator(basis_l::BL,basis_r::BR,data::T) where {BL,BR,T} = Operator{BL,BR,T}(basis_l,basis_r,data)
 Operator(b::Basis,data) = Operator(b,b,data)
-Operator(qet::Ket{B}...) where B = Operator(qet[1].basis, GenericBasis(length(qet)), hcat(getfield.(qet,:data)...))
-Operator(basis_r::Basis,qet::Ket{B}...) where B = Operator(qet[1].basis, basis_r, hcat(getfield.(qet,:data)...))
-Operator(basis_l::BL,basis_r::BR,qet::Ket...) where {BL,BR} = Operator{BL,BR}(basis_l, basis_r, hcat(getfield.(qet,:data)...))
+Operator(qet1::Ket, qetva::Ket...) = Operator(qet1.basis, GenericBasis(length(qetva)+1), qet1, qetva...)
+Operator(basis_r::Basis,qet1::Ket,qetva::Ket...) = Operator(qet1.basis, basis_r, qet1, qetva...)
+Operator(basis_l::BL,basis_r::BR,qet1::Ket,qetva::Ket...) where {BL,BR} = Operator{BL,BR}(basis_l, basis_r, hcat(qet1.data, getfield.(qetva,:data)...))
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
