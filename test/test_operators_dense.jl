@@ -29,18 +29,18 @@ op2 = DenseOperator(b1b, b1a, [1 1; 1 1; 1 1])
 ## Stacking Kets to make an Operator
 ### signle basis
 ψlist = basisstate.([GenericBasis(4)], 1:2)
-@test Operator(ψlist...) == Operator(ψlist[1].basis, GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
-@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(ψlist[1].basis, FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
-@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(ψlist...) == Operator(ψlist) == Operator(ψlist[1].basis, GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
+@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(FockBasis(length(ψlist)-1), ψlist) == Operator(ψlist[1].basis, FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
 ψlist = vcat(ψlist, basisstate.(Real, [NLevelBasis(prod(ψlist[1].basis.shape))], [1,prod(ψlist[1].basis.shape)]))
-@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
 ### composite basis
 ψlist = basisstate.([GenericBasis(4)^2], 1:2)
-@test Operator(ψlist...) == Operator(ψlist[1].basis, GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
-@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(ψlist[1].basis, FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
-@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(ψlist...) == Operator(ψlist) == Operator(ψlist[1].basis, GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
+@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(FockBasis(length(ψlist)-1), ψlist) == Operator(ψlist[1].basis, FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
 ψlist2= vcat(ψlist, basisstate.(Float64, [NLevelBasis(prod(ψlist[1].basis.shape))], range(prod(ψlist[1].basis.shape);step=-1,length=length(ψlist))))
-@test Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2, ψlist2...) == Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2,  hcat(getfield.(ψlist2,:data)...))
+@test Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2, ψlist2...) == Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2, ψlist2) == Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2,  hcat(getfield.(ψlist2,:data)...))
 
 # Test ' shorthand
 @test dagger(op2) == op2'
