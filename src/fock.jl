@@ -1,4 +1,4 @@
-import QuantumCore: FockBasis
+import QuantumInterface: FockBasis
 
 """
     number([T=ComplexF64,] b::FockBasis)
@@ -51,7 +51,7 @@ create(b::FockBasis) = create(ComplexF64, b)
 
 Displacement operator ``D(α)`` for the specified Fock space with optional data
 type `T`, computed as the matrix exponential of finite-dimensional (truncated)
-creation and annihilation operators. 
+creation and annihilation operators.
 """
 function displace(::Type{T}, b::FockBasis, alpha::Number) where T
     alpha = T(alpha)

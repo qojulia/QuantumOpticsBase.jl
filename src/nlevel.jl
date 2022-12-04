@@ -1,4 +1,4 @@
-import QuantumCore: NLevelBasis
+import QuantumInterface: NLevelBasis
 
 """
     transition([T=ComplexF64,] b::NLevelBasis, to::Integer, from::Integer)

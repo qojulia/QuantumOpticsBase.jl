@@ -1,6 +1,6 @@
 import Base: isequal, ==, *, /, +, -
 import SparseArrays: sparse, spzeros
-import QuantumCore: BASES_CHECK
+import QuantumInterface: BASES_CHECK
 
 function _check_bases(basis_l, basis_r, operators)
     for o in operators

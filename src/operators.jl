@@ -1,7 +1,7 @@
 import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!, transpose
 import LinearAlgebra: tr, ishermitian
 import SparseArrays: sparse
-import QuantumCore: AbstractOperator
+import QuantumInterface: AbstractOperator
 
 """
 Abstract type for operators with a data field.

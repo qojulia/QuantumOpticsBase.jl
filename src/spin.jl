@@ -1,4 +1,4 @@
-import QuantumCore: SpinBasis
+import QuantumInterface: SpinBasis
 
 """
     sigmax([T=ComplexF64,] b::SpinBasis)

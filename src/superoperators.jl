@@ -1,4 +1,4 @@
-import QuantumCore: AbstractSuperOperator
+import QuantumInterface: AbstractSuperOperator
 
 """
     SuperOperator <: AbstractSuperOperator

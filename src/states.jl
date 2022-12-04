@@ -1,6 +1,6 @@
 import Base: ==, +, -, *, /, length, copy, eltype
 import LinearAlgebra: norm, normalize, normalize!
-import QuantumCore: StateVector, AbstractKet, AbstractBra
+import QuantumInterface: StateVector, AbstractKet, AbstractBra
 
 """
     Bra(b::Basis[, data])
