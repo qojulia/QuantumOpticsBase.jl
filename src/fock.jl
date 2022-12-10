@@ -1,24 +1,4 @@
-"""
-    FockBasis(N,offset=0)
-
-Basis for a Fock space where `N` specifies a cutoff, i.e. what the highest
-included fock state is. Similarly, the `offset` defines the lowest included
-fock state (default is 0). Note that the dimension of this basis is `N+1-offset`.
-"""
-struct FockBasis{T} <: Basis
-    shape::Vector{T}
-    N::T
-    offset::T
-    function FockBasis(N::T,offset::T=0) where T
-        if N < 0 || offset < 0 || N <= offset
-            throw(DimensionMismatch())
-        end
-        new{T}([N-offset+1], N, offset)
-    end
-end
-
-
-==(b1::FockBasis, b2::FockBasis) = (b1.N==b2.N && b1.offset==b2.offset)
+import QuantumInterface: FockBasis
 
 """
     number([T=ComplexF64,] b::FockBasis)
@@ -71,7 +51,7 @@ create(b::FockBasis) = create(ComplexF64, b)
 
 Displacement operator ``D(α)`` for the specified Fock space with optional data
 type `T`, computed as the matrix exponential of finite-dimensional (truncated)
-creation and annihilation operators. 
+creation and annihilation operators.
 """
 function displace(::Type{T}, b::FockBasis, alpha::Number) where T
     alpha = T(alpha)

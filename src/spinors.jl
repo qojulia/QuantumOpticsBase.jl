@@ -41,8 +41,6 @@ function directsum(b1::SumBasis, b2::SumBasis)
 end
 directsum() = GenericBasis(0)
 
-const ⊕ = directsum
-
 """
     directsum(x::Ket, y::Ket)
 
