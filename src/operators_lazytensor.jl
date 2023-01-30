@@ -261,11 +261,11 @@ function lazytensor_enable_cache(; maxsize::Int = -1, maxrelsize::Real = 0.0)
     return
 end
 
-function _tp_matmul_first!(result::Base.ReshapedArray, a::AbstractMatrix, b::Base.ReshapedArray, α::Number, β::Number)
-    d_first = size(b, 1)
+function _tp_matmul_first!(result, a::AbstractMatrix, b, α::Number, β::Number)
+    d_first = size(a, 2)
     d_rest = length(b)÷d_first
-    bp = b.parent
-    rp = result.parent
+    bp = parent(b)
+    rp = parent(result)
     @uviews bp rp begin  # avoid allocations on reshape
         br = reshape(bp, (d_first, d_rest))
         result_r = reshape(rp, (size(a, 1), d_rest))
@@ -274,11 +274,11 @@ function _tp_matmul_first!(result::Base.ReshapedArray, a::AbstractMatrix, b::Bas
     result
 end
 
-function _tp_matmul_last!(result::Base.ReshapedArray, a::AbstractMatrix, b::Base.ReshapedArray, α::Number, β::Number)
-    d_last = size(b, ndims(b))
+function _tp_matmul_last!(result, a::AbstractMatrix, b, α::Number, β::Number)
+    d_last = size(a, 2)
     d_rest = length(b)÷d_last
-    bp = b.parent
-    rp = result.parent
+    bp = parent(b)
+    rp = parent(result)
     @uviews a bp rp begin  # avoid allocations on reshape
         br = reshape(bp, (d_rest, d_last))
         result_r = reshape(rp, (d_rest, size(a, 1)))
@@ -287,7 +287,7 @@ function _tp_matmul_last!(result::Base.ReshapedArray, a::AbstractMatrix, b::Base
     result
 end
 
-function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym) where {T,N}
+function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym, ::Array) where {T,N}
     len = prod(shp)
     use_cache = lazytensor_use_cache()
     key = (sym, taskid(), UInt(len), T)
@@ -301,7 +301,17 @@ function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym) where {T,N}
     Base.ReshapedArray(tmp, shp, ())
 end
 
-function _tp_matmul_mid!(result::Base.ReshapedArray, a::AbstractMatrix, loc::Integer, b::Base.ReshapedArray, α::Number, β::Number)
+function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym, arr::AbstractArray) where {T,N}
+    if parent(arr) === arr
+        # This is a fallback that does not use the cache. Does not get triggered for arr <: Array.
+        return similar(arr, T, shp)
+    end
+    # Unpack wrapped arrays. If we hit an Array, we will use the cache.
+    # If we hit a different non-wrapped array-like, we will call `similar()`.
+    _tp_matmul_get_tmp(T, shp, sym, parent(arr))
+end
+
+function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
     sz_b_1 = 1
     for i in 1:loc-1
         sz_b_1 *= size(b,i)
@@ -320,11 +330,11 @@ function _tp_matmul_mid!(result::Base.ReshapedArray, a::AbstractMatrix, loc::Int
     move_left = sz_b_1 < sz_b_3
     perm = move_left ? (2,1,3) : (1,3,2)
 
-    br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in)
+    br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in, br)
     @strided permutedims!(br_p, br, perm)
     #permutedims!(br_p, br, perm)
 
-    result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out)
+    result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out, result_r)
     β == 0.0 || @strided permutedims!(result_r_p, result_r, perm)
     #β == 0.0 || permutedims!(result_r_p, result_r, perm)
 
@@ -366,7 +376,7 @@ end
 
 function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{S,N}, sym) where {T,S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    _tp_matmul_get_tmp(promote_type(T,S), shp, sym)
+    _tp_matmul_get_tmp(promote_type(T,S), shp, sym, arr)
 end
 
 #Apply a tensor product of operators to a vector.
@@ -434,7 +444,7 @@ Base.size(A::_SimpleIsometry, i) = A.shape[i]
 
 function _tp_sum_get_tmp(op::_SimpleIsometry, loc::Integer, arr::AbstractArray{S,N}, sym) where {S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    _tp_matmul_get_tmp(S, shp, sym)
+    _tp_matmul_get_tmp(S, shp, sym, arr)
 end
 
 function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β::Number)
