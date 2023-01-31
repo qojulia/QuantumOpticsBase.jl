@@ -204,9 +204,13 @@ op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
 op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
 state = Ket(b_r, rand(ComplexF32, length(b_r)))
+state_sp = sparse(state)  # to test no-cache path
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
+@test 1e-6 > D(result, op_*state)
+
+QuantumOpticsBase.mul!(result,op,state_sp,complex(1.),complex(0.))
 @test 1e-6 > D(result, op_*state)
 
 QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
