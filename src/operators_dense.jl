@@ -1,4 +1,4 @@
-import Base: ==, +, -, *, /, Broadcast
+import Base: isequal, ==, +, -, *, /, Broadcast
 import Adapt
 using Base.Cartesian
 
@@ -20,6 +20,12 @@ end
 Operator{BL,BR}(basis_l::BL,basis_r::BR,data::T) where {BL,BR,T} = Operator{BL,BR,T}(basis_l,basis_r,data)
 Operator(basis_l::BL,basis_r::BR,data::T) where {BL,BR,T} = Operator{BL,BR,T}(basis_l,basis_r,data)
 Operator(b::Basis,data) = Operator(b,b,data)
+Operator(qet1::Ket, qetva::Ket...) = Operator(qet1.basis, GenericBasis(length(qetva)+1), qet1, qetva...)
+Operator(basis_r::Basis,qet1::Ket,qetva::Ket...) = Operator(qet1.basis, basis_r, qet1, qetva...)
+Operator(basis_l::BL,basis_r::BR,qet1::Ket,qetva::Ket...) where {BL,BR} = Operator{BL,BR}(basis_l, basis_r, hcat(qet1.data, getfield.(qetva,:data)...))
+Operator(qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, GenericBasis(length(qets)), qets)
+Operator(basis_r::Basis,qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, basis_r, qets)
+Operator(basis_l::BL,basis_r::BR,qets::AbstractVector{<:Ket}) where {BL,BR} = Operator{BL,BR}(basis_l, basis_r, reduce(hcat, getfield.(qets, :data)))
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
@@ -58,6 +64,7 @@ Convert an arbitrary Operator into a [`DenseOperator`](@ref).
 """
 dense(x::AbstractOperator) = DenseOperator(x)
 
+isequal(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL,BR} = (samebases(x,y) && isequal(x.data, y.data))
 ==(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL,BR} = (samebases(x,y) && x.data==y.data)
 ==(x::DataOperator, y::DataOperator) = false
 Base.isapprox(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}; kwargs...) where {BL,BR} = (samebases(x,y) && isapprox(x.data, y.data; kwargs...))
@@ -77,6 +84,8 @@ Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = false
 *(a::Bra, b::DataOperator) = throw(IncompatibleBases())
 *(a::Operator{B1,B2}, b::Operator{B2,B3}) where {B1,B2,B3} = Operator(a.basis_l, b.basis_r, a.data*b.data)
 *(a::DataOperator, b::DataOperator) = throw(IncompatibleBases())
+*(a::DataOperator{B1, B2}, b::Operator{B2, B3, T}) where {B1, B2, B3, T} = error("no `*` method defined for DataOperator subtype $(typeof(a))") # defined to avoid method ambiguity
+*(a::Operator{B1, B2, T}, b::DataOperator{B2, B3}) where {B1, B2, B3, T} = error("no `*` method defined for DataOperator subtype $(typeof(b))") # defined to avoid method ambiguity
 *(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, b*a.data)
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
 function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1,B2,B3,T}
@@ -125,6 +134,48 @@ Outer product ``|x⟩⟨y|`` of the given states.
 """
 tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), length(a.basis), length(b.basis)))
 
+"""
+    tensor(a::AbstractOperator, b::Bra)
+    tensor(a::Bra, b::AbstractOperator)
+    tensor(a::AbstractOperator, b::Ket)
+    tensor(a::Ket, b::AbstractOperator)
+
+Products of operators and state vectors ``a ⊗ <b|``. The result is an isometry
+in case the operator is unitary and state is normalized.
+"""
+function tensor(a::AbstractOperator, b::Bra)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    # NOTE: copy() works around non-sparse-preserving kron in case b.data is a SparseVector.
+    b_op = Operator(GenericBasis(1), basis(b), copy(reshape(b.data, (1,:))))
+    ab_op = tensor(a, b_op)
+    # squeeze out the trivial dimension
+    Operator(a.basis_l, ab_op.basis_r, ab_op.data)
+end
+
+function tensor(a::Bra, b::AbstractOperator)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    a_op = Operator(GenericBasis(1), basis(a), copy(reshape(a.data, (1,:))))
+    ab_op = tensor(a_op, b)
+    # squeeze out the trivial dimension
+    Operator(b.basis_l, ab_op.basis_r, ab_op.data)
+end
+
+function tensor(a::AbstractOperator, b::Ket)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    b_op = Operator(basis(b), GenericBasis(1), copy(reshape(b.data, (:,1))))
+    ab_op = tensor(a, b_op)
+    # squeeze out the trivial dimension
+    Operator(ab_op.basis_l, a.basis_r, ab_op.data)
+end
+
+function tensor(a::Ket, b::AbstractOperator)
+    # upgrade the bra to an operator that projects onto a dim-1 space
+    a_op = Operator(basis(a), GenericBasis(1), copy(reshape(a.data, (:,1))))
+    ab_op = tensor(a_op, b)
+    # squeeze out the trivial dimension
+    Operator(ab_op.basis_l, b.basis_r, ab_op.data)
+end
+
 tr(op::Operator{B,B}) where B = tr(op.data)
 
 function ptrace(a::DataOperator, indices)
@@ -152,6 +203,9 @@ function ptrace(psi::Bra, indices)
     result = _ptrace_bra(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
+
+_index_complement(b::CompositeBasis, indices) = complement(length(b.bases), indices)
+reduced(a, indices) = ptrace(a, _index_complement(basis(a), indices))
 
 normalize!(op::Operator) = (rmul!(op.data, 1.0/tr(op)); op)
 
@@ -337,6 +391,7 @@ end
 # Broadcasting
 Base.size(A::DataOperator) = size(A.data)
 Base.size(A::DataOperator, d) = size(A.data, d)
+Base.size(A::DataOperator, d::Int) = size(A.data, d) # defined to avoid method ambiguity
 @inline Base.axes(A::DataOperator) = axes(A.data)
 Base.broadcastable(A::DataOperator) = A
 
@@ -361,9 +416,6 @@ const BasicMathFunc = Union{typeof(+),typeof(-),typeof(*)}
 function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{Vararg{<:DataOperator}}, axes)
     args_ = Tuple(a.data for a=args)
     return Broadcast.Broadcasted(f, args_, axes)
-end
-function Broadcasted_restrict_f(f, args::Tuple{Vararg{<:DataOperator}}, axes)
-    throw(error("Cannot broadcast function `$f` on type `$(eltype(args))`"))
 end
 
 # In-place broadcasting

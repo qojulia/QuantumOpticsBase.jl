@@ -1,24 +1,4 @@
-"""
-    FockBasis(N,offset=0)
-
-Basis for a Fock space where `N` specifies a cutoff, i.e. what the highest
-included fock state is. Similarly, the `offset` defines the lowest included
-fock state (default is 0). Note that the dimension of this basis is `N+1-offset`.
-"""
-struct FockBasis{T} <: Basis
-    shape::Vector{T}
-    N::T
-    offset::T
-    function FockBasis(N::T,offset::T=0) where T
-        if N < 0 || offset < 0 || N <= offset
-            throw(DimensionMismatch())
-        end
-        new{T}([N-offset+1], N, offset)
-    end
-end
-
-
-==(b1::FockBasis, b2::FockBasis) = (b1.N==b2.N && b1.offset==b2.offset)
+import QuantumInterface: FockBasis
 
 """
     number([T=ComplexF64,] b::FockBasis)
@@ -69,7 +49,9 @@ create(b::FockBasis) = create(ComplexF64, b)
 """
     displace([T=ComplexF64,] b::FockBasis, alpha)
 
-Displacement operator ``D(α)`` for the specified Fock space with optional data type `T`.
+Displacement operator ``D(α)`` for the specified Fock space with optional data
+type `T`, computed as the matrix exponential of finite-dimensional (truncated)
+creation and annihilation operators.
 """
 function displace(::Type{T}, b::FockBasis, alpha::Number) where T
     alpha = T(alpha)
@@ -77,6 +59,77 @@ function displace(::Type{T}, b::FockBasis, alpha::Number) where T
 end
 
 displace(b::FockBasis, alpha::T) where {T <: Number} = displace(ComplexF64, b, alpha)
+
+
+# associated Laguerre polynomial, borrowed from IonSim.jl
+function _alaguerre(x::Real, n::Int, k::Int)
+    L = 1.0, -x + k + 1
+    if n < 2
+        return L[n + 1]
+    end
+    for i in 2:n
+        L = L[2], ((k + 2i - 1 - x) * L[2] - (k + i - 1) * L[1]) / i
+    end
+    return L[2]
+end
+
+"""
+    displace_analytical(alpha::Number, n::Integer, m::Integer)
+
+Get a specific matrix element of the (analytical) displacement operator in the
+Fock basis: `Dmn = ⟨n|D̂(α)|m⟩`. The precision used for computation is based
+on the type of `alpha`. If `alpha` is a Float64, ComplexF64, or Int, the computation
+will be carried out at double precision.
+"""
+function displace_analytical(alpha::Number, n::Integer, m::Integer)
+    # Borrowed from IonSim.jl.
+    if n < m
+        return (-1)^isodd(abs(n - m)) * conj(displace_analytical(alpha, m, n))
+    end
+    # compute factorial ratio directly, in float representation, to avoid integer overflow
+    s = 1.0 * one(real(alpha))
+    for i in (m + 1):n
+        s *= i
+    end
+    ret = sqrt(1 / s) * alpha^(n - m) * exp(-abs2(alpha) / 2.0) * _alaguerre(abs2(alpha), m, n - m)
+    if isnan(ret)
+        # Handles factorial -> Inf in case of large n-m, and also large abs2(alpha) making _alaguerre() return NaN.
+        return 1.0 * (n == m)
+    end
+    return ret
+end
+
+"""
+    displace_analytical!(op, alpha::Number)
+
+Overwrite, in place, the matrix elements of the FockBasis operator `op`, so that
+it is equal to `displace_analytical(eltype(op), basis(op), alpha)`
+"""
+function displace_analytical!(op::DataOperator{B,B}, alpha::Number) where {B<:FockBasis}
+    b = basis(op)
+    ofs = b.offset
+    @inbounds for n in 1:size(op.data, 2), m in 1:size(op.data, 1)
+          op.data[m, n] = displace_analytical(alpha, m-1 + ofs, n-1 + ofs)
+    end
+    op
+end
+
+"""
+    displace_analytical(b::FockBasis, alpha::Number)
+    displace_analytical(::Type{T}, b::FockBasis, alpha::Number)
+
+Get the "analytical" displacement operator, whose matrix elements match (up to
+numerical imprecision) those of the exact infinite-dimensional displacement
+operator. This is different to the result of `displace(..., alpha)`, which
+computes the matrix exponential `exp(alpha * a' - conj(alpha) * a)` using
+finite-dimensional (truncated) creation and annihilation operators `a'` and `a`.
+"""
+function displace_analytical(::Type{T}, b::FockBasis, alpha::Number) where T
+    displace_analytical!(DenseOperator(T, b), alpha)
+end
+
+displace_analytical(b::FockBasis, alpha::Number) = displace_analytical(ComplexF64, b::FockBasis, alpha::Number)
+
 
 """
     fockstate([T=ComplexF64,] b::FockBasis, n)

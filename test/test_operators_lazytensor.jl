@@ -45,6 +45,7 @@ x = randoperator(b2a)
 x = 2*LazyTensor(b_l, b_r, [1,2], (randoperator(b1a, b1b), sparse(randoperator(b2a, b2b))))
 x_ = copy(x)
 @test x == x_
+@test isequal(x, x_)
 @test !(x === x_)
 x_.operators[1].data[1,1] = complex(10.)
 @test x.operators[1].data[1,1] != x_.operators[1].data[1,1]
@@ -60,10 +61,23 @@ x = LazyTensor(b_l, b_r, [1, 3], (op1, sparse(op3)), 0.3)
 @test 1e-12 > D(0.3*op1⊗dense(I2)⊗op3, dense(x))
 @test 1e-12 > D(0.3*sparse(op1)⊗I2⊗sparse(op3), sparse(x))
 
+# Test eltype
+@test eltype(x) == ComplexF64
+
 # Test suboperators
 @test QuantumOpticsBase.suboperator(x, 1) == op1
 @test QuantumOpticsBase.suboperator(x, 3) == sparse(op3)
 @test QuantumOpticsBase.suboperators(x, [1, 3]) == [op1, sparse(op3)]
+
+# Test embed
+x_1 = LazyTensor(b_l, b_r, [1], (op1,), 0.3)
+x_1_sub = LazyTensor(b1a⊗b2a, b1b⊗b2b, [1], (op1,), 0.3)
+@test embed(b_l, b_r, Dict([1,2]=>x_1_sub)) == x_1
+@test embed(b_l, b_r, [1,2], x_1_sub) == x_1
+
+x_12 = LazyTensor(b1a⊗b3a, b1b⊗b3b, [1,2], (op1, sparse(op3)), 0.3)
+@test embed(b_l, b_r, Dict([1,3]=>x_12)) == x
+@test embed(b_l, b_r, [1,3], x_12) == x
 
 
 # Arithmetic operations
@@ -190,9 +204,13 @@ op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
 op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
 state = Ket(b_r, rand(ComplexF32, length(b_r)))
+state_sp = sparse(state)  # to test no-cache path
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
+@test 1e-6 > D(result, op_*state)
+
+QuantumOpticsBase.mul!(result,op,state_sp,complex(1.),complex(0.))
 @test 1e-6 > D(result, op_*state)
 
 QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
@@ -330,13 +348,19 @@ QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 # Test single operator, no isometries
 subop1 = randoperator(b1a, b1a)
 op = LazyTensor(b_l, b_l, [1], (subop1,), 0.5)
+op_sp = LazyTensor(b_l, b_l, [1], (sparse(subop1),), 0.5)
 op_ = sparse(op)
 state = randoperator(b_l, b_r2)
 result_ = randoperator(b_l, b_r2)
 alpha = complex(1.5)
 beta = complex(2.1)
+
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
 # Test scaled identity
@@ -356,8 +380,21 @@ test_ket = Ket(tensor(b1a, b1a), rand(4))
 @test_throws MethodError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
 
 # Test type stability of constructor
-callT = typeof.((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
+callT = typeof((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
 T = Core.Compiler.return_type(LazyTensor, callT)
 @test all(map(isconcretetype, T.parameters))
+
+# Test mul! of adjoint dense operator with sparse lazy tensor
+## adjoint from the left
+lop = LazyTensor(b1a⊗b1b, b2a⊗b2b, 1, SparseOperator(randoperator(b1a,b2a)))
+dop = randoperator(b1a⊗b1b, b3a⊗b3b)
+@test dop'*lop ≈ dop'*lop ≈ Operator(dop.basis_r, lop.basis_r, dop.data'*dense(lop).data)
+@test lop'*dop ≈ Operator(lop.basis_r, dop.basis_r, dense(lop).data'*dop.data)
+## adjoint from the right
+lop = LazyTensor(b1a⊗b1b, b2a⊗b2b, 1, SparseOperator(randoperator(b1a,b2a)))
+dop = randoperator(b3a⊗b3b, b2a⊗b2b)
+@test dop*lop' ≈ Operator(dop.basis_l, lop.basis_l, dop.data*dense(lop).data')
+@test lop*dop' ≈ Operator(lop.basis_l, dop.basis_l, dense(lop).data*dop.data')
+
 
 end # testset

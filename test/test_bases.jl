@@ -41,6 +41,8 @@ comp_b1_b2 = tensor(comp_b1, comp_b2)
 @test ptrace(comp_b2, [1]) == ptrace(comp_b2, [2]) == comp_b1 == ptrace(comp_b2, 1)
 @test ptrace(comp_b2, [1, 2]) == ptrace(comp_b1, [1])
 @test ptrace(comp_b2, [2, 3]) == ptrace(comp_b1, [2])
+@test ptrace(comp_b2, [2, 3]) == reduced(comp_b2, [1])
+@test_throws ArgumentError reduced(comp_b1, [])
 
 comp1 = tensor(b1, b2, b3)
 comp2 = tensor(b2, b1, b3)

@@ -1,19 +1,7 @@
 import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!, transpose
 import LinearAlgebra: tr, ishermitian, issymmetric
 import SparseArrays: sparse
-
-"""
-Abstract base class for all operators.
-
-All deriving operator classes have to define the fields
-`basis_l` and `basis_r` defining the left and right side bases.
-
-For fast time evolution also at least the function
-`mul!(result::Ket,op::AbstractOperator,x::Ket,alpha,beta)` should be
-implemented. Many other generic multiplication functions can be defined in
-terms of this function and are provided automatically.
-"""
-abstract type AbstractOperator{BL,BR} end
+import QuantumInterface: AbstractOperator
 
 """
 Abstract type for operators with a data field.
@@ -39,6 +27,7 @@ Base.broadcastable(x::AbstractOperator) = Ref(x)
 +(a::AbstractOperator, b::AbstractOperator) = arithmetic_binary_error("Addition", a, b)
 +(a::Number, b::AbstractOperator) = addnumbererror()
 +(a::AbstractOperator, b::Number) = addnumbererror()
++(a::AbstractOperator) = a
 
 -(a::AbstractOperator) = arithmetic_unary_error("Negation", a)
 -(a::AbstractOperator, b::AbstractOperator) = arithmetic_binary_error("Subtraction", a, b)
@@ -127,7 +116,7 @@ end
 Embed operator acting on a joint Hilbert space where missing indices are filled up with identity operators.
 """
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-               indices, op::T) where T<:AbstractOperator
+               indices, op::T) where T<:DataOperator
     N = length(basis_l.bases)
     @assert length(basis_r.bases) == N
 
@@ -174,6 +163,9 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
 
     return unpermuted_op
 end
+# The dictionary implementation works for non-DataOperators
+embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices, op::T) where T<:AbstractOperator = embed(basis_l, basis_r, Dict(indices=>op))
+
 embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::AbstractOperator) = embed(basis_l, basis_r, index, [op])
 embed(basis::CompositeBasis, indices, operators::Vector{T}) where {T<:AbstractOperator} = embed(basis, basis, indices, operators)
 embed(basis::CompositeBasis, indices, op::AbstractOperator) = embed(basis, basis, indices, op)
@@ -195,7 +187,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     data[1] = one(Tnum)
     i = N
     while i > 0
-        if i ∈ index
+        if i == index
             data = kron(data, op.data)
             i -= length(index)
         else
@@ -219,16 +211,16 @@ specifies in which subsystems the corresponding operator is defined.
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
                operators::Dict{<:Vector{<:Integer}, T}) where T<:AbstractOperator
     @assert length(basis_l.bases) == length(basis_r.bases)
-    N = length(basis_l.bases)
+    N = length(basis_l.bases)::Int # type assertion to help type inference
     if length(operators) == 0
         return identityoperator(T, basis_l, basis_r)
     end
     indices, operator_list = zip(operators...)
     operator_list = [operator_list...;]
-    indices_flat = [indices...;]
+    indices_flat = [indices...;]::Vector{Int} # type assertion to help type inference
     start_indices_flat = [i[1] for i in indices]
     complement_indices_flat = Int[i for i=1:N if i ∉ indices_flat]
-    operators_flat = T[]
+    operators_flat = AbstractOperator[]
     if all([minimum(I):maximum(I);]==I for I in indices)
         for i in 1:N
             if i in complement_indices_flat

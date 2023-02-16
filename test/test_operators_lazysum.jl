@@ -22,7 +22,7 @@ b_r = b1b⊗b2b⊗b3b
 
 # Test creation
 @test_throws ArgumentError LazySum()
-@test_throws AssertionError LazySum([1., 2.], [randoperator(b_l)])
+@test_throws ArgumentError LazySum([1., 2.], [randoperator(b_l)])
 @test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_l)))
 @test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_r, b_r)))
 
@@ -30,6 +30,7 @@ b_r = b1b⊗b2b⊗b3b
 op1 = 2*LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_r)))
 op2 = copy(op1)
 @test op1 == op2
+@test isequal(op1, op2)
 @test !(op1 === op2)
 op2.operators[1].data[1,1] = complex(10.)
 @test op1.operators[1].data[1,1] != op2.operators[1].data[1,1]
@@ -39,9 +40,20 @@ op2.factors[1] = 3.
 # Test dense & sparse
 op1 = randoperator(b_l, b_r)
 op2 = sparse(randoperator(b_l, b_r))
-@test 0.1*op1 + 0.3*dense(op2) == dense(LazySum([0.1, 0.3], [op1, op2]))
-@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], [op1, op2]))
+@test 0.1*op1 == dense(LazySum([0.1], (op1,)))
+@test 0.3*op2 == sparse(LazySum([0.3], (op2,)))
+@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], (op1, op2)))
+@test 0.1*op1 + 0.3*dense(op2) == dense(LazySum([0.1, 0.3], (op1, op2)))
+@test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], (op1, op2)))
 
+# Test embed
+x1 = randoperator(b1a,b1b)
+y1 = randoperator(b1a,b1b)
+xy1 = LazySum([1., 2.], (x1, y1))
+x = LazySum([1.], (embed(b_l, b_r, 1, x1),))
+y = LazySum([2.], (embed(b_l, b_r, 1, y1),))
+xy = x + y
+@test embed(b_l, b_r, [1], xy1) == xy
 
 # Arithmetic operations
 # =====================
@@ -50,7 +62,7 @@ op1b = randoperator(b_l, b_r)
 op2a = randoperator(b_l, b_r)
 op2b = randoperator(b_l, b_r)
 op3a = randoperator(b_l, b_r)
-op1 = LazySum([0.1, 0.3], [op1a, sparse(op1b)])
+op1 = LazySum([0.1, 0.3], (op1a, sparse(op1b)))
 op1_ = 0.1*op1a + 0.3*op1b
 op2 = LazySum([0.7, 0.9], [sparse(op2a), op2b])
 op2_ = 0.7*op2a + 0.9*op2b
@@ -64,17 +76,21 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 # Addition
 @test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(op1+op2, op1_+op2_)
+@test 1e-14 > D(op1+op2_, op1_+op2_)
+@test 1e-14 > D(op1_+op2, op1_+op2_)
 
 # Subtraction
 @test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op2)
 @test 1e-14 > D(op1 - op2, op1_ - op2_)
+@test 1e-14 > D(op1 - op2_, op1_ - op2_)
+@test 1e-14 > D(op1_ - op2, op1_ - op2_)
 @test 1e-14 > D(op1 + (-op2), op1_ - op2_)
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 
 # Test multiplication
 @test_throws ArgumentError op1*op2
-@test LazySum([0.1, 0.1], [op1a, op2a]) == LazySum(op1a, op2a)*0.1
-@test LazySum([0.1, 0.1], [op1a, op2a]) == 0.1*LazySum(op1a, op2a)
+@test LazySum([0.1, 0.1], (op1a, op2a)) == LazySum(op1a, op2a)*0.1
+@test LazySum([0.1, 0.1], (op1a, op2a)) == 0.1*LazySum(op1a, op2a)
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
@@ -82,6 +98,12 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
+
+# Test tuples vs. vectors
+@test (op1+op1).operators isa Tuple
+@test (op1+op2).operators isa Tuple
+@test (op2+op1).operators isa Tuple
+@test (op2+op2).operators isa Vector
 
 # Test identityoperator
 Idense = identityoperator(DenseOpType, b_r)
@@ -100,7 +122,7 @@ id = identityoperator(LazySum, b_l)
 op1 = randoperator(b_l)
 op2 = randoperator(b_l)
 op3 = randoperator(b_l)
-op = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
 op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 @test tr(op_) ≈ tr(op)
@@ -118,7 +140,8 @@ normalize!(op_copy)
 op1 = randoperator(b_l)
 op2 = randoperator(b_l)
 op3 = randoperator(b_l)
-op123 = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op123 = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
+op123_v = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
 op123_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 @test 1e-14 > D(ptrace(op123_, 3), ptrace(op123, 3))
@@ -128,6 +151,8 @@ op123_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 @test 1e-14 > D(ptrace(op123_, [2,3]), ptrace(op123, [2,3]))
 @test 1e-14 > D(ptrace(op123_, [1,3]), ptrace(op123, [1,3]))
 @test 1e-14 > D(ptrace(op123_, [1,2]), ptrace(op123, [1,2]))
+
+@test 1e-14 > D(ptrace(op123_v, [1,2]), ptrace(op123, [1,2]))
 
 @test_throws ArgumentError ptrace(op123, [1,2,3])
 
@@ -165,8 +190,12 @@ op_ = 0.3*op123a + 0.7*op123b + 1.2*op123c
 op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_l, b_r)
 op3 = randoperator(b_l, b_r)
-op = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
 op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
+
+zero_op = LazySum(b_l, b_r)
+zero_op_ = sparse(zero_op)
+@test dense(zero_op) == zero_op_
 
 state = Ket(b_r, rand(ComplexF64, length(b_r)))
 result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
@@ -175,16 +204,28 @@ QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-13 > D(result, op_*state)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,complex(1.),complex(0.))
+@test 1e-13 > D(result, zero_op_*state)
+
+result = deepcopy(result_)
 alpha = complex(1.5)
 beta = complex(2.1)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-13 > D(result, alpha*op_*state + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,alpha,beta)
+@test 1e-13 > D(result, beta*result_)
 
 state = Bra(b_l, rand(ComplexF64, length(b_l)))
 result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-13 > D(result, state*op_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,zero_op,complex(1.),complex(0.))
+@test 1e-13 > D(result, state*zero_op_)
 
 result = deepcopy(result_)
 alpha = complex(1.5)
@@ -196,7 +237,7 @@ QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_l, b_r)
 op3 = randoperator(b_l, b_r)
-op = LazySum([0.1, 0.3, 1.2], [op1, op2, op3])
+op = LazySum([0.1, 0.3, 1.2], (op1, op2, op3))
 op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 state = randoperator(b_r, b_r)
@@ -206,10 +247,18 @@ QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-12 > D(result, op_*state)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,complex(1.),complex(0.))
+@test 1e-12 > D(result, zero_op_*state)
+
 alpha = complex(1.5)
 beta = complex(2.1)
+result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,zero_op,state,alpha,beta)
+@test 1e-12 > D(result, beta*result_)
 
 state = randoperator(b_l, b_l)
 result_ = randoperator(b_l, b_r)
@@ -218,9 +267,17 @@ QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*op_)
 
 result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,zero_op,complex(1.),complex(0.))
+@test 1e-12 > D(result, state*zero_op_)
+
 alpha = complex(1.5)
 beta = complex(2.1)
+result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
+
+result = deepcopy(result_)
+QuantumOpticsBase.mul!(result,state,zero_op,alpha,beta)
+@test 1e-12 > D(result, beta*result_)
 
 end # testset
