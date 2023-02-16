@@ -164,6 +164,19 @@ function gemm!(alpha, B::AbstractMatrix, M::Adjoint{T,<:SparseMatrixCSC{T}}, bet
     gemm_dense_adj_sp(alpha, B, M.parent, result)
 end
 
+function gemm!(alpha, A::Adjoint{T, <:SparseMatrixCSC{T}}, B::Adjoint{S, <:SparseMatrixCSC{S}}, beta, result::AbstractMatrix) where {T,S}
+    error("Matrix multiplication between Adjoint{SparseCSC} and SparseCSC matrices is not implemented yet. Submit an issue to the developers.")
+end
+function gemm!(alpha, A::Adjoint{T, <:SparseMatrixCSC{T}}, B::SparseMatrixCSC, beta, result::AbstractMatrix) where T
+    error("Matrix multiplication between Adjoint{SparseCSC} and Adjoint{SparseCSC} matrices is not implemented yet. Submit an issue to the developers.")
+end
+function gemm!(alpha, A::SparseMatrixCSC, B::Adjoint{T, <:SparseMatrixCSC{T}}, beta, result::AbstractMatrix) where T
+    error("Matrix multiplication between SparseCSC and Adjoint{SparseCSC} matrices is not implemented yet. Submit an issue to the developers.")
+end
+function gemm!(alpha, A::SparseMatrixCSC, B::SparseMatrixCSC, beta, result::AbstractMatrix)
+    error("Matrix multiplication between SparseCSC and SparseCSC matrices is not implemented yet. Submit an issue to the developers.")
+end
+
 function gemv!(alpha, M::SparseMatrixCSC, v::AbstractVector, beta, result::AbstractVector)
     if iszero(beta)
         fill!(result, beta)
@@ -208,7 +221,7 @@ function gemv!(alpha, v::AbstractVector, M::SparseMatrixCSC, beta, result::Abstr
     end
 end
 
-function sub2sub(shape1, shape2, I) where {N, M}
+function sub2sub(shape1, shape2, I)
     linearindex = LinearIndices(shape1)[I.I...]
     CartesianIndices(shape2)[linearindex]
 end

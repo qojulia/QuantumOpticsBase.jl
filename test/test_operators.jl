@@ -28,6 +28,8 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 @test basis(op1) == b1
 @test length(op1) == length(op1.data) == length(b1)^2
 
+@test isequal(+op_test, op_test)
+
 @test_throws ArgumentError op_test*op_test
 @test_throws ArgumentError -op_test
 
@@ -109,6 +111,7 @@ cnot = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0]
 op_cnot = DenseOperator(b2⊗b2, cnot)
 OP_cnot = embed(b8, [1,3], op_cnot)
 @test ptrace(OP_cnot, [2])/2. == op_cnot
+@test reduced(OP_cnot, [1,3])/2. == op_cnot
 @test_throws AssertionError embed(b2⊗b2, [1,1], op_cnot)
 
 @test_throws ArgumentError exp(sparse(op1))

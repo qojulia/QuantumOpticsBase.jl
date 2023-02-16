@@ -39,8 +39,7 @@ function directsum(b1::SumBasis, b2::SumBasis)
     bases = [b1.bases...;b2.bases...]
     return SumBasis(shape, (bases...,))
 end
-
-const ⊕ = directsum
+directsum() = GenericBasis(0)
 
 """
     directsum(x::Ket, y::Ket)

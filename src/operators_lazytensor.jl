@@ -1,4 +1,4 @@
-import Base: ==, *, /, +, -
+import Base: isequal, ==, *, /, +, -
 
 """
     LazyTensor(b1[, b2], indices, operators[, factor=1])
@@ -28,26 +28,26 @@ mutable struct LazyTensor{BL,BR,F,I,T} <: AbstractOperator{BL,BR}
             @assert ops[n].basis_l == bl.bases[indices[n]]
             @assert ops[n].basis_r == br.bases[indices[n]]
         end
-        F_ = promote_type(F,map(eltype, ops)...)
+        F_ = promote_type(F, mapreduce(eltype, promote_type, ops; init=F))
         factor_ = convert(F_, factor)
         new{BL,BR,F_,I,T}(bl, br, factor_, indices, ops)
     end
 end
-function LazyTensor(bl::CompositeBasis, br::CompositeBasis, indices, ops::Vector, factor=_default_factor(ops))
+function LazyTensor(bl::CompositeBasis, br::CompositeBasis, indices::I, ops::Vector, factor::F=_default_factor(ops)) where {F,I}
     Base.depwarn("LazyTensor(bl, br, indices, ops::Vector, factor) is deprecated, use LazyTensor(bl, br, indices, Tuple(ops), factor) instead.",
                 :LazyTensor; force=true)
     return LazyTensor(bl,br,indices,Tuple(ops),factor)
 end
 
-function LazyTensor(basis_l::CompositeBasis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::CompositeBasis, basis_r::Basis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     br = CompositeBasis(basis_r.shape, [basis_r])
     return LazyTensor(basis_l, br, indices, ops, factor)
 end
-function LazyTensor(basis_l::Basis, basis_r::CompositeBasis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::Basis, basis_r::CompositeBasis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     bl = CompositeBasis(basis_l.shape, [basis_l])
     return LazyTensor(bl, basis_r, indices, ops, factor)
 end
-function LazyTensor(basis_l::Basis, basis_r::Basis, indices::I, ops, factor::F=_default_factor(ops)) where {F,I}
+function LazyTensor(basis_l::Basis, basis_r::Basis, indices::I, ops::T, factor::F=_default_factor(ops)) where {F,I,T<:Tuple}
     bl = CompositeBasis(basis_l.shape, [basis_l])
     br = CompositeBasis(basis_r.shape, [basis_r])
     return LazyTensor(bl, br, indices, ops, factor)
@@ -57,11 +57,13 @@ LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, ope
 LazyTensor(basis::Basis, index, operators, factor=_default_factor(operators)) = LazyTensor(basis, basis, index, operators, factor)
 
 Base.copy(x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, copy(x.indices), Tuple(copy(op) for op in x.operators), x.factor)
-Base.eltype(x::LazyTensor) = promote_type(eltype(x.factor), eltype.(x.operators)...)
+function Base.eltype(x::LazyTensor)
+    F = eltype(x.factor)
+    promote_type(F, mapreduce(eltype, promote_type, x.operators; init=F))
+end
 
 function _default_factor(ops)
-    Ts = map(eltype, ops)
-    T = promote_type(Ts...)
+    T = mapreduce(eltype, promote_type, ops)
     return one(T)
 end
 function _default_factor(op::T) where T<:AbstractOperator
@@ -87,7 +89,8 @@ suboperators(op::LazyTensor, indices) = [op.operators[[findfirst(isequal(i), op.
 DenseOperator(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op.indices, DenseOpType[DenseOperator(x) for x in op.operators])
 SparseArrays.sparse(op::LazyTensor) = op.factor*embed(op.basis_l, op.basis_r, op.indices, SparseOpType[SparseOperator(x) for x in op.operators])
 
-==(x::LazyTensor, y::LazyTensor) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && x.operators==y.operators && x.factor==y.factor
+isequal(x::LazyTensor, y::LazyTensor) = samebases(x,y) && isequal(x.indices, y.indices) && isequal(x.operators, y.operators) && isequal(x.factor, y.factor)
+==(x::LazyTensor, y::LazyTensor) = samebases(x,y) && x.indices==y.indices && x.operators==y.operators && x.factor==y.factor
 
 
 # Arithmetic operations
@@ -197,7 +200,7 @@ function permutesystems(op::LazyTensor, perm)
     LazyTensor(b_l, b_r, indices[perm_], op.operators[perm_], op.factor)
 end
 
-identityoperator(::Type{LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where T<:Number = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
+identityoperator(::Type{<:LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where {T<:Number} = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
 ## LazyTensor global cache
 
@@ -258,35 +261,54 @@ function lazytensor_enable_cache(; maxsize::Int = -1, maxrelsize::Real = 0.0)
     return
 end
 
-
 function _tp_matmul_first!(result, a::AbstractMatrix, b, α::Number, β::Number)
-    br = reshape(b, size(b, 1), :)
-    result_r = reshape(result, size(a, 1), size(br, 2))
-    mul!(result_r, a, br, α, β)
+    d_first = size(a, 2)
+    d_rest = length(b)÷d_first
+    bp = parent(b)
+    rp = parent(result)
+    @uviews bp rp begin  # avoid allocations on reshape
+        br = reshape(bp, (d_first, d_rest))
+        result_r = reshape(rp, (size(a, 1), d_rest))
+        mul!(result_r, a, br, α, β)
+    end
     result
 end
 
 function _tp_matmul_last!(result, a::AbstractMatrix, b, α::Number, β::Number)
-    br = reshape(b, :, size(b, ndims(b)))
-    result_r = reshape(result, (size(br, 1), size(a, 1)))
-    mul!(result_r, br, transpose(a), α, β)
+    d_last = size(a, 2)
+    d_rest = length(b)÷d_last
+    bp = parent(b)
+    rp = parent(result)
+    @uviews a bp rp begin  # avoid allocations on reshape
+        br = reshape(bp, (d_rest, d_last))
+        result_r = reshape(rp, (d_rest, size(a, 1)))
+        mul!(result_r, br, transpose(a), α, β)
+    end
     result
 end
 
-function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym) where {T,N}
+function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym, ::Array) where {T,N}
     len = prod(shp)
     use_cache = lazytensor_use_cache()
     key = (sym, taskid(), UInt(len), T)
     if use_cache && Vector{T} <: LazyTensorCacheable
-        cached = get!(lazytensor_cache, key) do
+        tmp::Vector{T} = get!(lazytensor_cache, key) do
             Vector{T}(undef, len)
         end
-        # Let's make sure the compiler knows we have the right type
-        tmp = Vector{T}(cached)
     else
         tmp = Vector{T}(undef, len)
     end
     Base.ReshapedArray(tmp, shp, ())
+end
+
+function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym, arr::AbstractArray) where {T,N}
+    if parent(arr) === arr
+        # This is a fallback that does not use the cache. Does not get triggered for arr <: Array.
+        return similar(arr, T, shp)
+    end
+    # Unpack wrapped arrays. If we hit an Array, we will use the cache.
+    # If we hit a different non-wrapped array-like, we will call `similar()`.
+    _tp_matmul_get_tmp(T, shp, sym, parent(arr))
 end
 
 function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
@@ -308,11 +330,11 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
     move_left = sz_b_1 < sz_b_3
     perm = move_left ? (2,1,3) : (1,3,2)
 
-    br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in)
+    br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in, br)
     @strided permutedims!(br_p, br, perm)
     #permutedims!(br_p, br, perm)
 
-    result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out)
+    result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out, result_r)
     β == 0.0 || @strided permutedims!(result_r_p, result_r, perm)
     #β == 0.0 || permutedims!(result_r_p, result_r, perm)
 
@@ -324,14 +346,14 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
 
     @strided permutedims!(result_r, result_r_p, perm)
     #permutedims!(result_r, result_r_p, perm)
-    
+
     result
 end
 
 function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
     # Apply a matrix `α * a` to one tensor factor of a tensor `b`.
     # If β is nonzero, add to β times `result`. In other words, we do:
-    # result = α * a * b + β * result 
+    # result = α * a * b + β * result
     #
     # Parameters:
     #     result: Array to hold the output tensor.
@@ -354,7 +376,7 @@ end
 
 function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{S,N}, sym) where {T,S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    _tp_matmul_get_tmp(promote_type(T,S), shp, sym)
+    _tp_matmul_get_tmp(promote_type(T,S), shp, sym, arr)
 end
 
 #Apply a tensor product of operators to a vector.
@@ -377,11 +399,11 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         _tp_matmul!(result_data, first(ops)..., b_data, alpha, beta)
     elseif n_ops == 2
         # One temporary vector needed.
-        op1, istate = iterate(ops)
+        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
         tmp = _tp_sum_get_tmp(op1..., b_data, :_tp_sum_matmul_tmp1)
         _tp_matmul!(tmp, op1..., b_data, alpha, zero(beta))
 
-        op2, istate = iterate(ops, istate)
+        op2, istate = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         _tp_matmul!(result_data, op2..., tmp, one(alpha), beta)
     else
         # At least two temporary vectors needed.
@@ -389,18 +411,18 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         sym1 = :_tp_sum_matmul_tmp1
         sym2 = :_tp_sum_matmul_tmp2
 
-        op1, istate = iterate(ops)
+        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
         tmp1 = _tp_sum_get_tmp(op1..., b_data, sym1)
         _tp_matmul!(tmp1, op1..., b_data, alpha, zero(beta))
 
-        next = iterate(ops, istate)
+        next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         for _ in 2:n_ops-1
             op, istate = next
             tmp2 = _tp_sum_get_tmp(op..., tmp1, sym2)
             _tp_matmul!(tmp2, op..., tmp1, one(alpha), zero(beta))
             tmp1, tmp2 = tmp2, tmp1
             sym1, sym2 = sym2, sym1
-            next = iterate(ops, istate)
+            next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         end
 
         op, istate = next
@@ -422,7 +444,7 @@ Base.size(A::_SimpleIsometry, i) = A.shape[i]
 
 function _tp_sum_get_tmp(op::_SimpleIsometry, loc::Integer, arr::AbstractArray{S,N}, sym) where {S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    _tp_matmul_get_tmp(S, shp, sym)
+    _tp_matmul_get_tmp(S, shp, sym, arr)
 end
 
 function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β::Number)
@@ -454,9 +476,13 @@ function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β
 end
 
 function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
+    shp_l = _comp_size(bl)
+    shp_r = _comp_size(br)
+    shp_l != shp_r || return nothing
+
     isos = nothing
     iso_inds = nothing
-    for (i, (sl, sr)) in enumerate(zip(_comp_size(bl), _comp_size(br)))
+    for (i, (sl, sr)) in enumerate(zip(shp_l, shp_r))
         if (sl != sr) && !(i + shift in used_indices)
             if isos === nothing
                 isos = [_SimpleIsometry(sl, sr)]
@@ -473,7 +499,7 @@ function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
     isos, iso_inds
 end
 
-# To get the shape of a CompositeBasis with number of dims inferrable at compile-time 
+# To get the shape of a CompositeBasis with number of dims inferrable at compile-time
 _comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
 _comp_size(b::Basis) = (length(b),)
 
@@ -511,7 +537,7 @@ function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, be
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::LazyTensor{B1,B2,F,I,T}, b::DenseOpType{B2,B3}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(a.operators) > 0 && all(o isa SparseOpPureType for o in a.operators)
+    if length(a.operators) > 0 && all(o isa SparseOpPureType for o in a.operators) && (b isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
@@ -526,7 +552,7 @@ function mul!(result::DenseOpType{B1,B3}, a::LazyTensor{B1,B2,F,I,T}, b::DenseOp
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3,F,I,T}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(b.operators) > 0 && all(o isa SparseOpPureType for o in b.operators)
+    if length(b.operators) > 0 && all(o isa SparseOpPureType for o in b.operators) && (a isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
