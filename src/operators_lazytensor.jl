@@ -648,9 +648,7 @@ function _gemm_puresparse(alpha, op::Matrix, h::LazyTensor{B1,B2,F,I,T}, beta, r
         rmul!(result, beta)
     end
     N_k = length(h.basis_r.bases)
-    shape = [min(h.basis_l.shape[i], h.basis_r.shape[i]) for i=1:length(h.basis_l.shape)]
-    strides_j = _strides(h.basis_l.shape)
-    strides_k = _strides(h.basis_r.shape)
+    shape, strides_j, strides_k = _get_shape_and_srtides(h)
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
@@ -661,10 +659,15 @@ function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::Matrix, beta, r
         rmul!(result, beta)
     end
     N_k = length(h.basis_l.bases)
-    shape = [min(h.basis_l.shape[i], h.basis_r.shape[i]) for i=1:length(h.basis_l.shape)]
-    strides_j = _strides(h.basis_l.shape)
-    strides_k = _strides(h.basis_r.shape)
+    shape, strides_j, strides_k = _get_shape_and_srtides(h)
     _gemm_recursive_lazy_dense(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
+end
+
+function _get_shape_and_srtides(h::LazyTensor{B1,B2,F,I,T}) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+    shape = min.(_comp_size(h.basis_l), _comp_size(h.basis_r))
+    strides_j = _strides(_comp_size(h.basis_l))
+    strides_k = _strides(_comp_size(h.basis_r))
+    shape, strides_j, strides_k
 end
 
 _mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, h, op.data, beta, result.data); result)
