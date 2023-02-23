@@ -664,10 +664,10 @@ function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::Matrix, beta, r
 end
 
 function _get_shape_and_srtides(h::LazyTensor{B1,B2,F,I,T}) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
-    shape = min.(_comp_size(h.basis_l), _comp_size(h.basis_r))
-    strides_j = _strides(_comp_size(h.basis_l))
-    strides_k = _strides(_comp_size(h.basis_r))
-    shape, strides_j, strides_k
+    shape_l, shape_r = _comp_size(h.basis_l), _comp_size(h.basis_r)
+    shape = min.(shape_l, shape_r)
+    strides_j, strides_k = _strides(shape_l), _strides(shape_r)
+    return shape, strides_j, strides_k
 end
 
 _mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, h, op.data, beta, result.data); result)
