@@ -663,7 +663,7 @@ function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::Matrix, beta, r
     _gemm_recursive_lazy_dense(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-function _get_shape_and_srtides(h::LazyTensor{B1,B2,F,I,T}) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+function _get_shape_and_srtides(h)
     shape_l, shape_r = _comp_size(h.basis_l), _comp_size(h.basis_r)
     shape = min.(shape_l, shape_r)
     strides_j, strides_k = _strides(shape_l), _strides(shape_r)
