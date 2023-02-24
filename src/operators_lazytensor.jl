@@ -609,7 +609,7 @@ end
 function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
                         shape, strides_k, strides_j,
                         indices, h::LazyTensor,
-                        op::Matrix, result::Matrix)
+                        op::Ts, result::Ts) where Ts<:Union{Vector,Matrix}
     if i_k > N_k
         for I=1:size(op, 2)
             result[J, I] += val*op[K, I]
@@ -652,7 +652,7 @@ function _gemm_puresparse(alpha, op::Matrix, h::LazyTensor{B1,B2,F,I,T}, beta, r
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::Matrix, beta, result::Matrix) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::Ts, beta, result::Ts) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}},Ts<:Union{Vector,Matrix}}
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -672,13 +672,7 @@ end
 
 _mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, h, op.data, beta, result.data); result)
 _mul_puresparse!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3,F,I,T},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, op.data, h, beta, result.data); result)
-
-function _mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
-    b_data = reshape(b.data, length(b.data), 1)
-    result_data = reshape(result.data, length(result.data), 1)
-    _gemm_puresparse(alpha, a, b_data, beta, result_data)
-    result
-end
+_mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, a, b.data, beta, result.data); result)
 
 function _mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
     a_data = reshape(a.data, 1, length(a.data))
