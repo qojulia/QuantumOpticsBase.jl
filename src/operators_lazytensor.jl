@@ -609,7 +609,7 @@ end
 function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
                         shape, strides_k, strides_j,
                         indices, h::LazyTensor,
-                        op::Ts, result::Ts) where Ts<:Union{Vector,Matrix}
+                        op::VecOrMat, result::VecOrMat)
     if i_k > N_k
         for I=1:size(op, 2)
             result[J, I] += val*op[K, I]
@@ -652,7 +652,7 @@ function _gemm_puresparse(alpha, op::Matrix, h::LazyTensor{B1,B2,F,I,T}, beta, r
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::Ts, beta, result::Ts) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}},Ts<:Union{Vector,Matrix}}
+function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::VecOrMat, beta, result::VecOrMat) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
