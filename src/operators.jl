@@ -90,7 +90,8 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
         (opsb.basis_r == basis_r.bases[idxsb]) || throw(IncompatibleBases())
     end
 
-    embed_op = tensor([i ∈ indices_sb ? ops_sb[indexin(i, indices_sb)[1]] : identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
+    S = length(operators) > 1 ? mapreduce(eltype, promote_type, operators) : Any
+    embed_op = tensor([i ∈ indices_sb ? ops_sb[indexin(i, indices_sb)[1]] : identityoperator(T, S, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
 
     # Embed all joint-subspace operators.
     idxop_comp = [x for x in zip(indices, operators) if x[1] isa Array]
@@ -116,7 +117,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     reduce(tensor, basis_r.bases[indices]) == op.basis_r || throw(IncompatibleBases())
 
     index_order = [idx for idx in 1:length(basis_l.bases) if idx ∉ indices]
-    all_operators = AbstractOperator[identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i in index_order]
+    all_operators = AbstractOperator[identityoperator(T, eltype(op), basis_l.bases[i], basis_r.bases[i]) for i in index_order]
 
     for idx in indices
         pushfirst!(index_order, idx)
@@ -209,6 +210,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     end
     indices, operator_list = zip(operators...)
     operator_list = [operator_list...;]
+    S = mapreduce(eltype, promote_type, operator_list)
     indices_flat = [indices...;]::Vector{Int} # type assertion to help type inference
     start_indices_flat = [i[1] for i in indices]
     complement_indices_flat = Int[i for i=1:N if i ∉ indices_flat]
@@ -216,14 +218,14 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     if all([minimum(I):maximum(I);]==I for I in indices)
         for i in 1:N
             if i in complement_indices_flat
-                push!(operators_flat, identityoperator(T, basis_l.bases[i], basis_r.bases[i]))
+                push!(operators_flat, identityoperator(T, S, basis_l.bases[i], basis_r.bases[i]))
             elseif i in start_indices_flat
                 push!(operators_flat, operator_list[indexin(i, start_indices_flat)[1]])
             end
         end
         return tensor(operators_flat...)
     else
-        complement_operators = [identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i in complement_indices_flat]
+        complement_operators = [identityoperator(T, S, basis_l.bases[i], basis_r.bases[i]) for i in complement_indices_flat]
         op = tensor([operator_list; complement_operators]...)
         perm = sortperm([indices_flat; complement_indices_flat])
         return permutesystems(op, perm)
