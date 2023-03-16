@@ -90,7 +90,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
         (opsb.basis_r == basis_r.bases[idxsb]) || throw(IncompatibleBases())
     end
 
-    S = length(operators) > 1 ? mapreduce(eltype, promote_type, operators) : Any
+    S = length(operators) > 0 ? mapreduce(eltype, promote_type, operators) : Any
     embed_op = tensor([i ∈ indices_sb ? ops_sb[indexin(i, indices_sb)[1]] : identityoperator(T, S, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
 
     # Embed all joint-subspace operators.
