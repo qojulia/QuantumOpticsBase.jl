@@ -55,7 +55,7 @@ function LazySum(factors, operators)
     LazySum(Tf, factors, operators)
 end
 LazySum(::Type{Tf}, operators::AbstractOperator...) where Tf = LazySum(ones(Tf, length(operators)), (operators...,))
-LazySum(operators::AbstractOperator...) = LazySum(ComplexF64, operators...)
+LazySum(operators::AbstractOperator...) = LazySum(mapreduce(eltype, promote_type, operators), operators...)
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 
 Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators))
