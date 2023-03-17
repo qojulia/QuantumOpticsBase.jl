@@ -47,13 +47,19 @@ op2 = sparse(randoperator(b_l, b_r))
 @test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], (op1, op2)))
 
 # Test embed
-x1 = randoperator(b1a,b1b)
-y1 = randoperator(b1a,b1b)
-xy1 = LazySum([1., 2.], (x1, y1))
-x = LazySum([1.], (embed(b_l, b_r, 1, x1),))
-y = LazySum([2.], (embed(b_l, b_r, 1, y1),))
-xy = x + y
-@test embed(b_l, b_r, [1], xy1) == xy
+for T in (Float32, Float64, ComplexF32, ComplexF64)
+    x1 = randoperator(T, b1a,b1b)
+    y1 = randoperator(T, b1a,b1b)
+    xy1 = LazySum(T[1., 2.], (x1, y1))
+    x = LazySum(T[1.], (embed(b_l, b_r, 1, x1),))
+    y = LazySum(T[2.], (embed(b_l, b_r, 1, y1),))
+    @test eltype(x) == T
+    @test eltype(y) == T
+    xy = x + y
+    @test embed(b_l, b_r, [1], xy1) == xy
+    @test eltype(xy) == T
+end
+
 
 # Arithmetic operations
 # =====================
