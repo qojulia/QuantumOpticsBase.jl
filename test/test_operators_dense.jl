@@ -382,6 +382,13 @@ op3 = randoperator(bf)
 @test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
 @test_throws ErrorException cos.(op1)
 
+# Dimension mismatches
+b1, b2, b3 = NLevelBasis.((2,3,4))  # N is not a type parameter
+@test_throws DimensionMismatch mul!(randstate(b1), randoperator(b2), randstate(b3))
+@test_throws DimensionMismatch mul!(randstate(b1)', randstate(b3)', randoperator(b2))
+@test_throws DimensionMismatch mul!(randoperator(b1), randoperator(b2), randoperator(b3))
+@test_throws DimensionMismatch mul!(randoperator(b1), randoperator(b3)', randoperator(b2))
+
 end # testset
 
 @testset "State-operator tensor products" begin

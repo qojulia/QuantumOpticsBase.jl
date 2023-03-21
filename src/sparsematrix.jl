@@ -99,6 +99,9 @@ end
 
 
 function gemm!(alpha, M::SparseMatrixCSC, B::AbstractMatrix, beta, result::AbstractMatrix)
+    size(M, 2) == size(B, 1) || throw(DimensionMismatch())
+    size(M, 1) == size(result, 1) || throw(DimensionMismatch())
+    size(B, 2) == size(result, 2) || throw(DimensionMismatch())
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -112,6 +115,9 @@ function gemm!(alpha, M::SparseMatrixCSC, B::AbstractMatrix, beta, result::Abstr
 end
 
 function gemm!(alpha, B::AbstractMatrix, M::SparseMatrixCSC, beta, result::AbstractMatrix)
+    size(M, 1) == size(B, 2) || throw(DimensionMismatch())
+    size(M, 2) == size(result,2) || throw(DimensionMismatch())
+    size(B, 1) == size(result,1) || throw(DimensionMismatch())
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -146,6 +152,9 @@ function gemm!(alpha, M_::Adjoint{T,<:SparseMatrixCSC{T}}, B::AbstractMatrix, be
     if nnz(M) > 550
         LinearAlgebra.mul!(result, M_, B, alpha, beta)
     else
+        size(M_, 2) == size(B, 1) || throw(DimensionMismatch())
+        size(M_, 1) == size(result, 1) || throw(DimensionMismatch())
+        size(B, 2) == size(result, 2) || throw(DimensionMismatch())
         if iszero(beta)
             fill!(result, beta)
         elseif !isone(beta)
@@ -156,6 +165,9 @@ function gemm!(alpha, M_::Adjoint{T,<:SparseMatrixCSC{T}}, B::AbstractMatrix, be
 end
 
 function gemm!(alpha, B::AbstractMatrix, M::Adjoint{T,<:SparseMatrixCSC{T}}, beta, result::AbstractMatrix) where T
+    size(M, 1) == size(B, 2) || throw(DimensionMismatch())
+    size(M, 2) == size(result,2) || throw(DimensionMismatch())
+    size(B, 1) == size(result,1) || throw(DimensionMismatch())
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -178,6 +190,9 @@ function gemm!(alpha, A::SparseMatrixCSC, B::SparseMatrixCSC, beta, result::Abst
 end
 
 function gemv!(alpha, M::SparseMatrixCSC, v::AbstractVector, beta, result::AbstractVector)
+    size(M, 2) == size(v, 1) || throw(DimensionMismatch())
+    size(M, 1) == size(result, 1) || throw(DimensionMismatch())
+
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -201,6 +216,9 @@ function gemv!(alpha, M::SparseMatrixCSC, v::AbstractVector, beta, result::Abstr
 end
 
 function gemv!(alpha, v::AbstractVector, M::SparseMatrixCSC, beta, result::AbstractVector)
+    size(M, 1) == size(v, 1) || throw(DimensionMismatch())
+    size(M, 2) == size(result, 1) || throw(DimensionMismatch())
+
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
