@@ -643,7 +643,31 @@ function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
     end
 end
 
+"""
+    check_mul!_compatibility(R, A, B)
+Check that `R,A,B` are dimentially compatible for `R.=A*B`. And that `R` is not aliased with either `A` nor `B`.
+"""
+function check_mul!_compatibility(R::AbstractVecOrMat, A, B)
+    # R .= A*B
+    if size(A, 2) != size(B, 1)
+        throw(DimensionMismatch(lazy"A has dimensions $(size(A)) but B has dimensions $(size(B)). Can't do `A*B`"))
+    end
+    if size(R) != (size(A, 1), Base.tail(size(B))...)
+        throw(DimensionMismatch(lazy"R has dimensions $(size(R)) but A*B has dimensions $((size(A, 1), Base.tail(size(B))...)). Can't do `R.=A*B`"))
+    end
+    if R===A || R===B
+        throw(ArgumentError(lazy"output matrix must not be aliased with input matrix"))
+    end
+    nothing
+end
+
 function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, beta, result::AbstractArray) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+    if op isa AbstractVector
+        # _gemm_recursive_dense_lazy will treat `op` as a `Bra`
+        check_mul!_compatibility(result, h', op)
+    else
+        check_mul!_compatibility(result, op, h)
+    end
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -655,6 +679,7 @@ function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, 
 end
 
 function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::AbstractArray, beta, result::AbstractArray) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+    check_mul!_compatibility(result, h, op)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
@@ -677,9 +702,3 @@ _mul_puresparse!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor
 _mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, a, b.data, beta, result.data); result)
 _mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, a.data, b, beta, result.data); result)
 
-#function _mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
-#    a_data = Base.ReshapedArray(a.data, (1, length(a.data)), ())
-#    result_data = Base.ReshapedArray(result.data, (1, length(result.data)), ())
-#    _gemm_puresparse(alpha, a_data, b, beta, result_data)
-#    result
-#end
