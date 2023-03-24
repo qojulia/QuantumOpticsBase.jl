@@ -394,7 +394,7 @@ multiplicable(a::AbstractOperator, b::AbstractOperator) = multiplicable(a.basis_
 
 Base.size(op::AbstractOperator) = (length(op.basis_l),length(op.basis_r))
 function Base.size(op::AbstractOperator, i::Int)
-    i < 1 && throw(ErrorException("dimension out of range, should be strictly positive, got $i"))
+    i < 1 && throw(ErrorException(lazy"dimension out of range, should be strictly positive, got $i"))
     i > 2 && return 1
     i==1 ? length(op.basis_l) : length(op.basis_r)
 end
