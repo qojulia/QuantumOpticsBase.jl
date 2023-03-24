@@ -648,23 +648,30 @@ end
 Check that `R,A,B` are dimentially compatible for `R.=A*B`. And that `R` is not aliased with either `A` nor `B`.
 """
 function check_mul!_compatibility(R::AbstractVecOrMat, A, B)
+    _check_mul!_aliasing_compatibility(R, A, B)
+    _check_mul!_dim_compatibility(size(R), size(A), size(B))
+end
+function _check_mul!_dim_compatibility(sizeR::Tuple, sizeA::Tuple, sizeB::Tuple)
     # R .= A*B
-    if size(A, 2) != size(B, 1)
-        throw(DimensionMismatch(lazy"A has dimensions $(size(A)) but B has dimensions $(size(B)). Can't do `A*B`"))
+    if sizeA[2] != sizeB[1]
+        throw(DimensionMismatch(lazy"A has dimensions $sizeA but B has dimensions $sizeB. Can't do `A*B`"))
     end
-    if size(R) != (size(A, 1), Base.tail(size(B))...)
-        throw(DimensionMismatch(lazy"R has dimensions $(size(R)) but A*B has dimensions $((size(A, 1), Base.tail(size(B))...)). Can't do `R.=A*B`"))
+    if sizeR != (sizeA[1], Base.tail(sizeB)...) # using tail to account for vectors
+        throw(DimensionMismatch(lazy"R has dimensions $sizeR but A*B has dimensions $((sizeA[1], Base.tail(sizeB)...)). Can't do `R.=A*B`"))
     end
+end
+function _check_mul!_aliasing_compatibility(R, A, B)
     if R===A || R===B
         throw(ArgumentError(lazy"output matrix must not be aliased with input matrix"))
     end
-    nothing
 end
+
 
 function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, beta, result::AbstractArray) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
     if op isa AbstractVector
         # _gemm_recursive_dense_lazy will treat `op` as a `Bra`
-        check_mul!_compatibility(result, h', op)
+        _check_mul!_aliasing_compatibility(result, op, h)
+        _check_mul!_dim_compatibility(size(result), reverse(size(h)), size(op))
     else
         check_mul!_compatibility(result, op, h)
     end
