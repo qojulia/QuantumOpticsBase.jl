@@ -572,9 +572,11 @@ end
 function _gemm_recursive_dense_lazy(i_k, N_k, K, J, val,
                         shape, strides_k, strides_j,
                         indices, h::LazyTensor,
-                        op::Matrix, result::Matrix)
+                        op::AbstractArray, result::AbstractArray)
     if i_k > N_k
-        for I=1:size(op, 1)
+        if isa(op, AbstractVector)
+            result[K] += val*op[J]
+        else I=1:size(op, 1)
             result[I, K] += val*op[I, J]
         end
         return nothing
@@ -609,7 +611,7 @@ end
 function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
                         shape, strides_k, strides_j,
                         indices, h::LazyTensor,
-                        op::Matrix, result::Matrix)
+                        op::AbstractArray, result::AbstractArray)
     if i_k > N_k
         for I=1:size(op, 2)
             result[J, I] += val*op[K, I]
@@ -641,45 +643,69 @@ function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
     end
 end
 
-function _gemm_puresparse(alpha, op::Matrix, h::LazyTensor{B1,B2,F,I,T}, beta, result::Matrix) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+"""
+    check_mul!_compatibility(R, A, B)
+Check that `R,A,B` are dimentially compatible for `R.=A*B`. And that `R` is not aliased with either `A` nor `B`.
+"""
+function check_mul!_compatibility(R::AbstractVecOrMat, A, B)
+    _check_mul!_aliasing_compatibility(R, A, B)
+    _check_mul!_dim_compatibility(size(R), size(A), size(B))
+end
+function _check_mul!_dim_compatibility(sizeR::Tuple, sizeA::Tuple, sizeB::Tuple)
+    # R .= A*B
+    if sizeA[2] != sizeB[1]
+        throw(DimensionMismatch(lazy"A has dimensions $sizeA but B has dimensions $sizeB. Can't do `A*B`"))
+    end
+    if sizeR != (sizeA[1], Base.tail(sizeB)...) # using tail to account for vectors
+        throw(DimensionMismatch(lazy"R has dimensions $sizeR but A*B has dimensions $((sizeA[1], Base.tail(sizeB)...)). Can't do `R.=A*B`"))
+    end
+end
+function _check_mul!_aliasing_compatibility(R, A, B)
+    if R===A || R===B
+        throw(ArgumentError(lazy"output matrix must not be aliased with input matrix"))
+    end
+end
+
+
+function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, beta, result::AbstractArray) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+    if op isa AbstractVector
+        # _gemm_recursive_dense_lazy will treat `op` as a `Bra`
+        _check_mul!_aliasing_compatibility(result, op, h)
+        _check_mul!_dim_compatibility(size(result), reverse(size(h)), size(op))
+    else
+        check_mul!_compatibility(result, op, h)
+    end
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
         rmul!(result, beta)
     end
     N_k = length(h.basis_r.bases)
-    shape = [min(h.basis_l.shape[i], h.basis_r.shape[i]) for i=1:length(h.basis_l.shape)]
-    strides_j = _strides(h.basis_l.shape)
-    strides_k = _strides(h.basis_r.shape)
+    shape, strides_j, strides_k = _get_shape_and_strides(h)
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::Matrix, beta, result::Matrix) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::AbstractArray, beta, result::AbstractArray) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+    check_mul!_compatibility(result, h, op)
     if iszero(beta)
         fill!(result, beta)
     elseif !isone(beta)
         rmul!(result, beta)
     end
     N_k = length(h.basis_l.bases)
-    shape = [min(h.basis_l.shape[i], h.basis_r.shape[i]) for i=1:length(h.basis_l.shape)]
-    strides_j = _strides(h.basis_l.shape)
-    strides_k = _strides(h.basis_r.shape)
+    shape, strides_j, strides_k = _get_shape_and_strides(h)
     _gemm_recursive_lazy_dense(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
+end
+
+function _get_shape_and_strides(h)
+    shape_l, shape_r = _comp_size(h.basis_l), _comp_size(h.basis_r)
+    shape = min.(shape_l, shape_r)
+    strides_j, strides_k = _strides(shape_l), _strides(shape_r)
+    return shape, strides_j, strides_k
 end
 
 _mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, h, op.data, beta, result.data); result)
 _mul_puresparse!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3,F,I,T},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, op.data, h, beta, result.data); result)
+_mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, a, b.data, beta, result.data); result)
+_mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, a.data, b, beta, result.data); result)
 
-function _mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
-    b_data = reshape(b.data, length(b.data), 1)
-    result_data = reshape(result.data, length(result.data), 1)
-    _gemm_puresparse(alpha, a, b_data, beta, result_data)
-    result
-end
-
-function _mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
-    a_data = reshape(a.data, 1, length(a.data))
-    result_data = reshape(result.data, 1, length(result.data))
-    _gemm_puresparse(alpha, a_data, b, beta, result_data)
-    result
-end

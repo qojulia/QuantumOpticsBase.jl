@@ -404,5 +404,13 @@ dop = randoperator(b3a⊗b3b, b2a⊗b2b)
 @test dop*lop' ≈ Operator(dop.basis_l, lop.basis_l, dop.data*dense(lop).data')
 @test lop*dop' ≈ Operator(lop.basis_l, dop.basis_l, dense(lop).data*dop.data')
 
+# Dimension mismatches for LazyTensor with sparse
+b1, b2 = NLevelBasis.((2, 3))
+Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
+@test_throws DimensionMismatch Lop1*Lop1
+@test_throws DimensionMismatch dense(Lop1)*Lop1
+@test_throws DimensionMismatch sparse(Lop1)*Lop1
+@test_throws DimensionMismatch Lop1*dense(Lop1)
+@test_throws DimensionMismatch Lop1*sparse(Lop1)
 
 end # testset

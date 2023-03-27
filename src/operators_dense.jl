@@ -274,6 +274,10 @@ function _strides(shape)
     return S
 end
 
+function _strides(shape::Ty)::Ty where Ty <: Tuple
+    accumulate(*, (1,Base.front(shape)...))
+end
+
 # Dense operator version
 @generated function _ptrace(::Type{Val{RANK}}, a,
                             shape_l, shape_r,

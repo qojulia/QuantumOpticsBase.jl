@@ -392,5 +392,9 @@ multiplicable(a::AbstractOperator, b::Ket) = multiplicable(a.basis_r, b.basis)
 multiplicable(a::Bra, b::AbstractOperator) = multiplicable(a.basis, b.basis_l)
 multiplicable(a::AbstractOperator, b::AbstractOperator) = multiplicable(a.basis_r, b.basis_l)
 
-Base.size(op::AbstractOperator) = prod(length(op.basis_l),length(op.basis_r))
-Base.size(op::AbstractOperator, i::Int) = (i==1 ? length(op.basis_l) : length(op.basis_r))
+Base.size(op::AbstractOperator) = (length(op.basis_l),length(op.basis_r))
+function Base.size(op::AbstractOperator, i::Int)
+    i < 1 && throw(ErrorException(lazy"dimension out of range, should be strictly positive, got $i"))
+    i > 2 && return 1
+    i==1 ? length(op.basis_l) : length(op.basis_r)
+end
