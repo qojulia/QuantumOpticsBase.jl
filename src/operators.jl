@@ -215,7 +215,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     start_indices_flat = [i[1] for i in indices]
     complement_indices_flat = Int[i for i=1:N if i ∉ indices_flat]
     operators_flat = AbstractOperator[]
-    if all([minimum(I):maximum(I);]==I for I in indices)
+    if all(([minimum(I):maximum(I);]==I)::Bool for I in indices) # type assertion to help type inference
         for i in 1:N
             if i in complement_indices_flat
                 push!(operators_flat, identityoperator(T, S, basis_l.bases[i], basis_r.bases[i]))
