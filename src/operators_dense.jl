@@ -89,12 +89,12 @@ Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = false
 *(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, b*a.data)
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
 function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1,B2,B3,T}
-    result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(op2.data,length(op1.basis_l),length(op2.basis_r)))
+    result = Operator{B1,B3}(op1.basis_l, op2.basis_r, similar(_parent(op2.data),promote_type(eltype(op1),eltype(op2)),length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
 function *(op1::Operator{B1,B2,T}, op2::AbstractOperator{B2,B3}) where {B1,B2,B3,T}
-    result = Operator{B1,B3,T}(op1.basis_l, op2.basis_r, similar(op1.data,length(op1.basis_l),length(op2.basis_r)))
+    result = Operator{B1,B3}(op1.basis_l, op2.basis_r, similar(_parent(op1.data),promote_type(eltype(op1),eltype(op2)),length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
@@ -108,7 +108,7 @@ function *(psi::Bra{BL,T}, op::AbstractOperator{BL,BR}) where {BL,BR,T}
     mul!(result,psi,op)
     return result
 end
-
+_parent = parent∘parent∘parent
 /(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, a.data ./ b)
 
 dagger(x::Operator) = Operator(x.basis_r,x.basis_l,adjoint(x.data))
