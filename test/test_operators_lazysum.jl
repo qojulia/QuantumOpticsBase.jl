@@ -104,8 +104,8 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 ## multiplication with Operator of AbstractMatrix
 LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
-hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,length(basis(LSop))^2,length(basis(LSop))^2))) # Hermitian
-symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,length(basis(LSop))^2,length(basis(LSop))^2))) # Symmetric
+hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Hermitian
+symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Symmetric
 adjoint_op = randoperator(basis(LSop))' # Adjoint
 real_op = Operator(basis(LSop), real(adjoint_op.data)) # real
 ops_tuple = (symmetric_op,hermitian_op,adjoint_op)
