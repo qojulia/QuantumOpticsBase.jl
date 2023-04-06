@@ -25,7 +25,7 @@ using LinearAlgebra, LRUCache, Strided, Dates, SparseArrays
     if get(ENV,"QUANTUMOPTICS_JET_TEST","")=="true"
         rep = report_package("QuantumOpticsBase";
             report_pass=MayThrowIsOk(), # TODO have something more fine grained than a generic "do not care about thrown errors"
-            ignored_modules=( # TODO fix issues with these modules or report them upstrem
+            ignored_modules=( # TODO fix issues with these modules or report them upstream
                 AnyFrameModule(LinearAlgebra),
                 AnyFrameModule(LRUCache),
                 AnyFrameModule(Strided),
