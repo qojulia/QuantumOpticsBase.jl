@@ -108,7 +108,11 @@ function *(psi::Bra{BL,T}, op::AbstractOperator{BL,BR}) where {BL,BR,T}
     mul!(result,psi,op)
     return result
 end
-_parent = parent∘parent∘parent
+
+_parent(x::T, x_parent::T) where T = x
+_parent(x, x_parent) = _parent(x_parent, parent(x_parent))
+_parent(x) = _parent(x, parent(x))
+
 /(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, a.data ./ b)
 
 dagger(x::Operator) = Operator(x.basis_r,x.basis_l,adjoint(x.data))
