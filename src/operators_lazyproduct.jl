@@ -56,6 +56,26 @@ isequal(x::LazyProduct{B1,B2}, y::LazyProduct{B1,B2}) where {B1,B2} = (samebases
 # Arithmetic operations
 -(a::T) where T<:LazyProduct = T(a.operators,a.ket_l,a.bra_r, -a.factor)
 
+
+function +(a::LazyProduct{B1,B2},b::Operator{B1,B2}) where {B1,B2}
+    LazySum(a) + b
+end
+function +(a::Operator{B1,B2},b::LazyProduct{B1,B2}) where {B1,B2}
+    +(b,a)
+end
+function -(a::LazyProduct{B1,B2},b::LazyProduct{B1,B2}) where {B1,B2}
+    LazySum(a) - b
+end
+function +(a::LazyProduct{B1,B2},b::LazyProduct{B1,B2}) where {B1,B2}
+    LazySum(a) + LazySum(b)
+end
+function -(a::LazyProduct{B1,B2},b::Operator{B1,B2}) where {B1,B2}
+    LazySum(a) - b
+end
+function -(a::Operator{B1,B2},b::LazyProduct{B1,B2}) where {B1,B2}
+    a - LazySum(b)
+end
+
 *(a::LazyProduct{B1,B2}, b::LazyProduct{B2,B3}) where {B1,B2,B3} = LazyProduct((a.operators..., b.operators...), a.factor*b.factor)
 *(a::LazyProduct, b::Number) = LazyProduct(a.operators, a.factor*b)
 *(a::Number, b::LazyProduct) = LazyProduct(b.operators, a*b.factor)
@@ -73,6 +93,16 @@ permutesystems(op::LazyProduct, perm::Vector{Int}) = LazyProduct(([permutesystem
 
 identityoperator(::Type{LazyProduct}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazyProduct(identityoperator(S, b1, b2))
 
+
+#Assume same basis
+function tensor(a::Operator{B1,B1},b::LazyProduct{B, B, F, T, KTL, BTR}) where {B1,B, F, T, KTL, BTR}
+    ops = ([(i == 1 ? a : identityoperator(a)) ⊗ op for (i,op) in enumerate(b.operators)]...,)
+    LazyProduct(ops,b.factor)
+end
+function tensor(a::LazyProduct{B, B, F, T, KTL, BTR},b::Operator{B1,B1}) where {B1,B, F, T, KTL, BTR}
+    ops = ([op ⊗ (i == 1 ? b : identityoperator(b)) for (i,op) in enumerate(a.operators)]...,)
+    LazyProduct(ops,a.factor)
+end
 
 function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
     if length(a.operators)==1

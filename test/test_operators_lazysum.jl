@@ -105,6 +105,15 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
 
+#Test Tensor
+op1_tensor = op1a ⊗ op1
+op2_tensor = op1 ⊗ op1a
+op1_tensor_ = op1a ⊗ op1_
+op2_tensor_ = op1_ ⊗ op1a
+@test 1e-14 > D(op1_tensor,op1_tensor_)
+@test 1e-14 > D(op1_tensor_,op1_tensor)
+
+
 # Test tuples vs. vectors
 @test (op1+op1).operators isa Tuple
 @test (op1+op2).operators isa Tuple

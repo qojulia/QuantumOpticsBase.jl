@@ -113,10 +113,24 @@ fac = randn()
 @test dense(op3 + fac * op3) ≈ dense(op3) * (1 + fac)
 @test dense(op3 - fac * op3) ≈ dense(op3) * (1 - fac)
 
-# Forbidden addition
-@test_throws ArgumentError op1 + op2
-@test_throws ArgumentError op1 - op2
+#Commented since addition between lazytensors now return LazySum and its therefore always allowed.
+# Forbidden addition. 
+#@test_throws ArgumentError op1 + op2
+#@test_throws ArgumentError op1 - op2
 @test 1e-14 > D(-op1_, -op1)
+
+#Test addition
+@test 1e-14 > D(op1+op2, op1_+op2_)
+@test 1e-14 > D(op1+op2_, op1_+op2_)
+@test 1e-14 > D(op1_+op2, op1_+op2_)
+
+#Test substraction
+@test 1e-14 > D(op1 - op2, op1_ - op2_)
+@test 1e-14 > D(op1 - op2_, op1_ - op2_)
+@test 1e-14 > D(op1_ - op2, op1_ - op2_)
+@test 1e-14 > D(op1 + (-op2), op1_ - op2_)
+@test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
+
 
 # Test multiplication
 @test_throws DimensionMismatch op1*op2
@@ -412,5 +426,39 @@ Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
 @test_throws DimensionMismatch sparse(Lop1)*Lop1
 @test_throws DimensionMismatch Lop1*dense(Lop1)
 @test_throws DimensionMismatch Lop1*sparse(Lop1)
+
+
+#Test Tensor (only bl == br allowed)
+subop1 = randoperator(b1a, b1a)
+subop2 = randoperator(b2a, b2a)
+subop3 = randoperator(b3a, b3a)
+I1 = dense(identityoperator(b1a, b1a))
+I2 = dense(identityoperator(b2a, b2a))
+I3 = dense(identityoperator(b3a, b3a))
+op1 = LazyTensor(b_l, b_l, [1, 3], (subop1, sparse(subop3)), 0.1)
+op1_ = 0.1*subop1 ⊗ I2 ⊗ subop3
+op2 = LazyTensor(b_l, b_l, [2, 3], (sparse(subop2), subop3), 0.7)
+op2_ = 0.7*I1 ⊗ subop2 ⊗ subop3
+op3 = 0.3*LazyTensor(b_l, b_l, 3, subop3)
+op3_ = 0.3*I1 ⊗ I2 ⊗ subop3
+
+#Cannot tensor CompositeBasis with LazyTensor if its not identity:
+@test_throws ArgumentError op1 ⊗ op1_
+@test_throws ArgumentError op2_ ⊗ op2
+
+op1_tensor =  subop1 ⊗ op1
+op1_tensor_ =  subop1 ⊗ op1_
+op2_tensor =   op1 ⊗ subop1
+op2_tensor_ =   op1_ ⊗ subop1
+@test 1e-14 > D(op1_tensor,op1_tensor_)
+@test 1e-14 > D(op1_tensor_,op1_tensor)
+
+op1_tensor =  (I1 ⊗ I3) ⊗ op1
+op1_tensor_ =  (I1 ⊗ I3) ⊗ op1_
+op2_tensor =   op1 ⊗ (I1 ⊗ I3)
+op2_tensor_ =   op1_ ⊗ (I1 ⊗ I3)
+@test 1e-14 > D(op1_tensor,op1_tensor_)
+@test 1e-14 > D(op1_tensor_,op1_tensor)
+
 
 end # testset

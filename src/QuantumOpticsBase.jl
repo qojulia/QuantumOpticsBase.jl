@@ -80,6 +80,6 @@ include("metrics.jl")
 include("spinors.jl")
 include("phasespace.jl")
 include("printing.jl")
-include("operators_lazyaritmetic.jl")
+#include("operators_lazyaritmetic.jl")
 
 end # module

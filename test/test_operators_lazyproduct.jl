@@ -62,9 +62,22 @@ x2 = Ket(b_l, rand(ComplexF64, length(b_l)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
-# Addition
-@test_throws ArgumentError op1 + op2
+#Following is commented since addition between LazyProduct now returns LazySum
+#@test_throws ArgumentError op1 + op2
+
+# Test Addition
 @test 1e-14 > D(-op1_, -op1)
+@test 1e-14 > D(op1+op2, op1_+op2_)
+@test 1e-14 > D(op1+op2_, op1_+op2_)
+@test 1e-14 > D(op1_+op2, op1_+op2_)
+
+# Test Subtraction
+@test 1e-14 > D(op1 - op2, op1_ - op2_)
+@test 1e-14 > D(op1 - op2_, op1_ - op2_)
+@test 1e-14 > D(op1_ - op2, op1_ - op2_)
+@test 1e-14 > D(op1 + (-op2), op1_ - op2_)
+@test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
+
 
 # Test multiplication
 @test_throws DimensionMismatch op1a*op1a
@@ -77,6 +90,17 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
+
+#Test Tensor product (NOTE: it is assumed that BL == BR of both involved operators.)
+op1_l = randoperator(b_l, b_l)
+op2_l = randoperator(b_l, b_l)
+op_r = randoperator(b_r, b_r)
+op = op_r ⊗ LazyProduct([op1_l, sparse(op2_l)])*0.1
+op_ = op_r ⊗ (0.1*op1_l*op2_l)
+@test 1e-11 > D(op,op_)
+op = LazyProduct([op1_l, sparse(op2_l)])*0.1 ⊗ op_r
+op_ = (0.1*op1_l*op2_l) ⊗ op_r 
+@test 1e-11 > D(op,op_)
 
 # Test identityoperator
 Idense = identityoperator(DenseOpType, b_l)

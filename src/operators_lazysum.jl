@@ -106,6 +106,19 @@ function /(a::LazySum, b::Number)
     @samebases LazySum(a.basis_l, a.basis_r, factors, a.operators)
 end
 
+function tensor(a::Operator,b::LazySum)
+    btotal_l = a.basis_l ⊗ b.basis_l
+    btotal_r = a.basis_r ⊗ b.basis_r
+    ops = ([a ⊗ op for op in b.operators]...,)
+    LazySum(btotal_l,btotal_r,b.factors,ops)
+end
+function tensor(a::LazySum,b::Operator)
+    btotal_l = a.basis_l ⊗ b.basis_l
+    btotal_r = a.basis_r ⊗ b.basis_r
+    ops = ([op ⊗ b for op in a.operators]...,)
+    LazySum(btotal_l,btotal_r,a.factors,ops)
+end
+
 function dagger(op::LazySum)
     ops = dagger.(op.operators)
     @samebases LazySum(op.basis_r, op.basis_l, conj.(op.factors), ops)

@@ -96,21 +96,47 @@ isequal(x::LazyTensor, y::LazyTensor) = samebases(x,y) && isequal(x.indices, y.i
 # Arithmetic operations
 -(a::LazyTensor) = LazyTensor(a, -a.factor)
 
-function +(a::LazyTensor{B1,B2}, b::LazyTensor{B1,B2}) where {B1,B2}
-    if length(a.indices) == 1 && a.indices == b.indices
-        op = a.operators[1] * a.factor + b.operators[1] * b.factor
-        return LazyTensor(a.basis_l, a.basis_r, a.indices, (op,))
-    end
-    throw(ArgumentError("Addition of LazyTensor operators is only defined in case both operators act nontrivially on the same, single tensor factor."))
+function +(a::LazyTensor{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
+    LazySum(a,b)
+end
+function -(a::LazyTensor{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
+    LazySum((1,-1),(a,b))
+end
+function +(a::LazyTensor{B1,B2},b::Operator{B1,B2}) where {B1,B2}
+    LazySum(a) + b
+end
+function +(a::Operator{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
+    +(b,a)
+end
+function -(a::LazyTensor{B1,B2},b::Operator{B1,B2}) where {B1,B2}
+    LazySum(a) - b
+end
+function -(a::Operator{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
+    a - LazySum(b)
 end
 
-function -(a::LazyTensor{B1,B2}, b::LazyTensor{B1,B2}) where {B1,B2}
-    if length(a.indices) == 1 && a.indices == b.indices
-        op = a.operators[1] * a.factor - b.operators[1] * b.factor
-        return LazyTensor(a.basis_l, a.basis_r, a.indices, (op,))
+function tensor(a::LazyTensor{B1,B1},b::Operator{B2,B2}) where {B1,B2}
+    if isequal(b,identityoperator(basis(b)))
+        btotal = basis(a) ⊗ basis(b)
+        LazyTensor(btotal,btotal,a.indices,(a.operators...,),a.factor)
+    elseif B2 <: CompositeBasis
+        throw(ArgumentError("tensor(a::LazyTensor{B1,B1},b::Operator{B2,B2}) is not implemented for B2 being CompositeBasis "))
+    else
+        a ⊗ LazyTensor(b.basis_l,b.basis_r,[1],(b,),1)
     end
-    throw(ArgumentError("Subtraction of LazyTensor operators is only defined in case both operators act nontrivially on the same, single tensor factor."))
 end
+function tensor(a::Operator{B1,B1},b::LazyTensor{B2,B2})  where {B1,B2}
+    if isequal(a,identityoperator(basis(a)))
+        btotal = basis(a) ⊗ basis(b)
+        LazyTensor(btotal,btotal,b.indices.+length(basis(a).shape) ,(b.operators...,),b.factor)
+    elseif B1 <: CompositeBasis
+        throw(ArgumentError("tensor(a::Operator{B1,B1},b::LazyTensor{B2,B2}) is not implemented for B1 being CompositeBasis "))
+    else
+        LazyTensor(a.basis_l,a.basis_r,[1],(a,),1) ⊗ b
+    end
+end
+
+
 
 function *(a::LazyTensor{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3}
     indices = sort(union(a.indices, b.indices))
