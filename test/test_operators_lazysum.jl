@@ -102,6 +102,25 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
 @test 1e-12 > D(dagger(x1)*dagger(0.3*op2), dagger(x1)*dagger(0.3*op2_))
 
+## multiplication with Operator of AbstractMatrix
+LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
+LSop_s = LazySum(sparse(randoperator(b1a^2)))
+hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Hermitian
+symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Symmetric
+adjoint_op = randoperator(basis(LSop))' # Adjoint
+real_op = Operator(basis(LSop), real(adjoint_op.data)) # real
+ops_tuple = (symmetric_op,hermitian_op,adjoint_op)
+### Test
+@test ops_tuple.*(LSop,) == dense.(ops_tuple).*(LSop,)
+@test (LSop,).*ops_tuple == (LSop,).*dense.(ops_tuple)
+### test with sparse
+@test all(isapprox.(sparse.(ops_tuple).*(LSop,) , dense.(ops_tuple).*(LSop,), atol=1e-13))
+@test all(isapprox.((LSop,).*sparse.(ops_tuple) , (LSop,).*dense.(ops_tuple), atol=1e-13))
+@test all(isapprox.(dense.(sparse.(ops_tuple).*(LSop_s,)) , dense.(ops_tuple).*(LSop_s,), atol=1e-13))
+@test all(isapprox.(dense.((LSop_s,).*sparse.(ops_tuple)) , (LSop_s,).*dense.(ops_tuple), atol=1e-13))
+### test real valued op with AbstractOperator
+@test isapprox(LSop*real_op*LSop , LSop*Operator(basis(real_op), complex.(real_op.data))*LSop, atol=1e-13)
+
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
 
