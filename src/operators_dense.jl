@@ -234,6 +234,9 @@ permutesystems(a::AdjointOperator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:Co
 
 identityoperator(::Type{S}, ::Type{T}, b1::Basis, b2::Basis) where {S<:DenseOpType,T<:Number} =
     Operator(b1, b2, Matrix{T}(I, length(b1), length(b2)))
+identityoperator(::Type{S}, ::Type{T}, b1::CompositeBasis, b2::CompositeBasis) where {S<:DenseOpType,T<:Number} =
+    Operator(b1, b2, kron([Matrix{T}(I, length(b1.bases[i]), length(b2.bases[i])) for i in reverse(1:length(b1.bases))]...))
+
 
 """
     projector(a::Ket, b::Bra)

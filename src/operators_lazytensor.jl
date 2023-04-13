@@ -11,7 +11,7 @@ must be sorted.
 Additionally, a factor is stored in the `factor` field which allows for fast
 multiplication with numbers.
 """
-mutable struct LazyTensor{BL,BR,F,I,T} <: AbstractOperator{BL,BR}
+mutable struct LazyTensor{BL,BR,F,I,T} <: LazyOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     factor::F
@@ -96,46 +96,44 @@ isequal(x::LazyTensor, y::LazyTensor) = samebases(x,y) && isequal(x.indices, y.i
 # Arithmetic operations
 -(a::LazyTensor) = LazyTensor(a, -a.factor)
 
-function +(a::LazyTensor{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
-    LazySum(a,b)
+const single_dataoperator{B1,B2} = LazyTensor{B1,B2,F,I,Tuple{T}} where {B1,B2,F,I,T<:DataOperator} 
+function +(a::T1,b::T2) where {T1 <: single_dataoperator{B1,B2},T2 <: single_dataoperator{B1,B2}} where {B1,B2}
+    if a.indices == b.indices
+        op = a.operators[1] * a.factor + b.operators[1] * b.factor
+        return LazyTensor(a.basis_l, a.basis_r, a.indices, (op,))
+    end
+    LazySum(a) + LazySum(b)
 end
-function -(a::LazyTensor{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
-    LazySum((1,-1),(a,b))
-end
-function +(a::LazyTensor{B1,B2},b::Operator{B1,B2}) where {B1,B2}
-    LazySum(a) + b
-end
-function +(a::Operator{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
-    +(b,a)
-end
-function -(a::LazyTensor{B1,B2},b::Operator{B1,B2}) where {B1,B2}
-    LazySum(a) - b
-end
-function -(a::Operator{B1,B2},b::LazyTensor{B1,B2}) where {B1,B2}
-    a - LazySum(b)
+function -(a::T1,b::T2) where {T1 <: single_dataoperator{B1,B2},T2 <: single_dataoperator{B1,B2}} where {B1,B2}
+    if a.indices == b.indices
+        op = a.operators[1] * a.factor - b.operators[1] * b.factor
+        return LazyTensor(a.basis_l, a.basis_r, a.indices, (op,))
+    end
+    LazySum(a) - LazySum(b)
 end
 
-function tensor(a::LazyTensor{B1,B1},b::Operator{B2,B2}) where {B1,B2}
-    if isequal(b,identityoperator(basis(b)))
-        btotal = basis(a) ⊗ basis(b)
-        LazyTensor(btotal,btotal,a.indices,(a.operators...,),a.factor)
-    elseif B2 <: CompositeBasis
-        throw(ArgumentError("tensor(a::LazyTensor{B1,B1},b::Operator{B2,B2}) is not implemented for B2 being CompositeBasis "))
+function tensor(a::LazyTensor{B1,B2},b::AbstractOperator{B3,B4}) where {B1,B2,B3,B4}
+    if isequal(b,identityoperator(b))
+        btotal_l = a.basis_l ⊗ b.basis_l
+        btotal_r = a.basis_r ⊗ b.basis_r
+        LazyTensor(btotal_l,btotal_r,a.indices,(a.operators...,),a.factor)
+    elseif B3 <: CompositeBasis || B4 <: CompositeBasis
+        throw(ArgumentError("tensor(a::LazyTensor{B1,B2},b::AbstractOperator{B3,B4}) is not implemented for B3 or B4 being CompositeBasis unless b is identityoperator "))
     else
         a ⊗ LazyTensor(b.basis_l,b.basis_r,[1],(b,),1)
     end
 end
-function tensor(a::Operator{B1,B1},b::LazyTensor{B2,B2})  where {B1,B2}
-    if isequal(a,identityoperator(basis(a)))
-        btotal = basis(a) ⊗ basis(b)
-        LazyTensor(btotal,btotal,b.indices.+length(basis(a).shape) ,(b.operators...,),b.factor)
-    elseif B1 <: CompositeBasis
-        throw(ArgumentError("tensor(a::Operator{B1,B1},b::LazyTensor{B2,B2}) is not implemented for B1 being CompositeBasis "))
+function tensor(a::AbstractOperator{B1,B2},b::LazyTensor{B3,B4})  where {B1,B2,B3,B4}
+    if isequal(a,identityoperator(a))
+        btotal_l = a.basis_l ⊗ b.basis_l
+        btotal_r = a.basis_r ⊗ b.basis_r
+        LazyTensor(btotal_l,btotal_r,b.indices.+length(a.basis_l.shape) ,(b.operators...,),b.factor)
+    elseif B1 <: CompositeBasis || B2 <: CompositeBasis
+        throw(ArgumentError("tensor(a::AbstractOperator{B1,B2},b::LazyTensor{B3,B4}) is not implemented for B1 or B2 being CompositeBasis unless b is identityoperator "))
     else
         LazyTensor(a.basis_l,a.basis_r,[1],(a,),1) ⊗ b
     end
 end
-
 
 
 function *(a::LazyTensor{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3}

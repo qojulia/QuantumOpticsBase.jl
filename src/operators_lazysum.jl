@@ -10,6 +10,11 @@ function _check_bases(basis_l, basis_r, operators)
 end
 
 """
+Abstract class for all Lazy type operators ([`LazySum`](@ref), [`LazyProduct`](@ref), and [`LazyTensor`](@ref))
+"""
+abstract type LazyOperator{BL,BR} <: AbstractOperator{BL,BR} end
+
+"""
     LazySum([Tf,] [factors,] operators)
     LazySum([Tf,] basis_l, basis_r, [factors,] [operators])
 
@@ -28,7 +33,7 @@ of operator-state operations, such as simulating time evolution. A `Vector` can
 reduce compile-time overhead when doing arithmetic on `LazySum`s, such as
 summing many `LazySum`s together.
 """
-mutable struct LazySum{BL,BR,F,T} <: AbstractOperator{BL,BR}
+mutable struct LazySum{BL,BR,F,T} <: LazyOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     factors::F
@@ -57,6 +62,7 @@ end
 LazySum(::Type{Tf}, operators::AbstractOperator...) where Tf = LazySum(ones(Tf, length(operators)), (operators...,))
 LazySum(operators::AbstractOperator...) = LazySum(mapreduce(eltype, promote_type, operators), operators...)
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
+LazySum(x::LazySum) = x
 
 Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators))
 Base.eltype(x::LazySum) = promote_type(eltype(x.factors), mapreduce(eltype, promote_type, x.operators))
@@ -81,8 +87,9 @@ function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
-+(a::LazySum, b::AbstractOperator) = a + LazySum(b)
-+(a::AbstractOperator, b::LazySum) = LazySum(a) + b
++(a::LazyOperator, b::AbstractOperator) = LazySum(a) + LazySum(b)
++(a::AbstractOperator, b::LazyOperator) = LazySum(a) + LazySum(b)
++(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) + LazySum(b)
 
 -(a::LazySum) = @samebases LazySum(a.basis_l, a.basis_r, -a.factors, a.operators)
 function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
@@ -92,8 +99,10 @@ function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
--(a::LazySum, b::AbstractOperator) = a - LazySum(b)
--(a::AbstractOperator, b::LazySum) = LazySum(a) - b
+-(a::LazyOperator, b::AbstractOperator) = LazySum(a) - LazySum(b)
+-(a::AbstractOperator, b::LazyOperator) = LazySum(a) - LazySum(b)
+-(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) - LazySum(b)
+
 
 function *(a::LazySum, b::Number)
     factors = b*a.factors

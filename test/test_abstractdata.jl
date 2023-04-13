@@ -412,9 +412,7 @@ x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
-# Addition Addition of LazyTensor now returns LazySum
-#@test_throws ArgumentError op1 + op2
-#@test_throws ArgumentError op1 - op2
+# Addition
 @test D(-op1_, -op1, 1e-12)
 
 # Test multiplication
@@ -448,8 +446,6 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Addition
-#Commented following line since addition of LazyProduct returns LazySum and is allowed.
-#@test_throws ArgumentError op1 + op2
 @test D(2.1*op1 + 0.3*op2, 2.1*op1_+0.3*op2_)
 @test D(-op1_, -op1)
 

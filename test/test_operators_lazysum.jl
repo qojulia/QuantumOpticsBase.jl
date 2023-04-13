@@ -113,6 +113,20 @@ op2_tensor_ = op1_ ⊗ op1a
 @test 1e-14 > D(op1_tensor,op1_tensor_)
 @test 1e-14 > D(op1_tensor_,op1_tensor)
 
+#Test addition of with and of LazyTensor and LazyProduct
+subop1 = randoperator(b1a, b1b)
+subop2 = randoperator(b2a, b2b)
+subop3 = randoperator(b3a, b3b)
+I1 = dense(identityoperator(b1a, b1b))
+I2 = dense(identityoperator(b2a, b2b))
+I3 = dense(identityoperator(b3a, b3b))
+op1_LT = LazyTensor(b_l, b_r, [1, 3], (subop1, sparse(subop3)), 0.1)
+op1_LT_ = 0.1*subop1 ⊗ I2 ⊗ subop3
+op1_LP  = LazyProduct([op1a])*0.1
+op1_LP_ = op1a*0.1
+@test 1e-14 > D(op1_LT+op1_LP,op1_LT_+op1_LP_)
+@test 1e-14 > D(op1_LT+op1,op1_LT_+op1_)
+@test 1e-14 > D(op1_LP+op1,op1_LP_+op1_)
 
 # Test tuples vs. vectors
 @test (op1+op1).operators isa Tuple
