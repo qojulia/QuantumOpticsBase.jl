@@ -141,14 +141,7 @@ op2_tensor_ =   op1_ ⊗ subop1
 @test 1e-14 > D(op1_tensor,op1_tensor_)
 @test 1e-14 > D(op1_tensor_,op1_tensor)
 
-op1_tensor =  (I1 ⊗ I3) ⊗ op1
-op1_tensor_ =  (I1 ⊗ I3) ⊗ op1_
-op2_tensor =   op1 ⊗ (I1 ⊗ I3)
-op2_tensor_ =   op1_ ⊗ (I1 ⊗ I3)
-@test 1e-14 > D(op1_tensor,op1_tensor_)
-@test 1e-14 > D(op1_tensor_,op1_tensor)
-
-#Cannot tensor CompositeBasis with LazyTensor if its not identity:
+#Cannot tensor CompositeBasis with LazyTensor:
 @test_throws ArgumentError op1 ⊗ op1_
 @test_throws ArgumentError op2_ ⊗ op2
 
