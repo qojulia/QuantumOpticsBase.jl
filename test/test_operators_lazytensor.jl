@@ -62,7 +62,15 @@ x = LazyTensor(b_l, b_r, [1, 3], (op1, sparse(op3)), 0.3)
 @test 1e-12 > D(0.3*sparse(op1)⊗I2⊗sparse(op3), sparse(x))
 
 # Test eltype
-@test eltype(x) == ComplexF64
+for T in (Float32, Float64, ComplexF32, ComplexF64)
+    I2_T = identityoperator(T, b2a, b2b)
+    op1_T = randoperator(T, b1a, b1b)
+    op3_T = randoperator(T, b3a, b3b)
+    x_T =  LazyTensor(b_l, b_r, [1, 3], (op1_T, sparse(op3_T)), T(0.3))
+    @test eltype(x_T) == T
+    @test eltype(dense(x_T)) == T
+    @test eltype(sparse(x_T)) == T
+end
 
 # Test suboperators
 @test QuantumOpticsBase.suboperator(x, 1) == op1
@@ -396,5 +404,13 @@ dop = randoperator(b3a⊗b3b, b2a⊗b2b)
 @test dop*lop' ≈ Operator(dop.basis_l, lop.basis_l, dop.data*dense(lop).data')
 @test lop*dop' ≈ Operator(lop.basis_l, dop.basis_l, dense(lop).data*dop.data')
 
+# Dimension mismatches for LazyTensor with sparse
+b1, b2 = NLevelBasis.((2, 3))
+Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
+@test_throws DimensionMismatch Lop1*Lop1
+@test_throws DimensionMismatch dense(Lop1)*Lop1
+@test_throws DimensionMismatch sparse(Lop1)*Lop1
+@test_throws DimensionMismatch Lop1*dense(Lop1)
+@test_throws DimensionMismatch Lop1*sparse(Lop1)
 
 end # testset

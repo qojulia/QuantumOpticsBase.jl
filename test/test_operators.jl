@@ -130,4 +130,14 @@ op12 = destroy(bfock)⊗sigmap(bspin)
 @test embed(b, [1,2], op12) == destroy(bfock)⊗sigmap(bspin)⊗one(bspin)
 @test embed(b, [1,3], op12) == destroy(bfock)⊗one(bspin)⊗sigmap(bspin)
 
+# size of AbstractOperator
+b1, b2 = NLevelBasis.((2, 3))
+Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
+@test size(Lop1) == size(dense(Lop1)) == size(dense(Lop1).data)
+@test all(size(Lop1, k) == size(dense(Lop1), k) for k=1:4)
+@test_throws ErrorException size(Lop1,  0)
+@test_throws ErrorException size(Lop1, -1)
+@test_throws ErrorException size(dense(Lop1),  0) # check for consistency
+@test_throws ErrorException size(dense(Lop1), -1)
+
 end # testset

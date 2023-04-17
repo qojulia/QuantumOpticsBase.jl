@@ -47,13 +47,19 @@ op2 = sparse(randoperator(b_l, b_r))
 @test 0.1*sparse(op1) + 0.3*op2 == sparse(LazySum([0.1, 0.3], (op1, op2)))
 
 # Test embed
-x1 = randoperator(b1a,b1b)
-y1 = randoperator(b1a,b1b)
-xy1 = LazySum([1., 2.], (x1, y1))
-x = LazySum([1.], (embed(b_l, b_r, 1, x1),))
-y = LazySum([2.], (embed(b_l, b_r, 1, y1),))
-xy = x + y
-@test embed(b_l, b_r, [1], xy1) == xy
+for T in (Float32, Float64, ComplexF32, ComplexF64)
+    x1 = randoperator(T, b1a,b1b)
+    y1 = randoperator(T, b1a,b1b)
+    xy1 = LazySum(T[1., 2.], (x1, y1))
+    x = LazySum(T[1.], (embed(b_l, b_r, 1, x1),))
+    y = LazySum(T[2.], (embed(b_l, b_r, 1, y1),))
+    @test eltype(x) == T
+    @test eltype(y) == T
+    xy = x + y
+    @test embed(b_l, b_r, [1], xy1) == xy
+    @test eltype(xy) == T
+end
+
 
 # Arithmetic operations
 # =====================
@@ -95,6 +101,25 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
 @test 1e-12 > D(dagger(x1)*dagger(0.3*op2), dagger(x1)*dagger(0.3*op2_))
+
+## multiplication with Operator of AbstractMatrix
+LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
+LSop_s = LazySum(sparse(randoperator(b1a^2)))
+hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Hermitian
+symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Symmetric
+adjoint_op = randoperator(basis(LSop))' # Adjoint
+real_op = Operator(basis(LSop), real(adjoint_op.data)) # real
+ops_tuple = (symmetric_op,hermitian_op,adjoint_op)
+### Test
+@test ops_tuple.*(LSop,) == dense.(ops_tuple).*(LSop,)
+@test (LSop,).*ops_tuple == (LSop,).*dense.(ops_tuple)
+### test with sparse
+@test all(isapprox.(sparse.(ops_tuple).*(LSop,) , dense.(ops_tuple).*(LSop,), atol=1e-13))
+@test all(isapprox.((LSop,).*sparse.(ops_tuple) , (LSop,).*dense.(ops_tuple), atol=1e-13))
+@test all(isapprox.(dense.(sparse.(ops_tuple).*(LSop_s,)) , dense.(ops_tuple).*(LSop_s,), atol=1e-13))
+@test all(isapprox.(dense.((LSop_s,).*sparse.(ops_tuple)) , (LSop_s,).*dense.(ops_tuple), atol=1e-13))
+### test real valued op with AbstractOperator
+@test isapprox(LSop*real_op*LSop , LSop*Operator(basis(real_op), complex.(real_op.data))*LSop, atol=1e-13)
 
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
