@@ -654,15 +654,15 @@ end
 function _check_mul!_dim_compatibility(sizeR::Tuple, sizeA::Tuple, sizeB::Tuple)
     # R .= A*B
     if sizeA[2] != sizeB[1]
-        throw(DimensionMismatch(lazy"A has dimensions $sizeA but B has dimensions $sizeB. Can't do `A*B`"))
+        throw(DimensionMismatch("A and B dimensions do not match. Can't do `A*B`"))
     end
     if sizeR != (sizeA[1], Base.tail(sizeB)...) # using tail to account for vectors
-        throw(DimensionMismatch(lazy"R has dimensions $sizeR but A*B has dimensions $((sizeA[1], Base.tail(sizeB)...)). Can't do `R.=A*B`"))
+        throw(DimensionMismatch("Output dimensions do not match A*B. Can't do `R.=A*B`"))
     end
 end
 function _check_mul!_aliasing_compatibility(R, A, B)
     if R===A || R===B
-        throw(ArgumentError(lazy"output matrix must not be aliased with input matrix"))
+        throw(ArgumentError("output matrix must not be aliased with input matrix"))
     end
 end
 
