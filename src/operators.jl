@@ -350,7 +350,6 @@ to be used in the identity matrix.
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:AbstractOperator,S} = throw(ArgumentError("Identity operator not defined for operator type $T."))
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:AbstractOperator,S} = identityoperator(T,S,b,b)
 identityoperator(::Type{T}, bases::Basis...) where T<:AbstractOperator = identityoperator(T,eltype(T),bases...)
-identityoperator(b::Basis) = identityoperator(b,b)
 identityoperator(op::T) where {T<:AbstractOperator} = identityoperator(T, op.basis_l, op.basis_r)
 
 # Catch case where eltype cannot be inferred from type; this is a bit hacky

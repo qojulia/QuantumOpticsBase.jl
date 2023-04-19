@@ -1,6 +1,6 @@
 module QuantumOpticsBase
 
-using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays
+using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 
 import QuantumInterface: dagger, directsum, ⊕, dm, embed, expect, permutesystems,
