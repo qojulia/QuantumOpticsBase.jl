@@ -374,6 +374,10 @@ function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β:
     _tp_matmul_mid!(result, a, loc, b, α, β)
 end
 
+#function _tp_matmul!(result, ::FillArrays.SquareEye{T}, ::Integer, b::AbstractArray{T,N}, α::Number, β::Number) where {T,N}
+#    @. result = α * b + β * result
+#end 
+
 function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{S,N}, sym) where {T,S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
     _tp_matmul_get_tmp(promote_type(T,S), shp, sym, arr)
@@ -393,7 +397,7 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
 
     # TODO: Perhaps replace with a single for loop and branch inside?
     if n_ops == 0
-        result_data .= alpha .* b_data + beta .* result_data
+        @. result_data = alpha * b_data + beta * result_data
     elseif n_ops == 1
         # Can add directly to the output array.
         _tp_matmul!(result_data, first(ops)..., b_data, alpha, beta)
@@ -418,6 +422,11 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         for _ in 2:n_ops-1
             op, istate = next
+
+            # If we have an identity operation we can skip here.
+            # It would be nice to skip more 
+            op[1] isa FillArrays.SquareEye && continue
+
             tmp2 = _tp_sum_get_tmp(op..., tmp1, sym2)
             _tp_matmul!(tmp2, op..., tmp1, one(alpha), zero(beta))
             tmp1, tmp2 = tmp2, tmp1
@@ -432,50 +441,7 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
     result_data
 end
 
-# Represents a rectangular "identity" matrix of ones along the diagonal.
-struct _SimpleIsometry{I<:Integer}  # We have no need to subtype AbstractMatrix
-    shape::Tuple{I,I}
-    function _SimpleIsometry(d1::I, d2::I) where {I<:Integer}
-        new{I}((d1, d2))
-    end
-end
-Base.size(A::_SimpleIsometry) = A.shape
-Base.size(A::_SimpleIsometry, i) = A.shape[i]
-
-function _tp_sum_get_tmp(op::_SimpleIsometry, loc::Integer, arr::AbstractArray{S,N}, sym) where {S,N}
-    shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    _tp_matmul_get_tmp(S, shp, sym, arr)
-end
-
-function _tp_matmul!(result, a::_SimpleIsometry, loc::Integer, b, α::Number, β::Number)
-    shp_b_1 = 1
-    for i in 1:loc-1
-        shp_b_1 *= size(b,i)
-    end
-    shp_b_3 = 1
-    for i in loc+1:ndims(b)
-        shp_b_3 *= size(b,i)
-    end
-
-    @assert size(b, loc) == size(a, 2)
-
-    br = Base.ReshapedArray(b, (shp_b_1, size(b, loc), shp_b_3), ())
-    result_r = Base.ReshapedArray(result, (shp_b_1, size(a, 1), shp_b_3), ())
-
-    d = min(size(a)...)
-
-    if β != 0
-        rmul!(result, β)
-        @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
-    else
-        @strided result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
-        @strided result_r[:, d+1:end, :] .= zero(eltype(result))
-    end
-
-    result
-end
-
-function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
+function _explicit_isometries(::Type{T}, used_indices, bl::Basis, br::Basis, shift=0) where T
     shp_l = _comp_size(bl)
     shp_r = _comp_size(br)
     shp_l != shp_r || return nothing
@@ -485,10 +451,10 @@ function _explicit_isometries(used_indices, bl::Basis, br::Basis, shift=0)
     for (i, (sl, sr)) in enumerate(zip(shp_l, shp_r))
         if (sl != sr) && !(i + shift in used_indices)
             if isos === nothing
-                isos = [_SimpleIsometry(sl, sr)]
+                isos = [Eye{T}(sl, sr)]
                 iso_inds = [i + shift]
             else
-                push!(isos, _SimpleIsometry(sl, sr))
+                push!(isos, Eye{T}(sl, sr))
                 push!(iso_inds, i + shift)
             end
         end
@@ -503,8 +469,27 @@ end
 _comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
 _comp_size(b::Basis) = (length(b),)
 
+_is_pure_sparse(operators) = all(o isa Union{SparseOpPureType,EyeOpType} for o in operators)
+
+_tpop_isnota_squareeye = (!) ∘ Base.Fix2(isa, FillArrays.SquareEye) ∘ first
+
+# Prepare the tensor-product operator and indices tuples
+function _tpops_tuple(operators, indices; shift=0, op_transform=identity)
+    op_pairs = (((op.data, i + shift) for (op, i) in zip(operators, indices))...,)
+
+    # filter out identities. FIXME: Apparently not inferrable?
+    filtered = filter(_tpop_isnota_squareeye, op_pairs)
+    ops, inds = (zip(filtered...)...,)
+
+    ops_t = map(op_transform, ops)
+    
+    return ops_t, inds
+end
+
+_tpops_tuple(a::LazyTensor; shift=0, op_transform=identity) = _tpops_tuple((a.operators...,), (a.indices...,); shift, op_transform)
+
 function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, beta) where {B1<:Basis,B2<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(a.operators) > 0 && all(o isa SparseOpPureType for o in a.operators)
+    if length(a.operators) > 0 && _is_pure_sparse(a.operators)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
@@ -514,45 +499,45 @@ function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, be
     b_data = Base.ReshapedArray(b.data, _comp_size(basis(b)), ())
     result_data = Base.ReshapedArray(result.data, _comp_size(basis(result)), ())
 
-    tp_ops = (tuple((op.data for op in a.operators)...), a.indices)
-    iso_ops = _explicit_isometries(a.indices, a.basis_l, a.basis_r)
+    tp_ops = _tpops_tuple(a)
+    iso_ops = _explicit_isometries(eltype(a), a.indices, a.basis_l, a.basis_r)
     _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha * a.factor, beta)
 
     result
 end
 
 function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, beta) where {B1<:Basis,B2<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(b.operators) > 0 && all(o isa SparseOpPureType for o in b.operators)
+    if length(b.operators) > 0 && _is_pure_sparse(b.operators)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
     a_data = Base.ReshapedArray(a.data, _comp_size(basis(a)), ())
     result_data = Base.ReshapedArray(result.data, _comp_size(basis(result)), ())
 
-    tp_ops = (tuple((transpose(op.data) for op in b.operators)...), b.indices)
-    iso_ops = _explicit_isometries(b.indices, b.basis_r, b.basis_l)
+    tp_ops = _tpops_tuple(b; op_transform=transpose)
+    iso_ops = _explicit_isometries(eltype(b), b.indices, b.basis_r, b.basis_l)
     _tp_sum_matmul!(result_data, tp_ops, iso_ops, a_data, alpha * b.factor, beta)
 
     result
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::LazyTensor{B1,B2,F,I,T}, b::DenseOpType{B2,B3}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(a.operators) > 0 && all(o isa SparseOpPureType for o in a.operators) && (b isa DenseOpPureType)
+    if length(a.operators) > 0 && _is_pure_sparse(a.operators) && (b isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
     b_data = Base.ReshapedArray(b.data, (_comp_size(b.basis_l)..., _comp_size(b.basis_r)...), ())
     result_data = Base.ReshapedArray(result.data, (_comp_size(result.basis_l)..., _comp_size(result.basis_r)...), ())
 
-    tp_ops = (tuple((op.data for op in a.operators)...), a.indices)
-    iso_ops = _explicit_isometries(a.indices, a.basis_l, a.basis_r)
+    tp_ops = _tpops_tuple(a)
+    iso_ops = _explicit_isometries(eltype(a), a.indices, a.basis_l, a.basis_r)
     _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha * a.factor, beta)
 
     result
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3,F,I,T}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
-    if length(b.operators) > 0 && all(o isa SparseOpPureType for o in b.operators) && (a isa DenseOpPureType)
+    if length(b.operators) > 0 && _is_pure_sparse(b.operators) && (a isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
 
@@ -560,8 +545,8 @@ function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B
     result_data = Base.ReshapedArray(result.data, (_comp_size(result.basis_l)..., _comp_size(result.basis_r)...), ())
 
     shft = length(a.basis_l.shape)  # b must be applied to the "B2" side of a
-    tp_ops = (tuple((transpose(op.data) for op in b.operators)...), tuple((i + shft for i in b.indices)...))
-    iso_ops = _explicit_isometries(tp_ops[2], b.basis_r, b.basis_l, shft)
+    tp_ops = _tpops_tuple(b; shift=shft, op_transform=transpose)
+    iso_ops = _explicit_isometries(eltype(b), tp_ops[2], b.basis_r, b.basis_l, shft)
     _tp_sum_matmul!(result_data, tp_ops, iso_ops, a_data, alpha * b.factor, beta)
 
     result
@@ -594,15 +579,15 @@ function _gemm_recursive_dense_lazy(i_k, N_k, K, J, val,
                     _gemm_recursive_dense_lazy(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
                 end
             end
-        else
+            return nothing
+        elseif !isa(h_i, EyeOpType)
             throw(ArgumentError("gemm! of LazyTensor is not implemented for $(typeof(h_i))"))
         end
-    else
-        @inbounds for k=1:shape[i_k]
-            K_ = K + strides_k[i_k]*(k-1)
-            J_ = J + strides_j[i_k]*(k-1)
-            _gemm_recursive_dense_lazy(i_k + 1, N_k, K_, J_, val, shape, strides_k, strides_j, indices, h, op, result)
-        end
+    end
+    @inbounds for k=1:shape[i_k]
+        K_ = K + strides_k[i_k]*(k-1)
+        J_ = J + strides_j[i_k]*(k-1)
+        _gemm_recursive_dense_lazy(i_k + 1, N_k, K_, J_, val, shape, strides_k, strides_j, indices, h, op, result)
     end
 end
 
@@ -631,15 +616,15 @@ function _gemm_recursive_lazy_dense(i_k, N_k, K, J, val,
                     _gemm_recursive_lazy_dense(i_k+1, N_k, K_, J_, val_, shape, strides_k, strides_j, indices, h, op, result)
                 end
             end
-        else
+            return nothing
+        elseif !isa(h_i, EyeOpType)  # identity operator get handled below
             throw(ArgumentError("gemm! of LazyTensor is not implemented for $(typeof(h_i))"))
         end
-    else
-        @inbounds for k=1:shape[i_k]
-            K_ = K + strides_k[i_k]*(k-1)
-            J_ = J + strides_j[i_k]*(k-1)
-            _gemm_recursive_lazy_dense(i_k + 1, N_k, K_, J_, val, shape, strides_k, strides_j, indices, h, op, result)
-        end
+    end
+    @inbounds for k=1:shape[i_k]
+        K_ = K + strides_k[i_k]*(k-1)
+        J_ = J + strides_j[i_k]*(k-1)
+        _gemm_recursive_lazy_dense(i_k + 1, N_k, K_, J_, val, shape, strides_k, strides_j, indices, h, op, result)
     end
 end
 
@@ -667,7 +652,7 @@ function _check_mul!_aliasing_compatibility(R, A, B)
 end
 
 
-function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, beta, result::AbstractArray) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, beta, result::AbstractArray) where {B1,B2,F,I,T}
     if op isa AbstractVector
         # _gemm_recursive_dense_lazy will treat `op` as a `Bra`
         _check_mul!_aliasing_compatibility(result, op, h)
@@ -685,7 +670,7 @@ function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, 
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
 
-function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::AbstractArray, beta, result::AbstractArray) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}}
+function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::AbstractArray, beta, result::AbstractArray) where {B1,B2,F,I,T}
     check_mul!_compatibility(result, h, op)
     if iszero(beta)
         fill!(result, beta)
@@ -704,8 +689,8 @@ function _get_shape_and_strides(h)
     return shape, strides_j, strides_k
 end
 
-_mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, h, op.data, beta, result.data); result)
-_mul_puresparse!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3,F,I,T},alpha,beta) where {B1,B2,B3,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, op.data, h, beta, result.data); result)
-_mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, a, b.data, beta, result.data); result)
-_mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T<:Tuple{Vararg{SparseOpPureType}}} = (_gemm_puresparse(alpha, a.data, b, beta, result.data); result)
+_mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3,F,I,T} = (_gemm_puresparse(alpha, h, op.data, beta, result.data); result)
+_mul_puresparse!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3,F,I,T},alpha,beta) where {B1,B2,B3,F,I,T} = (_gemm_puresparse(alpha, op.data, h, beta, result.data); result)
+_mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T} = (_gemm_puresparse(alpha, a, b.data, beta, result.data); result)
+_mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T} = (_gemm_puresparse(alpha, a.data, b, beta, result.data); result)
 
