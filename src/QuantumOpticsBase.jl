@@ -17,7 +17,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #operators_dense
                 Operator, DenseOperator, DenseOpType, projector, dm,
         #operators_sparse
-                SparseOperator, diagonaloperator, SparseOpType,
+                SparseOperator, diagonaloperator, SparseOpType, EyeOpType,
         #operators_lazysum
                 LazySum,
         #operators_lazyproduct

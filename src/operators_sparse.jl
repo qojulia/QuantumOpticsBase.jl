@@ -60,8 +60,10 @@ function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:Composite
     SparseOperator(permutesystems(rho.basis_l, perm), permutesystems(rho.basis_r, perm), data)
 end
 
-#identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
-#    SparseOperator(b1, b2, sparse(one(S)*I, length(b1), length(b2)))
+identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:SparseOpType,S<:Number} =
+    SparseOperator(b1, b2, sparse(one(S)*I, length(b1), length(b2)))
+identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:SparseOpType,S<:Number} =
+    SparseOperator(b, b, sparse(one(S)*I, length(b), length(b)))
 
 const EyeOpPureType{BL,BR} = Operator{BL,BR,<:Eye}
 const EyeOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:Eye}}
