@@ -110,7 +110,7 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randoperator(NLevelBasis(4), GenericBasis(2)) # save Basis with different size
 @test_throws DimensionMismatch randoperator(GenericBasis(1), FockBasis(3)) * LazySum(FockBasis(1), NLevelBasis(2))
 @test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randstate(NLevelBasis(7))
-@test_throws DimensionMismatch randstate(FockBasis(3)) * LazySum(FockBasis(1), NLevelBasis(2))
+@test_throws DimensionMismatch randstate(FockBasis(3))' * LazySum(FockBasis(1), NLevelBasis(2))
 
 ## multiplication with Operator of AbstractMatrix
 LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
