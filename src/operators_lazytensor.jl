@@ -471,15 +471,14 @@ _comp_size(b::Basis) = (length(b),)
 
 _is_pure_sparse(operators) = all(o isa Union{SparseOpPureType,EyeOpType} for o in operators)
 
-_tpop_isnota_squareeye = (!) ∘ Base.Fix2(isa, FillArrays.SquareEye) ∘ first
-
 # Prepare the tensor-product operator and indices tuples
 function _tpops_tuple(operators, indices; shift=0, op_transform=identity)
-    op_pairs = (((op.data, i + shift) for (op, i) in zip(operators, indices))...,)
+    op_pairs = tuple(((op.data, i + shift) for (op, i) in zip(operators, indices))...)
 
-    # filter out identities. FIXME: Apparently not inferrable?
-    filtered = filter(_tpop_isnota_squareeye, op_pairs)
-    ops, inds = (zip(filtered...)...,)
+    # filter out identities
+    filtered = filter(p->!(p[1] isa FillArrays.SquareEye), op_pairs)
+    _unzip(t) = tuple(zip(t...)...)
+    ops, inds = _unzip(filtered)
 
     ops_t = map(op_transform, ops)
     
