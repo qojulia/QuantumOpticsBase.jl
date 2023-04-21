@@ -374,73 +374,65 @@ function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β:
     _tp_matmul_mid!(result, a, loc, b, α, β)
 end
 
-#function _tp_matmul!(result, ::FillArrays.SquareEye{T}, ::Integer, b::AbstractArray{T,N}, α::Number, β::Number) where {T,N}
-#    @. result = α * b + β * result
-#end 
-
 function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{S,N}, sym) where {T,S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
     _tp_matmul_get_tmp(promote_type(T,S), shp, sym, arr)
 end
+
+# Eyes need not be identities, but square Eyes are.
+_is_square_eye(::AbstractArray) = false
+_is_square_eye(::FillArrays.SquareEye) = true
+_is_square_eye(x::FillArrays.Eye) = size(x, 1) == size(x, 2)
+_is_square_eye(x::LinearAlgebra.Adjoint) = _is_square_eye(parent(x))
+_is_square_eye(x::LinearAlgebra.Transpose) = _is_square_eye(parent(x))
 
 #Apply a tensor product of operators to a vector.
 function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
     iszero(alpha) && return rmul!(result_data, beta)
 
     if iso_ops === nothing
-        n_ops = length(tp_ops[1])
-        ops = zip(tp_ops...)
+        ops = tp_ops
     else
-        n_ops = length(tp_ops[1]) + length(iso_ops[1])
-        ops = Iterators.flatten((zip(tp_ops...), zip(iso_ops...)))
+        ops = (tp_ops..., iso_ops...)
     end
+
+    n_ops = length(ops)
 
     # TODO: Perhaps replace with a single for loop and branch inside?
     if n_ops == 0
         @. result_data = alpha * b_data + beta * result_data
     elseif n_ops == 1
         # Can add directly to the output array.
-        _tp_matmul!(result_data, first(ops)..., b_data, alpha, beta)
+        _tp_matmul!(result_data, ops[1][1], ops[1][2], b_data, alpha, beta)
     elseif n_ops == 2
         # One temporary vector needed.
-        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
-        tmp = _tp_sum_get_tmp(op1..., b_data, :_tp_sum_matmul_tmp1)
-        _tp_matmul!(tmp, op1..., b_data, alpha, zero(beta))
+        tmp = _tp_sum_get_tmp(ops[1][1], ops[1][2], b_data, :_tp_sum_matmul_tmp1)
+        _tp_matmul!(tmp, ops[1][1], ops[1][2], b_data, alpha, zero(beta))
 
-        op2, istate = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
-        _tp_matmul!(result_data, op2..., tmp, one(alpha), beta)
+        _tp_matmul!(result_data, ops[2][1], ops[2][2], tmp, one(alpha), beta)
     else
         # At least two temporary vectors needed.
         # Symbols identify computation stages in the cache.
         sym1 = :_tp_sum_matmul_tmp1
         sym2 = :_tp_sum_matmul_tmp2
 
-        op1, istate = iterate(ops)::Tuple # "not-nothing" assertion to help type inference
-        tmp1 = _tp_sum_get_tmp(op1..., b_data, sym1)
-        _tp_matmul!(tmp1, op1..., b_data, alpha, zero(beta))
+        tmp1 = _tp_sum_get_tmp(ops[1][1], ops[1][2], b_data, sym1)
+        _tp_matmul!(tmp1, ops[1][1], ops[1][2], b_data, alpha, zero(beta))
 
-        next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
-        for _ in 2:n_ops-1
-            op, istate = next
-
-            # If we have an identity operation we can skip here.
-            # It would be nice to skip more 
-            op[1] isa FillArrays.SquareEye && continue
-
-            tmp2 = _tp_sum_get_tmp(op..., tmp1, sym2)
-            _tp_matmul!(tmp2, op..., tmp1, one(alpha), zero(beta))
+        for i in 2:n_ops-1
+            tmp2 = _tp_sum_get_tmp(ops[i][1], ops[i][2], tmp1, sym2)
+            _tp_matmul!(tmp2, ops[i][1], ops[i][2], tmp1, one(alpha), zero(beta))
             tmp1, tmp2 = tmp2, tmp1
             sym1, sym2 = sym2, sym1
-            next = iterate(ops, istate)::Tuple # "not-nothing" assertion to help type inference
         end
 
-        op, istate = next
-        _tp_matmul!(result_data, op..., tmp1, one(alpha), beta)
+        _tp_matmul!(result_data, ops[n_ops][1], ops[n_ops][2], tmp1, one(alpha), beta)
     end
 
     result_data
 end
 
+# Insert explicit Eye operators where left and right bases have different sizes.
 function _explicit_isometries(::Type{T}, used_indices, bl::Basis, br::Basis, shift=0) where T
     shp_l = _comp_size(bl)
     shp_r = _comp_size(br)
@@ -462,7 +454,8 @@ function _explicit_isometries(::Type{T}, used_indices, bl::Basis, br::Basis, shi
     if isos === nothing
         return nothing
     end
-    isos, iso_inds
+    res = tuple(zip(isos, iso_inds)...)
+    return res
 end
 
 # To get the shape of a CompositeBasis with number of dims inferrable at compile-time
@@ -471,18 +464,19 @@ _comp_size(b::Basis) = (length(b),)
 
 _is_pure_sparse(operators) = all(o isa Union{SparseOpPureType,EyeOpType} for o in operators)
 
-# Prepare the tensor-product operator and indices tuples
+# Prepare the tensor-product operator and indices tuple
 function _tpops_tuple(operators, indices; shift=0, op_transform=identity)
-    op_pairs = tuple(((op.data, i + shift) for (op, i) in zip(operators, indices))...)
+    length(operators) == 0 == length(indices) && return ()
 
-    # filter out identities
-    filtered = filter(p->!(p[1] isa FillArrays.SquareEye), op_pairs)
-    _unzip(t) = tuple(zip(t...)...)
-    ops, inds = _unzip(filtered)
+    op_pairs = tuple(((op_transform(op.data), i + shift) for (op, i) in zip(operators, indices))...)
 
-    ops_t = map(op_transform, ops)
-    
-    return ops_t, inds
+    # Filter out identities:
+    # This induces a non-trivial cost only if _is_square_eye is not inferrable.
+    # This happens if we have Eyes that are not SquareEyes.
+    # This can happen if the user constructs LazyTensor operators including
+    # explicit identityoperator(b,b).
+    filtered = filter(p->!_is_square_eye(p[1]), op_pairs)
+    return filtered
 end
 
 _tpops_tuple(a::LazyTensor; shift=0, op_transform=identity) = _tpops_tuple((a.operators...,), (a.indices...,); shift, op_transform)
@@ -545,7 +539,7 @@ function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B
 
     shft = length(a.basis_l.shape)  # b must be applied to the "B2" side of a
     tp_ops = _tpops_tuple(b; shift=shft, op_transform=transpose)
-    iso_ops = _explicit_isometries(eltype(b), tp_ops[2], b.basis_r, b.basis_l, shft)
+    iso_ops = _explicit_isometries(eltype(b), ((i + shft for i in b.indices)...,), b.basis_r, b.basis_l, shft)
     _tp_sum_matmul!(result_data, tp_ops, iso_ops, a_data, alpha * b.factor, beta)
 
     result
