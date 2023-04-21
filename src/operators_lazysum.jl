@@ -140,6 +140,7 @@ end
 # Fast in-place multiplication
 function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
     if length(a.operators) == 0
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
         result.data .*= beta
     else
         mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
@@ -152,6 +153,7 @@ end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1,B2}
     if length(b.operators) == 0
+        _check_mul!_dim_compatibility(size(result), reverse(size(b)), size(a))
         result.data .*= beta
     else
         mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
@@ -164,6 +166,7 @@ end
 
 function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3}
     if length(a.operators) == 0
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
         result.data .*= beta
     else
         mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
@@ -175,6 +178,7 @@ function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha
 end
 function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha,beta) where {B1,B2,B3}
     if length(b.operators) == 0
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
         result.data .*= beta
     else
         mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
