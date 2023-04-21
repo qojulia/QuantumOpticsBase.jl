@@ -101,6 +101,8 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
 @test 1e-12 > D(dagger(x1)*dagger(0.3*op2), dagger(x1)*dagger(0.3*op2_))
+@test iszero( LazySum(b_r, b_l) * op1a )
+@test_throws LazySum(FockBasis(2), NLevelBasis(2)) * randoperator(NLevelBasis(7), GenericBasis(2))
 
 ## multiplication with Operator of AbstractMatrix
 LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
