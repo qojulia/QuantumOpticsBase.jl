@@ -18,7 +18,7 @@ Adapt = "1, 2, 3.3"
 FFTW = "1.2"
 LRUCache = "1"
 QuantumInterface = "0.1.0"
-Strided = "1"
+Strided = "1, 2"
 UnsafeArrays = "1"
 julia = "1.3"
 
