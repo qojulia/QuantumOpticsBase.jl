@@ -59,7 +59,7 @@ LazySum(operators::AbstractOperator...) = LazySum(mapreduce(eltype, promote_type
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 
 Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators))
-Base.eltype(x::LazySum) = promote_type(eltype(x.factors), mapreduce(eltype, promote_type, x.operators))
+Base.eltype(x::LazySum) = mapreduce(eltype, promote_type, x.operators; init=eltype(x.factors))
 
 dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
 SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* sparse.(op.operators)) : Operator(op.basis_l, op.basis_r, spzeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
@@ -140,6 +140,7 @@ end
 # Fast in-place multiplication
 function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
     if length(a.operators) == 0
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
         result.data .*= beta
     else
         mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
@@ -152,6 +153,7 @@ end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1,B2}
     if length(b.operators) == 0
+        _check_mul!_dim_compatibility(size(result), reverse(size(b)), size(a))
         result.data .*= beta
     else
         mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
@@ -164,6 +166,7 @@ end
 
 function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3}
     if length(a.operators) == 0
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
         result.data .*= beta
     else
         mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
@@ -175,6 +178,7 @@ function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha
 end
 function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha,beta) where {B1,B2,B3}
     if length(b.operators) == 0
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
         result.data .*= beta
     else
         mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
