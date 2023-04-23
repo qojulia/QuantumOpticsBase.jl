@@ -444,4 +444,9 @@ out_ref = mul!(copy(out), n1, state, alpha, beta)
 @test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, alpha, beta))
 @test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, alpha, beta))
 
+state = randoperator(bl,bl)
+out_ref = mul!(copy(out), state, n1, alpha, beta)
+@test 1e-12 > D(out_ref, mul!(copy(out), state, n1_sp, alpha, beta))
+@test 1e-12 > D(out_ref, mul!(copy(out), state, n1_de, alpha, beta))
+
 end
