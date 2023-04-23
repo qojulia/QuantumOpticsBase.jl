@@ -1,6 +1,7 @@
 using Test
 using QuantumOpticsBase
 using Aqua
+using FillArrays
 
 @testset "aqua" begin
     Aqua.test_all(QuantumOpticsBase;
