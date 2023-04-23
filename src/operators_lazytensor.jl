@@ -326,6 +326,17 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
     br = Base.ReshapedArray(b, (sz_b_1, size(b, loc), sz_b_3), ())
     result_r = Base.ReshapedArray(result, (sz_b_1, size(a, 1), sz_b_3), ())
 
+    if a isa FillArrays.Eye
+        # Square Eyes are skipped higher up. This handles the non-square case. 
+        size(b, loc) == size(a, 2) && size(result, loc) == size(a, 1) || throw(DimensionMismatch("Dimensions of Eye matrix do not match subspace dimensions."))
+        d = min(size(a)...)
+
+        rmul!(result, β)
+        @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+
+        return result
+    end
+
     # Try to "minimize" the transpose for efficiency.
     move_left = sz_b_1 < sz_b_3
     perm = move_left ? (2,1,3) : (1,3,2)
