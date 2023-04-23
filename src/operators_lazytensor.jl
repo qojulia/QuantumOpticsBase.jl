@@ -331,8 +331,13 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
         size(b, loc) == size(a, 2) && size(result, loc) == size(a, 1) || throw(DimensionMismatch("Dimensions of Eye matrix do not match subspace dimensions."))
         d = min(size(a)...)
 
-        rmul!(result, β)
-        @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+        if !iszero(β)
+            rmul!(result, β)
+            @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+        else
+            fill!(result, zero(eltype(result)))
+            @strided result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
+        end
 
         return result
     end
