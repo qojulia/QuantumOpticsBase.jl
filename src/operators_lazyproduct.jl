@@ -11,7 +11,7 @@ complex factor is stored in the `factor` field which allows for fast
 multiplication with numbers.
 """
 
-mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: AbstractOperator{BL,BR}
+mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: LazyOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     factor::F
@@ -73,6 +73,16 @@ permutesystems(op::LazyProduct, perm::Vector{Int}) = LazyProduct(([permutesystem
 
 identityoperator(::Type{LazyProduct}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazyProduct(identityoperator(S, b1, b2))
 
+
+
+function tensor(a::Operator{B1,B2},b::LazyProduct{B3, B4, F, T, KTL, BTR}) where {B1,B2,B3,B4, F, T, KTL, BTR}
+    ops = ([(i == 1 ? a : identityoperator(a.basis_r) ) ⊗ op for (i,op) in enumerate(b.operators)]...,)
+    LazyProduct(ops,b.factor)
+end
+function tensor(a::LazyProduct{B1, B2, F, T, KTL, BTR},b::Operator{B3,B4}) where {B1,B2,B3,B4, F, T, KTL, BTR}
+    ops = ([op ⊗ (i == length(a.operators) ? b : identityoperator(a.basis_l) ) for (i,op) in enumerate(a.operators)]...,)
+    LazyProduct(ops,a.factor)
+end
 
 function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
     iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)

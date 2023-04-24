@@ -10,7 +10,6 @@ mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
 end
 Base.eltype(::test_lazytensor) = ComplexF64
 
-@testset "operators-lazytensor" begin
 
 Random.seed!(0)
 
@@ -102,21 +101,51 @@ op2 = LazyTensor(b_l, b_r, [2, 3], (sparse(subop2), subop3), 0.7)
 op2_ = 0.7*I1 ⊗ subop2 ⊗ subop3
 op3 = 0.3*LazyTensor(b_l, b_r, 3, subop3)
 op3_ = 0.3*I1 ⊗ I2 ⊗ subop3
+op4 = 0.4*LazyTensor(b_l, b_r, 2, subop2)
+op4_ = 0.4*I1 ⊗ subop2 ⊗ I3
 
 x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
 x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
-# Allowed addition
+# Addition one operator at same index
 fac = randn()
 @test dense(op3 + fac * op3) ≈ dense(op3) * (1 + fac)
 @test dense(op3 - fac * op3) ≈ dense(op3) * (1 - fac)
+# Addition one operator at different index
+@test dense(op3 + fac * op4) ≈ dense(op3_ + fac*op4_)
+@test dense(op3 - fac * op4) ≈ dense(op3_ - fac*op4_)
 
-# Forbidden addition
-@test_throws ArgumentError op1 + op2
-@test_throws ArgumentError op1 - op2
+#Test addition
+@test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(-op1_, -op1)
+@test 1e-14 > D(op1+op2, op1_+op2_)
+@test 1e-14 > D(op1+op2_, op1_+op2_)
+@test 1e-14 > D(op1_+op2, op1_+op2_)
+
+#Test substraction
+@test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op2)
+@test 1e-14 > D(op1 - op2, op1_ - op2_)
+@test 1e-14 > D(op1 - op2_, op1_ - op2_)
+@test 1e-14 > D(op1_ - op2, op1_ - op2_)
+@test 1e-14 > D(op1 + (-op2), op1_ - op2_)
+@test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
+
+
+#Test tensor
+op1_tensor =  subop1 ⊗ op1
+op1_tensor_ =  subop1 ⊗ op1_
+op2_tensor =   op1 ⊗ subop1
+op2_tensor_ =   op1_ ⊗ subop1
+@test 1e-14 > D(op1_tensor,op1_tensor_)
+@test 1e-14 > D(op1_tensor_,op1_tensor)
+
+#Cannot tensor CompositeBasis with LazyTensor:
+@test_throws ArgumentError op1 ⊗ op1_
+@test_throws ArgumentError op2_ ⊗ op2
+
+
 
 # Test multiplication
 @test_throws DimensionMismatch op1*op2
@@ -464,3 +493,4 @@ out_ref = mul!(copy(out), state, n1, alpha, beta)
 @test 1e-12 > D(out_ref, mul!(copy(out), state, n1_de, alpha, beta))
 
 end
+
