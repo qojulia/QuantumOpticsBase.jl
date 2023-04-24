@@ -331,12 +331,13 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
         size(b, loc) == size(a, 2) && size(result, loc) == size(a, 1) || throw(DimensionMismatch("Dimensions of Eye matrix do not match subspace dimensions."))
         d = min(size(a)...)
 
-        if !iszero(β)
-            rmul!(result, β)
-            @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
-        else
+        if iszero(β)
+            # Need to handle this separately, as the values in `result` may not be valid numbers
             fill!(result, zero(eltype(result)))
             @strided result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
+        else
+            rmul!(result, β)
+            @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
         end
 
         return result
@@ -351,7 +352,7 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
     #permutedims!(br_p, br, perm)
 
     result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out, result_r)
-    β == 0.0 || @strided permutedims!(result_r_p, result_r, perm)
+    iszero(β) || @strided permutedims!(result_r_p, result_r, perm)
     #β == 0.0 || permutedims!(result_r_p, result_r, perm)
 
     if move_left
@@ -404,8 +405,6 @@ _is_square_eye(x::LinearAlgebra.Transpose) = _is_square_eye(parent(x))
 
 #Apply a tensor product of operators to a vector.
 function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
-    iszero(alpha) && return rmul!(result_data, beta)
-
     if iso_ops === nothing
         ops = tp_ops
     else
@@ -416,7 +415,11 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
 
     # TODO: Perhaps replace with a single for loop and branch inside?
     if n_ops == 0
-        @. result_data = alpha * b_data + beta * result_data
+        if iszero(beta)
+            @. result_data = alpha * b_data
+        else
+            @. result_data = alpha * b_data + beta * result_data
+        end
     elseif n_ops == 1
         # Can add directly to the output array.
         _tp_matmul!(result_data, ops[1][1], ops[1][2], b_data, alpha, beta)
@@ -498,6 +501,8 @@ end
 _tpops_tuple(a::LazyTensor; shift=0, op_transform=identity) = _tpops_tuple((a.operators...,), (a.indices...,); shift, op_transform)
 
 function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, beta) where {B1<:Basis,B2<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
+
     if length(a.operators) > 0 && _is_pure_sparse(a.operators)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
@@ -516,6 +521,8 @@ function mul!(result::Ket{B1}, a::LazyTensor{B1,B2,F,I,T}, b::Ket{B2}, alpha, be
 end
 
 function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, beta) where {B1<:Basis,B2<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
+
     if length(b.operators) > 0 && _is_pure_sparse(b.operators)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
@@ -531,6 +538,8 @@ function mul!(result::Bra{B2}, a::Bra{B1}, b::LazyTensor{B1,B2,F,I,T}, alpha, be
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::LazyTensor{B1,B2,F,I,T}, b::DenseOpType{B2,B3}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
+
     if length(a.operators) > 0 && _is_pure_sparse(a.operators) && (b isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end
@@ -546,6 +555,8 @@ function mul!(result::DenseOpType{B1,B3}, a::LazyTensor{B1,B2,F,I,T}, b::DenseOp
 end
 
 function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3,F,I,T}, alpha, beta) where {B1<:Basis,B2<:Basis,B3<:Basis, F,I,T<:Tuple{Vararg{DataOperator}}}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
+
     if length(b.operators) > 0 && _is_pure_sparse(b.operators) && (a isa DenseOpPureType)
         return _mul_puresparse!(result, a, b, alpha, beta)
     end

@@ -75,6 +75,7 @@ identityoperator(::Type{LazyProduct}, ::Type{S}, b1::Basis, b2::Basis) where S<:
 
 
 function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
     if length(a.operators)==1
         mul!(result,a.operators[1],b,a.factor*alpha,beta)
     else
@@ -88,6 +89,7 @@ function mul!(result::Ket{B1},a::LazyProduct{B1,B2},b::Ket{B2},alpha,beta) where
 end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where {B1,B2}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
     if length(b.operators)==1
         mul!(result, a, b.operators[1],b.factor*alpha,beta)
     else
@@ -101,6 +103,7 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazyProduct{B1,B2},alpha,beta) where
 end
 
 function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3,T}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
     if length(a.operators) == 1
         mul!(result,a.operators[1],b,a.factor*alpha,beta)
     else
@@ -117,6 +120,7 @@ function mul!(result::Operator{B1,B3,T},a::LazyProduct{B1,B2},b::Operator{B2,B3}
 end
 
 function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3},alpha,beta) where {B1,B2,B3,T}
+    iszero(alpha) && (_zero_op_mul!(result.data, beta); return result)
     if length(b.operators) == 1
         mul!(result, a, b.operators[1],b.factor*alpha,beta)
     else

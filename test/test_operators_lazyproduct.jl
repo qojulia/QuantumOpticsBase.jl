@@ -142,6 +142,10 @@ for N=1:3
     QuantumOpticsBase.mul!(result,op,state,alpha,beta)
     @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,op,state,0,beta)
+    @test 1e-11 > D(result, beta*result_)
+
     state = Bra(b_l, rand(ComplexF64, length(b_l)))
     result_ = randstate(iseven(N) ? b_l : b_r)'
     result = copy(result_)
@@ -153,6 +157,10 @@ for N=1:3
     beta = complex(2.1)
     QuantumOpticsBase.mul!(result,state,op,alpha,beta)
     @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,state,op,0,beta)
+    @test 1e-11 > D(result, beta*result_)
 
     # Test gemm
     state = randoperator(iseven(N) ? b_l : b_r, b_r)
@@ -167,6 +175,10 @@ for N=1:3
     QuantumOpticsBase.mul!(result,op,state,alpha,beta)
     @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,op,state,0,beta)
+    @test 1e-11 > D(result, beta*result_)
+
     state = randoperator(b_l, b_l)
     result_ = randoperator(b_l, iseven(N) ? b_l : b_r)
     result = copy(result_)
@@ -178,6 +190,10 @@ for N=1:3
     beta = complex(2.1)
     QuantumOpticsBase.mul!(result,state,op,alpha,beta)
     @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,state,op,0,beta)
+    @test 1e-11 > D(result, beta*result_)
 end
 
 end # testset

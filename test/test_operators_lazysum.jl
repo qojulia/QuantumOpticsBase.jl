@@ -277,7 +277,7 @@ op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 state = randoperator(b_r, b_r)
 result_ = randoperator(b_l, b_r)
-result = deepcopy(result_)
+result = NaN * deepcopy(result_)  # with beta=0, NaNs should be killed
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-12 > D(result, op_*state)
 
@@ -301,7 +301,7 @@ result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*op_)
 
-result = deepcopy(result_)
+result = NaN * deepcopy(result_)  # with beta=0, NaNs should be killed
 QuantumOpticsBase.mul!(result,state,zero_op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*zero_op_)
 

@@ -444,6 +444,20 @@ out_ref = mul!(copy(out), n1, state, alpha, beta)
 @test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, alpha, beta))
 @test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, alpha, beta))
 
+out_NaN = NaN * out 
+out_ref = mul!(copy(out_NaN), n1, state, alpha, 0)
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, alpha, 0))
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, alpha, 0))
+
+out_ref = mul!(copy(out), n1, state, 0, beta)
+@test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, 0, beta))
+@test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, 0, beta))
+
+out_NaN = NaN * out 
+out_ref = mul!(copy(out_NaN), n1, state, 0, 0)
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, 0, 0))
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, 0, 0))
+
 state = randoperator(bl,bl)
 out_ref = mul!(copy(out), state, n1, alpha, beta)
 @test 1e-12 > D(out_ref, mul!(copy(out), state, n1_sp, alpha, beta))
