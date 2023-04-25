@@ -10,6 +10,7 @@ mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
 end
 Base.eltype(::test_lazytensor) = ComplexF64
 
+@testset "operators-lazytensor" begin
 
 Random.seed!(0)
 
