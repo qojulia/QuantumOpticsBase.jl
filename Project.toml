@@ -5,6 +5,7 @@ version = "0.3.12"
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 QuantumInterface = "5717a53b-5d69-4fa3-b976-0bf2f97ca1e5"
@@ -16,6 +17,7 @@ UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 [compat]
 Adapt = "1, 2, 3.3"
 FFTW = "1.2"
+FillArrays = "0.13, 1"
 LRUCache = "1"
 QuantumInterface = "0.1.0"
 Strided = "1, 2"
@@ -27,6 +29,7 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -37,4 +40,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
 [targets]
-test = ["LinearAlgebra", "SparseArrays", "Random", "Test", "Aqua", "JET", "Adapt", "Dates", "FFTW", "LRUCache", "Strided", "UnsafeArrays"]
+test = ["LinearAlgebra", "SparseArrays", "Random", "Test", "Aqua", "JET", "Adapt", "Dates", "FFTW", "LRUCache", "Strided", "UnsafeArrays", "FillArrays"]

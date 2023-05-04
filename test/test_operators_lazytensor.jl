@@ -10,6 +10,7 @@ mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
 end
 Base.eltype(::test_lazytensor) = ComplexF64
 
+@testset "operators-lazytensor" begin
 
 Random.seed!(0)
 
@@ -407,7 +408,6 @@ result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
-
 # Test gemm errors
 test_op = test_lazytensor(b1a, b1a, rand(2, 2))
 test_lazy = LazyTensor(tensor(b1a, b1a), [1, 2], (test_op, test_op))
@@ -441,3 +441,57 @@ Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
 @test_throws DimensionMismatch sparse(Lop1)*Lop1
 @test_throws DimensionMismatch Lop1*dense(Lop1)
 @test_throws DimensionMismatch Lop1*sparse(Lop1)
+
+end # testset
+
+@testset "LazyTensor: explicit isometries" begin
+
+D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
+D(x1::StateVector, x2::StateVector) = norm(x2-x1)
+
+# Test explicit identities and isometries
+bl = FockBasis(2) ⊗ GenericBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(1) ⊗ GenericBasis(2)
+br = FockBasis(2) ⊗ GenericBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2) ⊗ GenericBasis(1)
+
+iso = identityoperator(bl.bases[5], br.bases[5])
+
+n1 = LazyTensor(bl, br, (1,3), (number(bl.bases[1]), sigmax(bl.bases[3])))
+n1_sp = LazyTensor(bl, br, (1,2,3,5), (number(bl.bases[1]), identityoperator(bl.bases[2]), sigmax(bl.bases[3]), iso))
+n1_de = LazyTensor(bl, br, (1,2,3,5), (dense(number(bl.bases[1])), identityoperator(bl.bases[2]), sigmax(bl.bases[3]), iso))
+
+@test dense(n1) == dense(n1_sp)
+@test dense(n1) == dense(n1_de)
+
+state = randoperator(br,br)
+
+@test 1e-12 > D(n1 * state, n1_sp * state)
+@test 1e-12 > D(n1 * state, n1_de * state)
+
+out = randoperator(bl,br)
+alpha = randn()
+beta = randn()
+out_ref = mul!(copy(out), n1, state, alpha, beta)
+@test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, alpha, beta))
+@test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, alpha, beta))
+
+out_NaN = NaN * out 
+out_ref = mul!(copy(out_NaN), n1, state, alpha, 0)
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, alpha, 0))
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, alpha, 0))
+
+out_ref = mul!(copy(out), n1, state, 0, beta)
+@test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, 0, beta))
+@test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, 0, beta))
+
+out_NaN = NaN * out 
+out_ref = mul!(copy(out_NaN), n1, state, 0, 0)
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, 0, 0))
+@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, 0, 0))
+
+state = randoperator(bl,bl)
+out_ref = mul!(copy(out), state, n1, alpha, beta)
+@test 1e-12 > D(out_ref, mul!(copy(out), state, n1_sp, alpha, beta))
+@test 1e-12 > D(out_ref, mul!(copy(out), state, n1_de, alpha, beta))
+
+end
+
