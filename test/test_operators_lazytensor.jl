@@ -495,3 +495,26 @@ out_ref = mul!(copy(out), state, n1, alpha, beta)
 
 end
 
+@testset "LazyTensor: ops with adjoints" begin
+
+bM = reduce(tensor, (GenericBasis(i) for i in 2:4))
+
+bL = GenericBasis(2)
+bR = GenericBasis(3)
+
+ltM = LazyTensor(bM, 2, randoperator(bM.bases[2]))
+
+V_ML = dense(identityoperator(bM, bL))
+V_LM = copy(V_ML')
+V_RM = dense(identityoperator(bR, bM))
+V_MR = copy(V_RM')
+
+out1 = V_LM * ltM
+out2 = V_ML' * ltM
+@test out1 == out2
+
+out1 = ltM * V_MR
+out2 = ltM * V_RM'
+@test out1 == out2
+
+end
