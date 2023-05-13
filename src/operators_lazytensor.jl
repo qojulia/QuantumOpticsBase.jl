@@ -327,6 +327,12 @@ function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym, arr::AbstractArr
     _tp_matmul_get_tmp(T, shp, sym, parent(arr))
 end
 
+# reshapes of plain arrays are fine for strided, but wrappers like `Adjoint`
+# can break things
+_probably_strided(x::Base.ReshapedArray) = _probably_strided(parent(x))
+_probably_strided(x::Array) = true
+_probably_strided(x) = false
+
 function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
     sz_b_1 = 1
     for i in 1:loc-1
@@ -350,14 +356,14 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
         if iszero(β)
             # Need to handle this separately, as the values in `result` may not be valid numbers
             fill!(result, zero(eltype(result)))
-            if isa(result, Array) && isa(b, Array)
+            if _probably_strided(result) && _probably_strided(b)
                 @strided result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
             else
                 result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
             end
         else
             rmul!(result, β)
-            if isa(result, Array) && isa(b, Array)
+            if _probably_strided(result) && _probably_strided(b)
                 @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
             else
                 result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
@@ -372,14 +378,14 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
     perm = move_left ? (2,1,3) : (1,3,2)
 
     br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in_2, br)
-    if isa(b, Array)
+    if _probably_strided(b)
         @strided permutedims!(br_p, br, perm)
     else
         permutedims!(br_p, br, perm)
     end
 
     result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out, result_r)
-    if isa(result, Array)
+    if _probably_strided(result)
         iszero(β) || @strided permutedims!(result_r_p, result_r, perm)
     else
         iszero(β) || permutedims!(result_r_p, result_r, perm)
@@ -391,7 +397,7 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
         _tp_matmul_last!(result_r_p, a, br_p, α, β)
     end
 
-    if isa(result, Array)
+    if _probably_strided(result)
         @strided permutedims!(result_r, result_r_p, perm)
     else
         permutedims!(result_r, result_r_p, perm)
