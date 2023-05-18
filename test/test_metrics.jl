@@ -78,10 +78,10 @@ b1 = SpinBasis(1//2)
 b2 = SpinBasis(1)
 b3 = FockBasis(3)
 
-# some tests for ptranspose only on randomly generated tripartite operators 
-# consisting of `nterm` linear combinations of seperable operators
+# some tests for ptranspose only, on randomly generated tripartite operators 
+# consisting of `nterm` linear combinations of simply seperable operators
 nterm = 3
-coefs = rand(3)
+coefs = rand(nterm)
 As = [DenseOperator(b1, rand(2,2)) for i = 1 : nterm]
 Bs = [DenseOperator(b2, rand(3,3)) for i = 1 : nterm]
 Cs = [DenseOperator(b3, rand(4,4)) for i = 1 : nterm]
