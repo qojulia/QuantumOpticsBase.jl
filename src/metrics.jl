@@ -190,29 +190,30 @@ fidelity(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B} = tr(sqrt(sqr
 
 
 """
-    ptranspose(rho, index)
+    ptranspose(rho, indices)
 
-Partial transpose of rho with respect to subspace specified by index.
+Partial transpose of rho with respect to subspace specified by indices,    
+where `indices` can be specified by a single integer, an array or a tuple of integers.
 """
+function ptranspose(rho::DenseOpType{B,B}, indices::Union{Vector{Int},Tuple{Vararg{Int}}}) where B<:CompositeBasis
+    # adapted from qutip.partial_transpose (https://qutip.org/docs/4.0.2/modules/qutip/partial_transpose.html)
+    # works as long as QuantumOptics.jl doesn't change the implementation of `tensor`, i.e. tensor(a,b).data = kron(b.data,a.data)
+    nsys = length(rho.basis_l.shape)
+    mask = ones(Int, nsys)
+    mask[collect(indices)] .+= 1
+    pt_dims = reshape(1:2*nsys, (nsys,2)) # indices of the operator viewed as a tensor with 2nsys legs
+    pt_idx = [[pt_dims[i,mask[i]] for i = 1 : nsys]; [pt_dims[i,3-mask[i]] for i = 1 : nsys] ] # permute the legs on the subsystem of `indices`
+    # reshape the operator data into a 2nsys-legged tensor and shape it back with the legs permuted
+    data = reshape(permutedims(reshape(rho.data, Tuple([rho.basis_l.shape; rho.basis_r.shape])), pt_idx), size(rho.data))
+
+    return DenseOperator(rho.basis_l,data)
+    
+end
+                        
 function ptranspose(rho::DenseOpType{B,B}, index=1) where B<:CompositeBasis
 
-    # Define permutation
-    N = length(rho.basis_l.bases)
-    perm = [1:N;]
-    perm[index] = N
-    perm[N] = index
+    return ptranspose(rho,[index])
 
-    # Permute indexed subsystem to last position
-    rho_perm = permutesystems(rho, perm)
-
-    # Transpose corresponding blocks
-    m = Int(prod(rho_perm.basis_l.shape[1:N-1]))
-    n = rho_perm.basis_l.shape[N]
-    for i=1:n, j=1:n
-        rho_perm.data[m*(i-1)+1:m*i, m*(j-1)+1:m*j] = permutedims(rho_perm.data[m*(i-1)+1:m*i, m*(j-1)+1:m*j])
-    end
-
-    return permutesystems(rho_perm, perm)
 end
 
 
