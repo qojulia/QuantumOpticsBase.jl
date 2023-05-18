@@ -210,7 +210,7 @@ function ptranspose(rho::DenseOpType{B,B}, indices::Union{Vector{Int},Tuple{Vara
     
 end
                         
-function ptranspose(rho::DenseOpType{B,B}, index=1) where B<:CompositeBasis
+function ptranspose(rho::DenseOpType{B,B}, index::Int=1) where B<:CompositeBasis
 
     return ptranspose(rho,[index])
 
