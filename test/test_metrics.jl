@@ -97,7 +97,12 @@ g = spindown(b1)
 psi3 = (e ⊗ g - g ⊗ e)/sqrt(2)
 
 rho = dm(psi3)  
-
+rho_pT1 = ptranspose(rho, 1)
+rho_pT1_an = 0.5*(dm(e ⊗ g) + dm(g ⊗ e) - (e ⊗ e) ⊗ dagger(g ⊗ g) - (g ⊗ g) ⊗ dagger(e ⊗ e))
+rho_pT2 = ptranspose(rho, 2)
+@test rho_pT1.data ≈ rho_pT1_an.data
+@test rho_pT2.data ≈ rho_pT1_an.data
+        
 @test_throws MethodError ptranspose(e ⊗ dagger(psi1))
 @test_throws MethodError ptranspose(dm(e))
 
