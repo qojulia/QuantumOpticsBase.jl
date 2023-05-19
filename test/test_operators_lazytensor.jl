@@ -515,4 +515,8 @@ out1 = ltM * V_MR
 out2 = ltM * V_RM'
 @test out1 == out2
 
+out_adj = adjoint(copy(adjoint(out1)))
+mul!(out_adj, ltM, V_MR)
+@test out_adj == out1
+
 end
