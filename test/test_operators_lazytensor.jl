@@ -232,189 +232,186 @@ op_ = 0.1*subop1 ⊗ I2 ⊗ subop3
 @test 1e-14 > D(permutesystems(op, [3, 1, 2]), permutesystems(op_, [3, 1, 2]))
 @test 1e-14 > D(permutesystems(op, [3, 2, 1]), permutesystems(op_, [3, 2, 1]))
 
+for _mod_state in (identity, sparse)  # sparse state for testing no-cache, no-strided path
+    # Test gemv, mixing precisions
+    subop1 = randoperator(ComplexF32, b1a, b1b)
+    subop2 = randoperator(b2b, b2a)'  # test adjoint explicitly
+    subop3 = randoperator(b3b, b3a)'  # test adjoint explicitly
+    op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, subop3))*0.1
+    op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
+    op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
-# Test gemv, mixing precisions
-subop1 = randoperator(ComplexF32, b1a, b1b)
-subop2 = randoperator(b2b, b2a)'  # test adjoint explicitly
-subop3 = randoperator(b3b, b3a)'  # test adjoint explicitly
-op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, subop3))*0.1
-op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
-op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
+    state = _mod_state(Ket(b_r, rand(ComplexF32, length(b_r))))
+    result_ = _mod_state(Ket(b_l, rand(ComplexF64, length(b_l))))
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
+    @test 1e-6 > D(result, op_*state)
 
-state = Ket(b_r, rand(ComplexF32, length(b_r)))
-state_sp = sparse(state)  # to test no-cache path
-result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
-@test 1e-6 > D(result, op_*state)
+    QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
+    @test 1e-6 > D(result, op_*state)
 
-QuantumOpticsBase.mul!(result,op,state_sp,complex(1.),complex(0.))
-@test 1e-6 > D(result, op_*state)
+    _mod_state == identity && @test lazytensor_cachesize() > 0  # the cache should have some entries by now
 
-QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
-@test 1e-6 > D(result, op_*state)
+    lazytensor_disable_cache()
+    @test !QuantumOpticsBase.lazytensor_use_cache()
 
-@test lazytensor_cachesize() > 0  # the cache should have some entries by now
+    QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
+    @test 1e-6 > D(result, op_*state)
 
-lazytensor_disable_cache()
-@test !QuantumOpticsBase.lazytensor_use_cache()
+    lazytensor_enable_cache(; maxsize=8)  # tiny cache that won't hold anything
+    @test QuantumOpticsBase.lazytensor_use_cache()
 
-QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
-@test 1e-6 > D(result, op_*state)
+    @test lazytensor_cachesize() <= 8
 
-lazytensor_enable_cache(; maxsize=8)  # tiny cache that won't hold anything
-@test QuantumOpticsBase.lazytensor_use_cache()
+    alpha = complex(1.5)
+    beta = complex(2.1)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+    @test 1e-6 > D(result, alpha*op_*state + beta*result_)
 
-@test lazytensor_cachesize() <= 8
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
+    @test 1e-6 > D(result, alpha*op_*state + beta*result_)
 
-result = deepcopy(result_)
-alpha = complex(1.5)
-beta = complex(2.1)
-QuantumOpticsBase.mul!(result,op,state,alpha,beta)
-@test 1e-6 > D(result, alpha*op_*state + beta*result_)
+    lazytensor_clear_cache()
+    lazytensor_enable_cache(; maxsize=2^30, maxrelsize=2^30 / Sys.total_memory())
+    lazytensor_enable_cache()
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
-@test 1e-6 > D(result, alpha*op_*state + beta*result_)
+    state = _mod_state(Bra(b_l, rand(ComplexF64, length(b_l))))
+    result_ = _mod_state(Bra(b_r, rand(ComplexF64, length(b_r))))
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
+    @test 1e-13 > D(result, state*op_)
 
-lazytensor_clear_cache()
-lazytensor_enable_cache(; maxsize=2^30, maxrelsize=2^30 / Sys.total_memory())
-lazytensor_enable_cache()
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op_sp,complex(1.),complex(0.))
+    @test 1e-13 > D(result, state*op_)
 
-state = Bra(b_l, rand(ComplexF64, length(b_l)))
-result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
-@test 1e-13 > D(result, state*op_)
+    result = deepcopy(result_)
+    alpha = complex(1.5)
+    beta = complex(2.1)
+    QuantumOpticsBase.mul!(result,state,op,alpha,beta)
+    @test 1e-13 > D(result, alpha*state*op_ + beta*result_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op_sp,complex(1.),complex(0.))
-@test 1e-13 > D(result, state*op_)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op_sp,alpha,beta)
+    @test 1e-13 > D(result, alpha*state*op_ + beta*result_)
 
-result = deepcopy(result_)
-alpha = complex(1.5)
-beta = complex(2.1)
-QuantumOpticsBase.mul!(result,state,op,alpha,beta)
-@test 1e-13 > D(result, alpha*state*op_ + beta*result_)
+    # Test gemm
+    b_l2 = GenericBasis(17)
+    b_r2 = GenericBasis(13)
+    subop1 = randoperator(b1a, b1b)
+    subop2 = randoperator(b2a, b2b)
+    subop3 = randoperator(b3a, b3b)
+    op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, sparse(subop3)))*0.1
+    op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
+    op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op_sp,alpha,beta)
-@test 1e-13 > D(result, alpha*state*op_ + beta*result_)
+    state = _mod_state(randoperator(b_r, b_r2))
+    result_ = _mod_state(randoperator(b_l, b_r2))
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
+    @test 1e-12 > D(result, op_*state)
 
-# Test gemm
-b_l2 = GenericBasis(17)
-b_r2 = GenericBasis(13)
-subop1 = randoperator(b1a, b1b)
-subop2 = randoperator(b2a, b2b)
-subop3 = randoperator(b3a, b3b)
-op = LazyTensor(b_l, b_r, [1, 2, 3], (subop1, subop2, sparse(subop3)))*0.1
-op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
-op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
+    @test 1e-12 > D(result, op_*state)
 
-state = randoperator(b_r, b_r2)
-result_ = randoperator(b_l, b_r2)
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
-@test 1e-12 > D(result, op_*state)
+    result = deepcopy(result_)
+    alpha = complex(1.5)
+    beta = complex(2.1)
+    QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+    @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op_sp,state,complex(1.),complex(0.))
-@test 1e-12 > D(result, op_*state)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
+    @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
-result = deepcopy(result_)
-alpha = complex(1.5)
-beta = complex(2.1)
-QuantumOpticsBase.mul!(result,op,state,alpha,beta)
-@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+    state = _mod_state(randoperator(b_l2, b_l))
+    result_ = _mod_state(randoperator(b_l2, b_r))
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
+    @test 1e-12 > D(result, state*op_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
-@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op_sp,complex(1.),complex(0.))
+    @test 1e-12 > D(result, state*op_)
 
-state = randoperator(b_l2, b_l)
-result_ = randoperator(b_l2, b_r)
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
-@test 1e-12 > D(result, state*op_)
+    result = deepcopy(result_)
+    alpha = complex(1.5)
+    beta = complex(2.1)
+    QuantumOpticsBase.mul!(result,state,op,alpha,beta)
+    @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op_sp,complex(1.),complex(0.))
-@test 1e-12 > D(result, state*op_)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op_sp,alpha,beta)
+    @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
 
-result = deepcopy(result_)
-alpha = complex(1.5)
-beta = complex(2.1)
-QuantumOpticsBase.mul!(result,state,op,alpha,beta)
-@test 1e-12 > D(result, alpha*state*op_ + beta*result_)
+    # Test calling gemv with non-complex factors
+    state = _mod_state(Ket(b_r, rand(ComplexF64, length(b_r))))
+    result_ = _mod_state(Ket(b_l, rand(ComplexF64, length(b_l))))
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op,state)
+    @test 1e-13 > D(result, op_*state)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op_sp,alpha,beta)
-@test 1e-12 > D(result, alpha*state*op_ + beta*result_)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op_sp,state)
+    @test 1e-13 > D(result, op_*state)
 
-# Test calling gemv with non-complex factors
-state = Ket(b_r, rand(ComplexF64, length(b_r)))
-result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op,state)
-@test 1e-13 > D(result, op_*state)
+    state = _mod_state(Bra(b_l, rand(ComplexF64, length(b_l))))
+    result_ = _mod_state(Bra(b_r, rand(ComplexF64, length(b_r))))
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op)
+    @test 1e-13 > D(result, state*op_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op_sp,state)
-@test 1e-13 > D(result, op_*state)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,state,op_sp)
+    @test 1e-13 > D(result, state*op_)
 
-state = Bra(b_l, rand(ComplexF64, length(b_l)))
-result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op)
-@test 1e-13 > D(result, state*op_)
+    # Test scaled isometry action
+    op = LazyTensor(b_l, b_r, (), (), 0.5)
+    op_ = sparse(op)
+    state = _mod_state(randoperator(b_r, b_r2))
+    result_ = _mod_state(randoperator(b_l, b_r2))
+    alpha = complex(1.5)
+    beta = complex(2.1)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+    @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,state,op_sp)
-@test 1e-13 > D(result, state*op_)
+    # Test single operator, no isometries
+    subop1 = randoperator(b1a, b1a)
+    op = LazyTensor(b_l, b_l, [1], (subop1,), 0.5)
+    op_sp = LazyTensor(b_l, b_l, [1], (sparse(subop1),), 0.5)
+    op_ = sparse(op)
+    state = _mod_state(randoperator(b_l, b_r2))
+    result_ = _mod_state(randoperator(b_l, b_r2))
+    alpha = complex(1.5)
+    beta = complex(2.1)
 
-# Test scaled isometry action
-op = LazyTensor(b_l, b_r, (), (), 0.5)
-op_ = sparse(op)
-state = randoperator(b_r, b_r2)
-result_ = randoperator(b_l, b_r2)
-alpha = complex(1.5)
-beta = complex(2.1)
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op,state,alpha,beta)
-@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+    @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
-# Test single operator, no isometries
-subop1 = randoperator(b1a, b1a)
-op = LazyTensor(b_l, b_l, [1], (subop1,), 0.5)
-op_sp = LazyTensor(b_l, b_l, [1], (sparse(subop1),), 0.5)
-op_ = sparse(op)
-state = randoperator(b_l, b_r2)
-result_ = randoperator(b_l, b_r2)
-alpha = complex(1.5)
-beta = complex(2.1)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
+    @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op,state,alpha,beta)
-@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+    # Test scaled identity
+    op = LazyTensor(b_l, b_l, (), (), 0.5)
+    op_ = sparse(op)
+    result = deepcopy(result_)
+    QuantumOpticsBase.mul!(result,op,state,alpha,beta)
+    @test 1e-12 > D(result, alpha*op_*state + beta*result_)
 
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op_sp,state,alpha,beta)
-@test 1e-12 > D(result, alpha*op_*state + beta*result_)
+    # Test gemm errors
+    test_op = test_lazytensor(b1a, b1a, rand(2, 2))
+    test_lazy = LazyTensor(tensor(b1a, b1a), [1, 2], (test_op, test_op))
+    test_ket = Ket(tensor(b1a, b1a), rand(4))
 
-# Test scaled identity
-op = LazyTensor(b_l, b_l, (), (), 0.5)
-op_ = sparse(op)
-result = deepcopy(result_)
-QuantumOpticsBase.mul!(result,op,state,alpha,beta)
-@test 1e-12 > D(result, alpha*op_*state + beta*result_)
-
-# Test gemm errors
-test_op = test_lazytensor(b1a, b1a, rand(2, 2))
-test_lazy = LazyTensor(tensor(b1a, b1a), [1, 2], (test_op, test_op))
-test_ket = Ket(tensor(b1a, b1a), rand(4))
-
-@test_throws MethodError QuantumOpticsBase.mul!(copy(test_ket),test_lazy,test_ket,alpha,beta)
-@test_throws MethodError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
+    @test_throws MethodError QuantumOpticsBase.mul!(copy(test_ket),test_lazy,test_ket,alpha,beta)
+    @test_throws MethodError QuantumOpticsBase.mul!(copy(dagger(test_ket)),dagger(test_ket),test_lazy,alpha,beta)
+end
 
 # Test type stability of constructor
 callT = typeof((FockBasis(2) ⊗ FockBasis(2), 1, destroy(FockBasis(2))))
@@ -462,36 +459,37 @@ n1_de = LazyTensor(bl, br, (1,2,3,5), (dense(number(bl.bases[1])), identityopera
 @test dense(n1) == dense(n1_sp)
 @test dense(n1) == dense(n1_de)
 
-state = randoperator(br,br)
+for _mod_state in (identity, sparse)
+    state = _mod_state(randoperator(br,br))
+    @test 1e-12 > D(n1 * state, n1_sp * state)
+    @test 1e-12 > D(n1 * state, n1_de * state)
 
-@test 1e-12 > D(n1 * state, n1_sp * state)
-@test 1e-12 > D(n1 * state, n1_de * state)
+    out = _mod_state(randoperator(bl,br))
+    alpha = randn()
+    beta = randn()
+    out_ref = mul!(copy(out), n1, state, alpha, beta)
+    @test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, alpha, beta))
+    @test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, alpha, beta))
 
-out = randoperator(bl,br)
-alpha = randn()
-beta = randn()
-out_ref = mul!(copy(out), n1, state, alpha, beta)
-@test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, alpha, beta))
-@test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, alpha, beta))
+    out_NaN = NaN * out 
+    out_ref = mul!(copy(out_NaN), n1, state, alpha, 0)
+    @test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, alpha, 0))
+    @test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, alpha, 0))
 
-out_NaN = NaN * out 
-out_ref = mul!(copy(out_NaN), n1, state, alpha, 0)
-@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, alpha, 0))
-@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, alpha, 0))
+    out_ref = mul!(copy(out), n1, state, 0, beta)
+    @test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, 0, beta))
+    @test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, 0, beta))
 
-out_ref = mul!(copy(out), n1, state, 0, beta)
-@test 1e-12 > D(out_ref, mul!(copy(out), n1_sp, state, 0, beta))
-@test 1e-12 > D(out_ref, mul!(copy(out), n1_de, state, 0, beta))
+    out_NaN = NaN * out 
+    out_ref = mul!(copy(out_NaN), n1, state, 0, 0)
+    @test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, 0, 0))
+    @test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, 0, 0))
 
-out_NaN = NaN * out 
-out_ref = mul!(copy(out_NaN), n1, state, 0, 0)
-@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_sp, state, 0, 0))
-@test 1e-12 > D(out_ref, mul!(copy(out_NaN), n1_de, state, 0, 0))
-
-state = randoperator(bl,bl)
-out_ref = mul!(copy(out), state, n1, alpha, beta)
-@test 1e-12 > D(out_ref, mul!(copy(out), state, n1_sp, alpha, beta))
-@test 1e-12 > D(out_ref, mul!(copy(out), state, n1_de, alpha, beta))
+    state = _mod_state(randoperator(bl,bl))
+    out_ref = mul!(copy(out), state, n1, alpha, beta)
+    @test 1e-12 > D(out_ref, mul!(copy(out), state, n1_sp, alpha, beta))
+    @test 1e-12 > D(out_ref, mul!(copy(out), state, n1_de, alpha, beta))
+end
 
 end
 
