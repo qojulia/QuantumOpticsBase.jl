@@ -64,6 +64,9 @@ LazySum(operators::AbstractOperator...) = LazySum(mapreduce(eltype, promote_type
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 LazySum(x::LazySum) = x
 
+coefficients(x::LazySum) = x.factors
+suboperators(x::LazySum) = x.operators
+
 # FIXME: Should copy really copy each operator?
 Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy.(x.factors), copy.(x.operators))
 Base.eltype(x::LazySum) = mapreduce(eltype, promote_type, x.operators; init=eltype(x.factors))
@@ -76,9 +79,7 @@ isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.opera
 
 # Make vectors contagious in LazySum arithmetic, but preserve "tuple-only" cases
 _lazysum_cat(opsA::Tuple, opsB::Tuple) = (opsA..., opsB...)
-_lazysum_cat(opsA::Vector, opsB) = [opsA..., opsB...]
-_lazysum_cat(opsA, opsB::Vector) = [opsA..., opsB...]
-_lazysum_cat(opsA, opsB) = vcat(opsA, opsB)
+_lazysum_cat(opsA, opsB) = [opsA..., opsB...]
 
 # Arithmetic operations
 function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
@@ -104,16 +105,15 @@ end
 -(a::AbstractOperator, b::LazyOperator) = LazySum(a) - LazySum(b)
 -(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) - LazySum(b)
 
+_lazysum_cartprod(prodop, a::Tuple, b::Tuple) = ((prodop(a_, b_) for (a_,b_) in Iterators.product(a, b))...,)
+_lazysum_cartprod(prodop, a, b) = promote_type(eltype(a),eltype(b))[(prodop(a_, b_) for (a_,b_) in Iterators.product(a, b))...]
 function *(a::LazySum{B1,B2}, b::LazySum{B2,B3}) where {B1,B2,B3}
-    check_multiplicable(a.basis_r, b.basis_l)
-    # Convert to vector rep. here. If we are doing multiplication, this is generally what we want.
-    ops = [(opa * opb for (opa,opb) in Iterators.product(a.operators, b.operators))...]
-    factors = [(ca * cb for (ca,cb) in Iterators.product(a.factors, v.factors))...]
-    @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
+    check_samebases(a.basis_r, b.basis_l)
+    ops = _lazysum_cartprod(*, a.operators, b.operators)
+    factors = _lazysum_cartprod(*, a.factors, b.factors)
+    @samebases LazySum(a.basis_l, b.basis_r, factors, ops)
 end
 *(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
-*(a::LazySum, b::AbstractOperator) = a * LazySum(b)
-*(a::AbstractOperator, b::LazySum) = LazySum(a) * b
 
 function *(a::LazySum, b::Number)
     factors = b*a.factors

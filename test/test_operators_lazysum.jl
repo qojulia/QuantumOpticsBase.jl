@@ -94,7 +94,7 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 
 # Test multiplication
-@test_throws ArgumentError op1*op2
+@test 1e-11 > D(dense(op1*op2'), op1_ * op2_')
 @test LazySum([0.1, 0.1], (op1a, op2a)) == LazySum(op1a, op2a)*0.1
 @test LazySum([0.1, 0.1], (op1a, op2a)) == 0.1*LazySum(op1a, op2a)
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
@@ -103,6 +103,7 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-12 > D(dagger(x1)*dagger(0.3*op2), dagger(x1)*dagger(0.3*op2_))
 
 ## Test multiplication with LazySum that has no elements
+@test LazySum(b_r, b_r) == LazySum(b_r, b_l) * LazySum(b_l, b_r)
 @test iszero( LazySum(b_r, b_l) * op1a )
 @test iszero( op1a * LazySum(b_r, b_l) )
 @test iszero( LazySum(b_l, b_r) * x1 )
@@ -159,8 +160,8 @@ op1_LP_ = op1a*0.1
 
 # Test tuples vs. vectors
 @test (op1+op1).operators isa Tuple
-@test (op1+op2).operators isa Tuple
-@test (op2+op1).operators isa Tuple
+@test (op1+op2).operators isa Vector
+@test (op2+op1).operators isa Vector
 @test (op2+op2).operators isa Vector
 
 # Test identityoperator
