@@ -1,7 +1,11 @@
 
-abstract type AbstractTimeDependentOperator <: AbstractOperator end
+import Base: size, *, +, -, /, ==, isequal, adjoint, convert
+
+abstract type AbstractTimeDependentOperator{BL,BR} <: AbstractOperator{BL,BR} end
 
 set_time!(o::AbstractOperator, ::Number) = o
+current_time(::AbstractOperator) = throw(ArgumentError("Time not defined for operator."))
+static_operator(o::AbstractOperator) = o
 
 (o::AbstractTimeDependentOperator)(t::Number) = set_time!(o, t)
 
@@ -35,7 +39,7 @@ coefficients as numbers or functions of time.
 The coefficient type `Tf` may be specified explicitly.
 Time-dependent coefficients will be converted to this type on evaluation.
 """
-mutable struct TimeDependentSum{BL<:Basis,BR<:Basis,C,O<:LazySum,T<:Number} <: AbstractTimeDependentOperator
+mutable struct TimeDependentSum{BL<:Basis,BR<:Basis,C,O<:LazySum,T<:Number} <: AbstractTimeDependentOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     coefficients::C
@@ -50,96 +54,6 @@ mutable struct TimeDependentSum{BL<:Basis,BR<:Basis,C,O<:LazySum,T<:Number} <: A
     end
 end
 TimeDependentSum(coeffs::C, lazysum::O; init_time::T=0.0) where {C,O<:LazySum,T<:Number} = TimeDependentSum(coeffs, lazysum, init_time)
-
-static_operator(o::TimeDependentSum) = o.static_op
-coefficients(o::TimeDependentSum) = o.coefficients
-current_time(o::TimeDependentSum) = o.current_time
-
-function set_time!(o::TimeDependentSum, t::Number)
-    o.current_time = t
-    update_static_coefficients!(o.static_op, o.coefficients, t)
-    set_time!(o.static_op.operators, t)
-end
-
-is_const(op::TimeDependentSum) = all(is_const(c) for c in op.coefficients)
-is_const(c::Number) = true
-is_const(c) = false
-
-coefficient_type(o::TimeDependentSum) = coefficient_type(static_operator(o))
-coefficient_type(o::LazySum) = eltype(o.factors)
-
-Base.copy(op::TimeDependentSum) = TimeDependentSum(copy.(op.coefficients), copy(op.static_op))
-
-function ==(A::TimeDependentSum, B::TimeDependentSum)
-    A.current_time == B.current_time && A.coefficients == B.coefficients && A.static_op == B.static_op
-end
-
-function isequal(A::TimeDependentSum, B::TimeDependentSum)
-    isequal(A.current_time, B.current_time) && isequal(A.coefficients, B.coefficients) && isequal(A.static_op, B.static_op)
-end
-
-_lazysum_op_map(f, op::LazySum) = LazySum(op.basis_l, op.basis_r, copy.(op.factors), map(f, op.operators))
-
-dense(op::TimeDependentSum) = TimeDependentSum(coefficients(op), _lazysum_op_map(dense, static_operator(static_op)), current_time(op))
-sparse(op::TimeDependentSum) = TimeDependentSum(coefficients(op), _lazysum_op_map(sparse, static_operator(static_op)), current_time(op))
-
-_conj_coeff(c) = conj(c)
-_conj_coeff(c::Function) = conj ∘ c
-function dagger(op::TimeDependentSum)
-    TimeDependentSum(
-        _conj_coeff.(coefficients(op)),
-        _lazysum_op_map(dagger, static_operator(op)),
-        current_time(op))
-end
-adjoint(op::TimeDependentSum) = dagger(op)
-
-function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, i, o::TimeDependentSum)
-    TimeDependentSum(coefficients(o), embed(basis_l, basis_r, i, static_operator(o)), o.current_time)
-end
-
-function +(A::TimeDependentSum, B::TimeDependentSum)
-    _check_same_time(A, B)
-    TimeDependentSum(
-        _lazysum_cat(coefficients(A), coefficients(B)),
-        static_operator(A) + static_operator(B),
-        current_time(A))
-end
-
-_unary_minus(c::Function) = Base.:- ∘ c
-_unary_minus(c) = -c
-function -(o::TimeDependentSum)
-    TimeDependentSum(_unary_minus.(coefficients(o)), -static_operator(o), current_time(o))
-end
-
-function -(A::TimeDependentSum, B::TimeDependentSum)
-    _check_same_time(A, B)
-    TimeDependentOperator(
-        _lazysum_cat(coefficients(A), _unary_minus.(coefficients(B))),
-        static_operator(A) - static_operator(B),
-        current_time(A))
-end
-
-_mul_coeffs(a, b) = a*b
-_mul_coeffs(a, b::Function) = (@inline multiplied_coeffs_fn(t)=a*b(t))
-_mul_coeffs(a::Function, b) = _mul_coeffs(b, a)
-_mul_coeffs(a::Function, b::Function) = (@inline multiplied_coeffs_ff(t)=a(t)*b(t))
-function *(A::TimeDependentSum, B::TimeDependentSum)
-    _check_same_time(A, B)
-    coeffs = [(_mul_coeffs(a,b) for (a,b) in Iterators.product(coefficients(A), coefficients(B)))...]
-    TimeDependentSum(coeffs, static_op(A) * static_op(B), current_time(A))
-end
-
-function *(A::TimeDependentSum, B::Number)
-    TimeDependentSum(_mul_coeffs.(coefficients(A), B), static_operator(A) * B, current_time(A))
-end
-*(A::Number, B::TimeDependentSum) = B*A
-
-_div_coeffs(a, b) = a/b
-_div_coeffs(a::Function, b) = _mul_coeffs(a, 1/b)
-function /(A::TimeDependentSum, B::Number)
-    TimeDependentSum(_div_coeffs.(coefficients(A), B), static_operator(A) / B, current_time(A))
-end
-
 
 function TimeDependentSum(::Type{Tf}, basis_l::Basis, basis_r::Basis; init_time::Number=0.0) where Tf
     TimeDependentSum(Tf[], LazySum(Tf, basis_l, basis_r), init_time)
@@ -174,6 +88,132 @@ TimeDependentSum(op::LazySum; init_time::Number=0.0) = TimeDependentSum(op.facto
 TimeDependentSum(op::AbstractOperator; init_time::Number=0.0) = TimeDependentSum(LazySum(op); init_time)
 TimeDependentSum(coefficient, op::AbstractOperator; init_time::Number=0.0) = TimeDependentSum([coefficient], [op]; init_time)
 TimeDependentSum(op::TimeDependentSum) = op
+TimeDependentSum(op::TimeDependentSum, ::Type{Tuple}) = TimeDependentSum(coefficient_type(op), op.basis_l, op.basis_r, (coefficients(op)...,), (suboperators(op)...,))
+
+static_operator(o::TimeDependentSum) = o.static_op
+coefficients(o::TimeDependentSum) = o.coefficients
+current_time(o::TimeDependentSum) = o.current_time
+suboperators(o::TimeDependentSum) = static_operator(o).operators
+eval_coefficients(o::TimeDependentSum, t::Number) = eval_coefficients(coefficient_type(o), coefficients(o), t)
+
+function set_time!(o::TimeDependentSum, t::Number)
+    if o.current_time != t
+        o.current_time = t
+        update_static_coefficients!(static_operator(o), coefficients(o), t)
+    end
+    for o in suboperators(o)
+        set_time!(o, t)
+    end
+    o
+end
+
+is_const(op::TimeDependentSum) = all(is_const(c) for c in op.coefficients)
+is_const(c::Number) = true
+is_const(c) = false
+
+coefficient_type(o::TimeDependentSum) = coefficient_type(static_operator(o))
+coefficient_type(o::LazySum) = eltype(o.factors)
+
+Base.copy(op::TimeDependentSum) = TimeDependentSum(copy.(op.coefficients), copy(op.static_op))
+
+function ==(A::TimeDependentSum, B::TimeDependentSum)
+    A.current_time == B.current_time && A.coefficients == B.coefficients && A.static_op == B.static_op
+end
+
+function isequal(A::TimeDependentSum, B::TimeDependentSum)
+    isequal(A.current_time, B.current_time) && isequal(A.coefficients, B.coefficients) && isequal(A.static_op, B.static_op)
+end
+
+_lazysum_op_map(f, op::LazySum) = LazySum(eltype(op.factors), op.basis_l, op.basis_r, copy.(op.factors), map(f, op.operators))
+
+dense(op::TimeDependentSum) = TimeDependentSum(coefficients(op), _lazysum_op_map(dense, static_operator(op)), current_time(op))
+sparse(op::TimeDependentSum) = TimeDependentSum(coefficients(op), _lazysum_op_map(sparse, static_operator(op)), current_time(op))
+
+_conj_coeff(c) = conj(c)
+_conj_coeff(c::Function) = conj ∘ c
+function dagger(op::TimeDependentSum)
+    TimeDependentSum(
+        _conj_coeff.(coefficients(op)),
+        dagger(static_operator(op)),
+        current_time(op))
+end
+adjoint(op::TimeDependentSum) = dagger(op)
+
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, i::Integer, o::TimeDependentSum)
+    TimeDependentSum(coefficients(o), embed(basis_l, basis_r, i, static_operator(o)), o.current_time)
+end
+
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices, o::TimeDependentSum)
+    TimeDependentSum(coefficients(o), embed(basis_l, basis_r, indices, static_operator(o)), o.current_time)
+end
+
+function +(A::TimeDependentSum, B::TimeDependentSum)
+    _check_same_time(A, B)
+    TimeDependentSum(
+        _lazysum_cat(coefficients(A), coefficients(B)),
+        static_operator(A) + static_operator(B),
+        current_time(A))
+end
++(A::AbstractOperator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) + B
++(A::TimeDependentSum, B::AbstractOperator) = A + TimeDependentSum(B; init_time=current_time(A))
++(A::LazyOperator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) + B
++(A::TimeDependentSum, B::LazyOperator) = A + TimeDependentSum(B; init_time=current_time(A))
++(A::Operator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) + B
++(A::TimeDependentSum, B::Operator) = A + TimeDependentSum(B; init_time=current_time(A))
+
+_unary_minus(c::Function) = Base.:- ∘ c
+_unary_minus(c) = -c
+function -(o::TimeDependentSum)
+    TimeDependentSum(_unary_minus.(coefficients(o)), -static_operator(o), current_time(o))
+end
+
+function -(A::TimeDependentSum, B::TimeDependentSum)
+    _check_same_time(A, B)
+    TimeDependentSum(
+        _lazysum_cat(coefficients(A), _unary_minus.(coefficients(B))),
+        static_operator(A) - static_operator(B),
+        current_time(A))
+end
+-(A::AbstractOperator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) - B
+-(A::TimeDependentSum, B::AbstractOperator) = A - TimeDependentSum(B; init_time=current_time(A))
+-(A::LazyOperator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) - B
+-(A::TimeDependentSum, B::LazyOperator) = A - TimeDependentSum(B; init_time=current_time(A))
+-(A::Operator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) - B
+-(A::TimeDependentSum, B::Operator) = A - TimeDependentSum(B; init_time=current_time(A))
+
+_mul_coeffs(a, b) = a*b
+_mul_coeffs(a, b::Function) = (@inline multiplied_coeffs_fn(t)=a*b(t))
+_mul_coeffs(a::Function, b) = _mul_coeffs(b, a)
+_mul_coeffs(a::Function, b::Function) = (@inline multiplied_coeffs_ff(t)=a(t)*b(t))
+function *(A::TimeDependentSum, B::TimeDependentSum)
+    _check_same_time(A, B)
+    coeffs = _lazysum_cartprod(_mul_coeffs, coefficients(A), coefficients(B))
+    TimeDependentSum(coeffs, static_operator(A) * static_operator(B), current_time(A))
+end
+*(A::AbstractOperator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) * B
+*(A::TimeDependentSum, B::AbstractOperator) = A * TimeDependentSum(B; init_time=current_time(A))
+*(A::LazyOperator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) * B
+*(A::TimeDependentSum, B::LazyOperator) = A * TimeDependentSum(B; init_time=current_time(A))
+*(A::Operator, B::TimeDependentSum) = TimeDependentSum(A; init_time=current_time(B)) * B
+*(A::TimeDependentSum, B::Operator) = A * TimeDependentSum(B; init_time=current_time(A))
+
+function *(A::TimeDependentSum, B::Number)
+    TimeDependentSum(_mul_coeffs.(coefficients(A), B), static_operator(A) * B, current_time(A))
+end
+*(A::Number, B::TimeDependentSum) = B*A
+
+_div_coeffs(a, b) = a/b
+_div_coeffs(a::Function, b) = _mul_coeffs(a, 1/b)
+function /(A::TimeDependentSum, B::Number)
+    TimeDependentSum(_div_coeffs.(coefficients(A), B), static_operator(A) / B, current_time(A))
+end
+
+mul!(out, a::TimeDependentSum, b, alpha, beta) = mul!(out, static_operator(a), b, alpha, beta)
+mul!(out, a, b::TimeDependentSum, alpha, beta) = mul!(out, a, static_operator(b), alpha, beta)
+function mul!(out, a::TimeDependentSum, b::TimeDependentSum, alpha, beta)
+    _check_same_time(a, b)
+    mul!(out, static_operator(a), static_operator(b), alpha, beta)
+end
 
 function update_static_coefficients!(o::LazySum, coeffs, t)
     o.factors .= eval_coefficients(eltype(o.factors), coeffs, t)
@@ -190,7 +230,7 @@ end
 
 @inline eval_coefficient(c, t::Number) = c(t)
 @inline eval_coefficient(c::Number, ::Number) = c
-@inline eval_coefficients(coeffs, t::Number) = eval_coefficient.(coeffs, t)
+@inline eval_coefficients(coeffs::AbstractVector, t::Number) = [eval_coefficient(c, t) for c in coeffs]
 @inline eval_coefficients(::Type{T}, coeffs::AbstractVector, t::Number) where T = T[T(eval_coefficient(c, t)) for c in coeffs]
 
 # This is needed to avoid allocations in some cases, modeled on map(f, t::Tuple)
@@ -212,7 +252,7 @@ _timeshift_coeff(coeff, t0) = (@inline shifted_coeff(t) = coeff(t-t0))
 _timeshift_coeff(coeff::Number, _) = coeff
 
 """
-    timeshift(op::TimeDependentOperator, t0)
+    timeshift(op::TimeDependentSum, t0)
 
 Shift (translate) a TimeDependentSum `op` forward in time (delaying its
 action) by `t0` units, so that the coefficient functions of time `f(t)` become
