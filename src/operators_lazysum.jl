@@ -64,7 +64,8 @@ LazySum(operators::AbstractOperator...) = LazySum(mapreduce(eltype, promote_type
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 LazySum(x::LazySum) = x
 
-Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators))
+# FIXME: Should copy really copy each operator?
+Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy.(x.factors), copy.(x.operators))
 Base.eltype(x::LazySum) = mapreduce(eltype, promote_type, x.operators; init=eltype(x.factors))
 
 dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
@@ -73,17 +74,17 @@ SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* 
 isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.operators) && isequal(x.factors, y.factors)
 ==(x::LazySum, y::LazySum) = (samebases(x,y) && x.operators==y.operators && x.factors==y.factors)
 
-# Make tuples contagious in LazySum arithmetic, but preserve "vector-only" cases
-_cat(opsA::Tuple, opsB::Tuple) = (opsA..., opsB...)
-_cat(opsA::Tuple, opsB) = (opsA..., opsB...)
-_cat(opsA, opsB::Tuple) = (opsA..., opsB...)
-_cat(opsA, opsB) = vcat(opsA, opsB)
+# Make vectors contagious in LazySum arithmetic, but preserve "tuple-only" cases
+_lazysum_cat(opsA::Tuple, opsB::Tuple) = (opsA..., opsB...)
+_lazysum_cat(opsA::Vector, opsB) = [opsA..., opsB...]
+_lazysum_cat(opsA, opsB::Vector) = [opsA..., opsB...]
+_lazysum_cat(opsA, opsB) = vcat(opsA, opsB)
 
 # Arithmetic operations
 function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     check_samebases(a,b)
-    factors = _cat(a.factors, b.factors)
-    ops = _cat(a.operators, b.operators)
+    factors = _lazysum_cat(a.factors, b.factors)
+    ops = _lazysum_cat(a.operators, b.operators)
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
@@ -94,8 +95,8 @@ end
 -(a::LazySum) = @samebases LazySum(a.basis_l, a.basis_r, -a.factors, a.operators)
 function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     check_samebases(a,b)
-    factors = _cat(a.factors, -b.factors)
-    ops = _cat(a.operators, b.operators)
+    factors = _lazysum_cat(a.factors, -b.factors)
+    ops = _lazysum_cat(a.operators, b.operators)
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
@@ -103,6 +104,16 @@ end
 -(a::AbstractOperator, b::LazyOperator) = LazySum(a) - LazySum(b)
 -(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) - LazySum(b)
 
+function *(a::LazySum{B1,B2}, b::LazySum{B2,B3}) where {B1,B2,B3}
+    check_multiplicable(a.basis_r, b.basis_l)
+    # Convert to vector rep. here. If we are doing multiplication, this is generally what we want.
+    ops = [(opa * opb for (opa,opb) in Iterators.product(a.operators, b.operators))...]
+    factors = [(ca * cb for (ca,cb) in Iterators.product(a.factors, v.factors))...]
+    @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
+end
+*(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
+*(a::LazySum, b::AbstractOperator) = a * LazySum(b)
+*(a::AbstractOperator, b::LazySum) = LazySum(a) * b
 
 function *(a::LazySum, b::Number)
     factors = b*a.factors
