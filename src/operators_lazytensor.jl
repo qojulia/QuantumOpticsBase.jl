@@ -327,6 +327,12 @@ function _tp_matmul_get_tmp(::Type{T}, shp::NTuple{N,Int}, sym, arr::AbstractArr
     _tp_matmul_get_tmp(T, shp, sym, parent(arr))
 end
 
+# reshapes of plain arrays are fine for strided, but wrappers like `Adjoint`
+# can break things
+_probably_strided(x::Base.ReshapedArray) = _probably_strided(parent(x))
+_probably_strided(x::Array) = true
+_probably_strided(x) = false
+
 function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β::Number)
     sz_b_1 = 1
     for i in 1:loc-1
@@ -350,10 +356,18 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
         if iszero(β)
             # Need to handle this separately, as the values in `result` may not be valid numbers
             fill!(result, zero(eltype(result)))
-            @strided result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
+            if _probably_strided(result) && _probably_strided(b)
+                @strided result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
+            else
+                result_r[:, 1:d, :] .= α .* br[:, 1:d, :]
+            end
         else
             rmul!(result, β)
-            @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+            if _probably_strided(result) && _probably_strided(b)
+                @strided result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+            else
+                result_r[:, 1:d, :] .+= α .* br[:, 1:d, :]
+            end
         end
 
         return result
@@ -363,13 +377,19 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
     move_left = sz_b_1 < sz_b_3
     perm = move_left ? (2,1,3) : (1,3,2)
 
-    br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in, br)
-    @strided permutedims!(br_p, br, perm)
-    #permutedims!(br_p, br, perm)
+    br_p = _tp_matmul_get_tmp(eltype(br), ((size(br, i) for i in perm)...,), :_tp_matmul_mid_in_2, result)
+    if _probably_strided(b)
+        @strided permutedims!(br_p, br, perm)
+    else
+        permutedims!(br_p, br, perm)
+    end
 
-    result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out, result_r)
-    iszero(β) || @strided permutedims!(result_r_p, result_r, perm)
-    #β == 0.0 || permutedims!(result_r_p, result_r, perm)
+    result_r_p = _tp_matmul_get_tmp(eltype(result_r), ((size(result_r, i) for i in perm)...,), :_tp_matmul_mid_out, result)
+    if _probably_strided(result)
+        iszero(β) || @strided permutedims!(result_r_p, result_r, perm)
+    else
+        iszero(β) || permutedims!(result_r_p, result_r, perm)
+    end
 
     if move_left
         _tp_matmul_first!(result_r_p, a, br_p, α, β)
@@ -377,8 +397,11 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
         _tp_matmul_last!(result_r_p, a, br_p, α, β)
     end
 
-    @strided permutedims!(result_r, result_r_p, perm)
-    #permutedims!(result_r, result_r_p, perm)
+    if _probably_strided(result)
+        @strided permutedims!(result_r, result_r_p, perm)
+    else
+        permutedims!(result_r, result_r_p, perm)
+    end
 
     result
 end
@@ -407,9 +430,9 @@ function _tp_matmul!(result, a::AbstractMatrix, loc::Integer, b, α::Number, β:
     _tp_matmul_mid!(result, a, loc, b, α, β)
 end
 
-function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{S,N}, sym) where {T,S,N}
+function _tp_sum_get_tmp(op::AbstractMatrix{T}, loc::Integer, arr::AbstractArray{S,N}, arr_typeref::AbstractArray, sym) where {T,S,N}
     shp = ntuple(i -> i == loc ? size(op,1) : size(arr,i), N)
-    _tp_matmul_get_tmp(promote_type(T,S), shp, sym, arr)
+    _tp_matmul_get_tmp(promote_type(T,S), shp, sym, arr_typeref)
 end
 
 # Eyes need not be identities, but square Eyes are.
@@ -441,7 +464,7 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         _tp_matmul!(result_data, ops[1][1], ops[1][2], b_data, alpha, beta)
     elseif n_ops == 2
         # One temporary vector needed.
-        tmp = _tp_sum_get_tmp(ops[1][1], ops[1][2], b_data, :_tp_sum_matmul_tmp1)
+        tmp = _tp_sum_get_tmp(ops[1][1], ops[1][2], b_data, result_data, :_tp_sum_matmul_tmp1)
         _tp_matmul!(tmp, ops[1][1], ops[1][2], b_data, alpha, zero(beta))
 
         _tp_matmul!(result_data, ops[2][1], ops[2][2], tmp, one(alpha), beta)
@@ -451,11 +474,11 @@ function _tp_sum_matmul!(result_data, tp_ops, iso_ops, b_data, alpha, beta)
         sym1 = :_tp_sum_matmul_tmp1
         sym2 = :_tp_sum_matmul_tmp2
 
-        tmp1 = _tp_sum_get_tmp(ops[1][1], ops[1][2], b_data, sym1)
+        tmp1 = _tp_sum_get_tmp(ops[1][1], ops[1][2], b_data, result_data, sym1)
         _tp_matmul!(tmp1, ops[1][1], ops[1][2], b_data, alpha, zero(beta))
 
         for i in 2:n_ops-1
-            tmp2 = _tp_sum_get_tmp(ops[i][1], ops[i][2], tmp1, sym2)
+            tmp2 = _tp_sum_get_tmp(ops[i][1], ops[i][2], tmp1, result_data, sym2)
             _tp_matmul!(tmp2, ops[i][1], ops[i][2], tmp1, one(alpha), zero(beta))
             tmp1, tmp2 = tmp2, tmp1
             sym1, sym2 = sym2, sym1
