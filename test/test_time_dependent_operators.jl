@@ -3,6 +3,10 @@ using QuantumOpticsBase
 using LinearAlgebra, Random
 
 @testset "time-dependent operators" begin
+    # TODO:
+    #  * Test time mismatch errors
+    #  * Test set_time!() and other new interfaces
+
     o = TimeDependentSum(ComplexF64, FockBasis(2), FockBasis(3))
     @test length(suboperators(o)) == 0
     psi = randstate(FockBasis(3))
@@ -31,7 +35,7 @@ using LinearAlgebra, Random
     @test iszero(dense(static_operator(o * o_t1)))
 
     #o_t1_comp = embed_lazy(FockBasis(2) ⊗ GenericBasis(2), 1, o_t1)
-    #@test eval_eval_coefficients(o_t1_comp, t) == [f1]
+    #@test eval_coefficients(o_t1_comp, t) == [f1]
     #@test isa(suboperators(o_t1_comp)[1], LazyTensor)
 
     o_t1_comp2 = embed(FockBasis(2) ⊗ GenericBasis(2), 1, o_t1)
@@ -46,7 +50,7 @@ using LinearAlgebra, Random
     @test static_operator(o_t(t)).factors == [1.0im, t*3.0 + 0.0im]
     @test all(static_operator(o_t(t)).operators .=== (a, n))
 
-    o_t_tup = TimeDependentSum(o_t, Tuple)
+    o_t_tup = TimeDependentSum(Tuple, o_t)
     @test static_operator(o_t_tup(t)).factors == [1.0im, t*3.0 + 0.0im]
     @test all(static_operator(o_t_tup(t)).operators .=== (a, n))
     @test (@allocated o_t_tup(t)) == 0
@@ -116,4 +120,24 @@ using LinearAlgebra, Random
     @test isa(o_res, TimeDependentSum)
     @test [eval_coefficients(o_res, t)...] ≈ [eval_coefficients(o_t, t)...] rtol=1e-10
     @test dense(static_operator(o_res(t))).data ≈ dense(static_operator(o_t(t))).data rtol=1e-10
+end
+
+@testset "time-dependent operators: Shifts, restrictions, and stretchs" begin
+    b = FockBasis(1)
+    op = TimeDependentSum((1.0, identity), (number(b), destroy(b)))
+    op_shift = timeshift(op, 10.0)
+    @test @inferred eval_coefficients(op_shift, 0.0) == (1.0, -10.0)
+    @test @inferred eval_coefficients(op_shift, 10.0) == (1.0, 0.0)
+    @test @inferred eval_coefficients(op_shift, 20.0) == (1.0, 10.0)
+
+    op_block_shift = timerestrict(op_shift, 5.0, 15.0)
+    @test @inferred eval_coefficients(op_block_shift, 4.9) == (0.0, 0.0)
+    @test @inferred eval_coefficients(op_block_shift, 5.0) == (1.0, -5.0)
+    @test @inferred eval_coefficients(op_block_shift, 20.0) == (0.0, 0.0)
+    
+    op_stretch_block_shift = timestretch(op_block_shift, 2.0)
+    @test @inferred eval_coefficients(op_stretch_block_shift, 9.9) == (0.0, 0.0)
+    @test @inferred eval_coefficients(op_stretch_block_shift, 10.0) == (1.0, -5.0)
+    @test @inferred eval_coefficients(op_stretch_block_shift, 30.0-√eps()) == (1.0, 5.0-0.5√eps())
+    @test @inferred eval_coefficients(op_stretch_block_shift, 30.0) == (0.0, 0.0)
 end

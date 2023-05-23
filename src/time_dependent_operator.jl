@@ -27,10 +27,11 @@ promote_rule(::Type{T}, ::Type{S}) where {T<:AbstractTimeDependentOperator,S<:Ab
 convert(::Type{T}, O::AbstractOperator) where {T<:AbstractTimeDependentOperator} = T(O)
 
 """
-    TimeDependentSum(lazysum, coeffs; init_time=0.0)
+    TimeDependentSum(lazysum, coeffs, init_time)
     TimeDependentSum(::Type{Tf}, basis_l, basis_r; init_time=0.0)
     TimeDependentSum([::Type{Tf},] [basis_l,] [basis_r,] coeffs, operators; init_time=0.0)
     TimeDependentSum([::Type{Tf},] coeff1=>op1, coeff2=>op2, ...; init_time=0.0)
+    TimeDependentSum(::Tuple, op::TimeDependentSum)
 
 Lazy sum of operators with time-dependent coefficients. Wraps a `LazySum` `lazysum`,
 adding a `current_time` (operator "clock") and a means of specifying time
@@ -88,7 +89,7 @@ TimeDependentSum(op::LazySum; init_time::Number=0.0) = TimeDependentSum(op.facto
 TimeDependentSum(op::AbstractOperator; init_time::Number=0.0) = TimeDependentSum(LazySum(op); init_time)
 TimeDependentSum(coefficient, op::AbstractOperator; init_time::Number=0.0) = TimeDependentSum([coefficient], [op]; init_time)
 TimeDependentSum(op::TimeDependentSum) = op
-TimeDependentSum(op::TimeDependentSum, ::Type{Tuple}) = TimeDependentSum(coefficient_type(op), op.basis_l, op.basis_r, (coefficients(op)...,), (suboperators(op)...,))
+TimeDependentSum(::Type{Tuple}, op::TimeDependentSum) = TimeDependentSum((coefficients(op)...,), LazySum(Tuple, static_operator(op)), current_time(op))
 
 static_operator(o::TimeDependentSum) = o.static_op
 coefficients(o::TimeDependentSum) = o.coefficients
