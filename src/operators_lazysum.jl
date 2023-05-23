@@ -17,6 +17,7 @@ abstract type LazyOperator{BL,BR} <: AbstractOperator{BL,BR} end
 """
     LazySum([Tf,] [factors,] operators)
     LazySum([Tf,] basis_l, basis_r, [factors,] [operators])
+    LazySum(::Tuple, x::LazySum)
 
 Lazy evaluation of sums of operators.
 
@@ -32,6 +33,9 @@ The `operators` will be kept as is. It can be, for example, a `Tuple` or a
 of operator-state operations, such as simulating time evolution. A `Vector` can
 reduce compile-time overhead when doing arithmetic on `LazySum`s, such as
 summing many `LazySum`s together.
+
+To convert a vector-based `LazySum` `x` to use a tuple for operator
+storage, use `LazySum(::Tuple, x)`. 
 """
 mutable struct LazySum{BL,BR,F,T} <: LazyOperator{BL,BR}
     basis_l::BL
@@ -63,6 +67,7 @@ LazySum(::Type{Tf}, operators::AbstractOperator...) where Tf = LazySum(ones(Tf, 
 LazySum(operators::AbstractOperator...) = LazySum(mapreduce(eltype, promote_type, operators), operators...)
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
 LazySum(x::LazySum) = x
+LazySum(::Type{Tuple}, x::LazySum) = LazySum(x.basis_l, x.basis_r, x.factors, (x.operators...,))
 
 coefficients(x::LazySum) = x.factors
 suboperators(x::LazySum) = x.operators
