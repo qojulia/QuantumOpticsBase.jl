@@ -6,6 +6,7 @@ using LinearAlgebra, Random
     # TODO:
     #  * Test time mismatch errors
     #  * Test set_time!() and other new interfaces
+    #  * test mul!()
 
     o = TimeDependentSum(ComplexF64, FockBasis(2), FockBasis(3))
     @test length(suboperators(o)) == 0
