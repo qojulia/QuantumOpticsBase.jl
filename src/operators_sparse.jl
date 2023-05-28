@@ -24,12 +24,6 @@ SparseOperator(::Type{T},b::Basis) where T = SparseOperator(b,b,spzeros(T,length
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(ComplexF64, b1, b2)
 SparseOperator(b::Basis) = SparseOperator(ComplexF64, b, b)
 
-"""
-    sparse(op::AbstractOperator)
-
-Convert an arbitrary operator into a [`SparseOperator`](@ref).
-"""
-sparse(a::AbstractOperator) = throw(ArgumentError("Direct conversion from $(typeof(a)) not implemented. Use sparse(full(op)) instead."))
 sparse(a::DataOperator) = Operator(a.basis_l, a.basis_r, sparse(a.data))
 
 function ptrace(op::SparseOpPureType, indices)
@@ -62,9 +56,7 @@ end
 
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
     SparseOperator(b1, b2, sparse(one(S)*I, length(b1), length(b2)))
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2)
-identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(T, b, b)
-identityoperator(b1::Basis, b2::Basis) = identityoperator(ComplexF64, b1, b2)
+identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2) # TODO this is piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.identityoperator
 
 """
     diagonaloperator(b::Basis)

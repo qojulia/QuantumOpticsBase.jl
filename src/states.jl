@@ -49,10 +49,6 @@ Ket{B}(b::B) where B = Ket{B}(ComplexF64, b)
 Bra(b::Basis) = Bra(ComplexF64, b)
 Ket(b::Basis) = Ket(ComplexF64, b)
 
-copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
-length(a::StateVector) = length(a.basis)::Int
-basis(a::StateVector) = a.basis
-
 ==(x::Ket{B}, y::Ket{B}) where {B} = (samebases(x, y) && x.data==y.data)
 ==(x::Bra{B}, y::Bra{B}) where {B} = (samebases(x, y) && x.data==y.data)
 ==(x::Ket, y::Ket) = false
@@ -74,13 +70,10 @@ Base.isapprox(x::Bra, y::Bra; kwargs...) = false
 -(a::Ket, b::Ket) = throw(IncompatibleBases())
 -(a::Bra, b::Bra) = throw(IncompatibleBases())
 
--(a::T) where {T<:StateVector} = T(a.basis, -a.data)
-
 *(a::Bra{B}, b::Ket{B}) where {B} = transpose(a.data)*b.data
 *(a::Bra, b::Ket) = throw(IncompatibleBases())
 *(a::Number, b::Ket) = Ket(b.basis, a*b.data)
 *(a::Number, b::Bra) = Bra(b.basis, a*b.data)
-*(a::StateVector, b::Number) = b*a
 
 /(a::Ket, b::Number) = Ket(a.basis, a.data ./ b)
 /(a::Bra, b::Number) = Bra(a.basis, a.data ./ b)
@@ -102,32 +95,8 @@ Tensor product ``|x⟩⊗|y⟩⊗|z⟩⊗…`` of the given states.
 """
 tensor(a::Ket, b::Ket) = Ket(tensor(a.basis, b.basis), kron(b.data, a.data))
 tensor(a::Bra, b::Bra) = Bra(tensor(a.basis, b.basis), kron(b.data, a.data))
-tensor(state::StateVector) = state
 tensor(states::Ket...) = reduce(tensor, states)
 tensor(states::Bra...) = reduce(tensor, states)
-tensor(states::Vector{T}) where T<:StateVector = reduce(tensor, states)
-
-# Normalization functions
-"""
-    norm(x::StateVector)
-
-Norm of the given bra or ket state.
-"""
-norm(x::StateVector) = norm(x.data)
-
-"""
-    normalize(x::StateVector)
-
-Return the normalized state so that `norm(x)` is one.
-"""
-normalize(x::StateVector) = x/norm(x)
-
-"""
-    normalize!(x::StateVector)
-
-In-place normalization of the given bra or ket so that `norm(x)` is one.
-"""
-normalize!(x::StateVector) = (normalize!(x.data); x)
 
 function permutesystems(state::T, perm) where T<:Ket
     @assert length(state.basis.bases) == length(perm)
@@ -198,16 +167,6 @@ end
 
 samebases(a::Ket{B}, b::Ket{B}) where {B} = samebases(a.basis, b.basis)::Bool
 samebases(a::Bra{B}, b::Bra{B}) where {B} = samebases(a.basis, b.basis)::Bool
-
-# Array-like functions
-Base.size(x::StateVector) = size(x.data)
-@inline Base.axes(x::StateVector) = axes(x.data)
-Base.ndims(x::StateVector) = 1
-Base.ndims(::Type{<:StateVector}) = 1
-Base.eltype(x::StateVector) = eltype(x.data)
-
-# Broadcasting
-Base.broadcastable(x::StateVector) = x
 
 # Custom broadcasting style
 abstract type StateVectorStyle{B} <: Broadcast.BroadcastStyle end
