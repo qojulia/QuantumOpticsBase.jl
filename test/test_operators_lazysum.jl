@@ -102,8 +102,60 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
 @test 1e-12 > D(dagger(x1)*dagger(0.3*op2), dagger(x1)*dagger(0.3*op2_))
 
+## Test multiplication with LazySum that has no elements
+@test iszero( LazySum(b_r, b_l) * op1a )
+@test iszero( op1a * LazySum(b_r, b_l) )
+@test iszero( LazySum(b_l, b_r) * x1 )
+@test iszero( xbra1 * LazySum(b_l, b_r) )
+@test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randoperator(NLevelBasis(4), GenericBasis(2)) # save Basis with different size
+@test_throws DimensionMismatch randoperator(GenericBasis(1), FockBasis(3)) * LazySum(FockBasis(1), NLevelBasis(2))
+@test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randstate(NLevelBasis(7))
+@test_throws DimensionMismatch randstate(FockBasis(3))' * LazySum(FockBasis(1), NLevelBasis(2))
+
+## multiplication with Operator of AbstractMatrix
+LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
+LSop_s = LazySum(sparse(randoperator(b1a^2)))
+hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Hermitian
+symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Symmetric
+adjoint_op = randoperator(basis(LSop))' # Adjoint
+real_op = Operator(basis(LSop), real(adjoint_op.data)) # real
+ops_tuple = (symmetric_op,hermitian_op,adjoint_op)
+### Test
+@test ops_tuple.*(LSop,) == dense.(ops_tuple).*(LSop,)
+@test (LSop,).*ops_tuple == (LSop,).*dense.(ops_tuple)
+### test with sparse
+@test all(isapprox.(sparse.(ops_tuple).*(LSop,) , dense.(ops_tuple).*(LSop,), atol=1e-13))
+@test all(isapprox.((LSop,).*sparse.(ops_tuple) , (LSop,).*dense.(ops_tuple), atol=1e-13))
+@test all(isapprox.(dense.(sparse.(ops_tuple).*(LSop_s,)) , dense.(ops_tuple).*(LSop_s,), atol=1e-13))
+@test all(isapprox.(dense.((LSop_s,).*sparse.(ops_tuple)) , (LSop_s,).*dense.(ops_tuple), atol=1e-13))
+### test real valued op with AbstractOperator
+@test isapprox(LSop*real_op*LSop , LSop*Operator(basis(real_op), complex.(real_op.data))*LSop, atol=1e-13)
+
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
+
+#Test Tensor
+op1_tensor = op1a ⊗ op1
+op2_tensor = op1 ⊗ op1a
+op1_tensor_ = op1a ⊗ op1_
+op2_tensor_ = op1_ ⊗ op1a
+@test 1e-14 > D(op1_tensor,op1_tensor_)
+@test 1e-14 > D(op1_tensor_,op1_tensor)
+
+#Test addition of with and of LazyTensor and LazyProduct
+subop1 = randoperator(b1a, b1b)
+subop2 = randoperator(b2a, b2b)
+subop3 = randoperator(b3a, b3b)
+I1 = dense(identityoperator(b1a, b1b))
+I2 = dense(identityoperator(b2a, b2b))
+I3 = dense(identityoperator(b3a, b3b))
+op1_LT = LazyTensor(b_l, b_r, [1, 3], (subop1, sparse(subop3)), 0.1)
+op1_LT_ = 0.1*subop1 ⊗ I2 ⊗ subop3
+op1_LP  = LazyProduct([op1a])*0.1
+op1_LP_ = op1a*0.1
+@test 1e-14 > D(op1_LT+op1_LP,op1_LT_+op1_LP_)
+@test 1e-14 > D(op1_LT+op1,op1_LT_+op1_)
+@test 1e-14 > D(op1_LP+op1,op1_LP_+op1_)
 
 # Test tuples vs. vectors
 @test (op1+op1).operators isa Tuple
@@ -248,7 +300,7 @@ op_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 
 state = randoperator(b_r, b_r)
 result_ = randoperator(b_l, b_r)
-result = deepcopy(result_)
+result = NaN * deepcopy(result_)  # with beta=0, NaNs should be killed
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-12 > D(result, op_*state)
 
@@ -272,7 +324,7 @@ result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*op_)
 
-result = deepcopy(result_)
+result = NaN * deepcopy(result_)  # with beta=0, NaNs should be killed
 QuantumOpticsBase.mul!(result,state,zero_op,complex(1.),complex(0.))
 @test 1e-12 > D(result, state*zero_op_)
 

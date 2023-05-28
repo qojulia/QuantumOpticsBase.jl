@@ -30,6 +30,8 @@ mutable struct Ket{B,T} <: AbstractKet{B,T}
     end
 end
 
+Base.zero(x::Bra) = Bra(x.basis, zero(x.data))
+Base.zero(x::Ket) = Ket(x.basis, zero(x.data))
 eltype(::Type{K}) where {K <: Ket{B,V}} where {B,V} = eltype(V)
 eltype(::Type{K}) where {K <: Bra{B,V}} where {B,V} = eltype(V)
 

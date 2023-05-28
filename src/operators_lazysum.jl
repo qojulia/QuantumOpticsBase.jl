@@ -10,6 +10,11 @@ function _check_bases(basis_l, basis_r, operators)
 end
 
 """
+Abstract class for all Lazy type operators ([`LazySum`](@ref), [`LazyProduct`](@ref), and [`LazyTensor`](@ref))
+"""
+abstract type LazyOperator{BL,BR} <: AbstractOperator{BL,BR} end
+
+"""
     LazySum([Tf,] [factors,] operators)
     LazySum([Tf,] basis_l, basis_r, [factors,] [operators])
 
@@ -28,7 +33,7 @@ of operator-state operations, such as simulating time evolution. A `Vector` can
 reduce compile-time overhead when doing arithmetic on `LazySum`s, such as
 summing many `LazySum`s together.
 """
-mutable struct LazySum{BL,BR,F,T} <: AbstractOperator{BL,BR}
+mutable struct LazySum{BL,BR,F,T} <: LazyOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     factors::F
@@ -57,9 +62,10 @@ end
 LazySum(::Type{Tf}, operators::AbstractOperator...) where Tf = LazySum(ones(Tf, length(operators)), (operators...,))
 LazySum(operators::AbstractOperator...) = LazySum(mapreduce(eltype, promote_type, operators), operators...)
 LazySum() = throw(ArgumentError("LazySum needs a basis, or at least one operator!"))
+LazySum(x::LazySum) = x
 
 Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy(x.factors), copy.(x.operators))
-Base.eltype(x::LazySum) = promote_type(eltype(x.factors), mapreduce(eltype, promote_type, x.operators))
+Base.eltype(x::LazySum) = mapreduce(eltype, promote_type, x.operators; init=eltype(x.factors))
 
 dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
 SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* sparse.(op.operators)) : Operator(op.basis_l, op.basis_r, spzeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
@@ -81,8 +87,9 @@ function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 +(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
-+(a::LazySum, b::AbstractOperator) = a + LazySum(b)
-+(a::AbstractOperator, b::LazySum) = LazySum(a) + b
++(a::LazyOperator, b::AbstractOperator) = LazySum(a) + LazySum(b)
++(a::AbstractOperator, b::LazyOperator) = LazySum(a) + LazySum(b)
++(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) + LazySum(b)
 
 -(a::LazySum) = @samebases LazySum(a.basis_l, a.basis_r, -a.factors, a.operators)
 function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
@@ -92,8 +99,10 @@ function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
     @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
 -(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
--(a::LazySum, b::AbstractOperator) = a - LazySum(b)
--(a::AbstractOperator, b::LazySum) = LazySum(a) - b
+-(a::LazyOperator, b::AbstractOperator) = LazySum(a) - LazySum(b)
+-(a::AbstractOperator, b::LazyOperator) = LazySum(a) - LazySum(b)
+-(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) - LazySum(b)
+
 
 function *(a::LazySum, b::Number)
     factors = b*a.factors
@@ -104,6 +113,19 @@ end
 function /(a::LazySum, b::Number)
     factors = a.factors/b
     @samebases LazySum(a.basis_l, a.basis_r, factors, a.operators)
+end
+
+function tensor(a::Operator,b::LazySum)
+    btotal_l = a.basis_l ⊗ b.basis_l
+    btotal_r = a.basis_r ⊗ b.basis_r
+    ops = ([a ⊗ op for op in b.operators]...,)
+    LazySum(btotal_l,btotal_r,b.factors,ops)
+end
+function tensor(a::LazySum,b::Operator)
+    btotal_l = a.basis_l ⊗ b.basis_l
+    btotal_r = a.basis_r ⊗ b.basis_r
+    ops = ([op ⊗ b for op in a.operators]...,)
+    LazySum(btotal_l,btotal_r,a.factors,ops)
 end
 
 function dagger(op::LazySum)
@@ -137,10 +159,20 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer,
     LazySum(basis_l, basis_r, op.factors, ((embed(basis_l, basis_r, index, o) for o in op.operators)...,)) # dispatch to fast-path single-index `embed`
 end
 
+function _zero_op_mul!(data, beta)
+    if iszero(beta)
+        fill!(data, zero(eltype(data)))
+    elseif !isone(beta)
+        data .*= beta
+    end
+    return data
+end
+
 # Fast in-place multiplication
 function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
-    if length(a.operators) == 0
-        result.data .*= beta
+    if length(a.operators) == 0 || iszero(alpha)
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
+        _zero_op_mul!(result.data, beta)
     else
         mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
         for i=2:length(a.operators)
@@ -151,8 +183,9 @@ function mul!(result::Ket{B1},a::LazySum{B1,B2},b::Ket{B2},alpha,beta) where {B1
 end
 
 function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1,B2}
-    if length(b.operators) == 0
-        result.data .*= beta
+    if length(b.operators) == 0 || iszero(alpha)
+        _check_mul!_dim_compatibility(size(result), reverse(size(b)), size(a))
+        _zero_op_mul!(result.data, beta)
     else
         mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
         for i=2:length(b.operators)
@@ -163,8 +196,9 @@ function mul!(result::Bra{B2},a::Bra{B1},b::LazySum{B1,B2},alpha,beta) where {B1
 end
 
 function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3}
-    if length(a.operators) == 0
-        result.data .*= beta
+    if length(a.operators) == 0 || iszero(alpha)
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
+        _zero_op_mul!(result.data, beta)
     else
         mul!(result,a.operators[1],b,alpha*a.factors[1],beta)
         for i=2:length(a.operators)
@@ -174,8 +208,9 @@ function mul!(result::Operator{B1,B3},a::LazySum{B1,B2},b::Operator{B2,B3},alpha
     return result
 end
 function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha,beta) where {B1,B2,B3}
-    if length(b.operators) == 0
-        result.data .*= beta
+    if length(b.operators) == 0 || iszero(alpha)
+        _check_mul!_dim_compatibility(size(result), size(a), size(b))
+        _zero_op_mul!(result.data, beta)
     else
         mul!(result,a,b.operators[1],alpha*b.factors[1],beta)
         for i=2:length(b.operators)

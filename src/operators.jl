@@ -102,7 +102,6 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     return Operator(basis_l, basis_r, data)
 end
 
-
 """
     expect(op, state)
 

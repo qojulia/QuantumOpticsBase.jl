@@ -50,21 +50,41 @@ op1b = randoperator(b_r, b_l)
 op2a = randoperator(b_l, b_r)
 op2b = randoperator(b_r, b_l)
 op3a = randoperator(b_l, b_l)
+op3b = randoperator(b_r, b_r)
+
 op1 = LazyProduct([op1a, sparse(op1b)])*0.1
 op1_ = 0.1*(op1a*op1b)
 op2 = LazyProduct([sparse(op2a), op2b], 0.3)
 op2_ = 0.3*(op2a*op2b)
 op3 = LazyProduct(op3a)
 op3_ = op3a
+op4 = LazyProduct(op3b)
+op4_ = op3b
 
 x1 = Ket(b_l, rand(ComplexF64, length(b_l)))
 x2 = Ket(b_l, rand(ComplexF64, length(b_l)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
-# Addition
-@test_throws ArgumentError op1 + op2
+# Test Addition
+@test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op4)
 @test 1e-14 > D(-op1_, -op1)
+@test 1e-14 > D(op1+op2, op1_+op2_)
+@test 1e-14 > D(op1+op2_, op1_+op2_)
+@test 1e-14 > D(op1_+op2, op1_+op2_)
+#Check for unallowed addition:
+@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct([op1a, sparse(op1a)])+LazyProduct([sparse(op2b), op2b], 0.3)
+
+# Test Subtraction
+@test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op4)
+@test 1e-14 > D(op1 - op2, op1_ - op2_)
+@test 1e-14 > D(op1 - op2_, op1_ - op2_)
+@test 1e-14 > D(op1_ - op2, op1_ - op2_)
+@test 1e-14 > D(op1 + (-op2), op1_ - op2_)
+@test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
+#Check for unallowed subtraction:
+@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct([op1a, sparse(op1a)])-LazyProduct([sparse(op2b), op2b], 0.3)
+
 
 # Test multiplication
 @test_throws DimensionMismatch op1a*op1a
@@ -77,6 +97,14 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Test division
 @test 1e-14 > D(op1/7, op1_/7)
+
+#Test Tensor product
+op = op1a ⊗ op1
+op_ = op1a ⊗ op1_
+@test 1e-11 > D(op,op_)
+op = op1 ⊗ op2a
+op_ = op1_ ⊗ op2a 
+@test 1e-11 > D(op,op_)
 
 # Test identityoperator
 Idense = identityoperator(DenseOpType, b_l)
@@ -142,6 +170,10 @@ for N=1:3
     QuantumOpticsBase.mul!(result,op,state,alpha,beta)
     @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,op,state,0,beta)
+    @test 1e-11 > D(result, beta*result_)
+
     state = Bra(b_l, rand(ComplexF64, length(b_l)))
     result_ = randstate(iseven(N) ? b_l : b_r)'
     result = copy(result_)
@@ -153,6 +185,10 @@ for N=1:3
     beta = complex(2.1)
     QuantumOpticsBase.mul!(result,state,op,alpha,beta)
     @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,state,op,0,beta)
+    @test 1e-11 > D(result, beta*result_)
 
     # Test gemm
     state = randoperator(iseven(N) ? b_l : b_r, b_r)
@@ -167,6 +203,10 @@ for N=1:3
     QuantumOpticsBase.mul!(result,op,state,alpha,beta)
     @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,op,state,0,beta)
+    @test 1e-11 > D(result, beta*result_)
+
     state = randoperator(b_l, b_l)
     result_ = randoperator(b_l, iseven(N) ? b_l : b_r)
     result = copy(result_)
@@ -178,6 +218,10 @@ for N=1:3
     beta = complex(2.1)
     QuantumOpticsBase.mul!(result,state,op,alpha,beta)
     @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+
+    result = copy(result_)
+    QuantumOpticsBase.mul!(result,state,op,0,beta)
+    @test 1e-11 > D(result, beta*result_)
 end
 
 end # testset

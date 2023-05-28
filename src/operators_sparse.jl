@@ -54,9 +54,22 @@ function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:Composite
     SparseOperator(permutesystems(rho.basis_l, perm), permutesystems(rho.basis_r, perm), data)
 end
 
-identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
+identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:SparseOpType,S<:Number} =
     SparseOperator(b1, b2, sparse(one(S)*I, length(b1), length(b2)))
+identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:SparseOpType,S<:Number} =
+    SparseOperator(b, b, sparse(one(S)*I, length(b), length(b)))
+
+const EyeOpPureType{BL,BR} = Operator{BL,BR,<:Eye}
+const EyeOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:Eye}}
+const EyeOpType{BL,BR} = Union{EyeOpPureType{BL,BR},EyeOpAdjType{BL,BR}}
+
+identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
+    Operator(b1, b2, Eye{S}(length(b1), length(b2)))
+identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:DataOperator,S<:Number} =
+    Operator(b, b, Eye{S}(length(b)))
+
 identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2) # TODO this is piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.identityoperator
+identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOperator, T, b) # TODO this is piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.identityoperator
 
 """
     diagonaloperator(b::Basis)
