@@ -56,7 +56,7 @@ function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:Composite
     @assert length(rho.basis_l.bases) == length(rho.basis_r.bases) == length(perm)
     @assert isperm(perm)
     shape = [rho.basis_l.shape; rho.basis_r.shape]
-    data = permutedims(rho.data, shape, [perm; perm .+ length(perm)])
+    data = _permutedims(rho.data, shape, [perm; perm .+ length(perm)])
     SparseOperator(permutesystems(rho.basis_l, perm), permutesystems(rho.basis_r, perm), data)
 end
 

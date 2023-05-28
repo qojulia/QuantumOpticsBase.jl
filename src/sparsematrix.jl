@@ -263,7 +263,7 @@ function ptrace(x, shape_nd, indices)
     y
 end
 
-function permutedims(x, shape, perm)
+function _permutedims(x::AbstractSparseMatrix, shape, perm) # TODO upstream as `permutedims` to SparseArrays to avoid piracy -- used in a single location in operators_sparse
     shape = (shape...,)
     shape_perm = ([shape[i] for i in perm]...,)
     y = spzeros(eltype(x), x.m, x.n)
