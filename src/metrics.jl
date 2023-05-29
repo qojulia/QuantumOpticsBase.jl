@@ -192,8 +192,9 @@ fidelity(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B} = tr(sqrt(sqr
 """
     ptranspose(rho, indices)
 
-Partial transpose of rho with respect to subspace specified by indices,    
-where `indices` can be specified by a single integer, an array or a tuple of integers.
+Partial transpose of rho with respect to subsystem specified by indices. 
+                        
+The `indices` argument can be a single integer or a collection of integers.
 """
 function ptranspose(rho::DenseOpType{B,B}, indices=1) where B<:CompositeBasis
     # adapted from qutip.partial_transpose (https://qutip.org/docs/4.0.2/modules/qutip/partial_transpose.html)
