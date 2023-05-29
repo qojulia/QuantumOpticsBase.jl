@@ -195,7 +195,7 @@ fidelity(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B} = tr(sqrt(sqr
 Partial transpose of rho with respect to subspace specified by indices,    
 where `indices` can be specified by a single integer, an array or a tuple of integers.
 """
-function ptranspose(rho::DenseOpType{B,B}, indices::Union{Vector{Int},Tuple{Vararg{Int}}}) where B<:CompositeBasis
+function ptranspose(rho::DenseOpType{B,B}, indices=1) where B<:CompositeBasis
     # adapted from qutip.partial_transpose (https://qutip.org/docs/4.0.2/modules/qutip/partial_transpose.html)
     # works as long as QuantumOptics.jl doesn't change the implementation of `tensor`, i.e. tensor(a,b).data = kron(b.data,a.data)
     nsys = length(rho.basis_l.shape)
@@ -210,11 +210,6 @@ function ptranspose(rho::DenseOpType{B,B}, indices::Union{Vector{Int},Tuple{Vara
     
 end
                         
-function ptranspose(rho::DenseOpType{B,B}, index::Int=1) where B<:CompositeBasis
-
-    return ptranspose(rho,[index])
-
-end
 
 
 """
