@@ -73,17 +73,36 @@ rho = tensor(psi1, dagger(psi1))
 @test 1e-20 > abs2(fidelity(rho, sigma))
 
 # ptranspose
+  
+b1 = SpinBasis(1//2)
+b2 = SpinBasis(1)
+b3 = FockBasis(3)
+
+# some tests for ptranspose only, on randomly generated tripartite operators 
+# consisting of `nterm` linear combinations of simply seperable operators
+nterm = 3
+coefs = rand(nterm)
+As = [DenseOperator(b1, rand(2,2)) for i = 1 : nterm]
+Bs = [DenseOperator(b2, rand(3,3)) for i = 1 : nterm]
+Cs = [DenseOperator(b3, rand(4,4)) for i = 1 : nterm]
+
+rho = sum([coefs[i]*As[i]⊗Bs[i]⊗Cs[i] for i = 1 : nterm]);
+
+@test ptranspose(rho,(1,3)) == sum([coefs[i]*transpose(As[i])⊗Bs[i]⊗transpose(Cs[i]) for i = 1 : nterm])
+@test ptranspose(rho,[2]) == transpose(ptranspose(rho,[1,3]))
+@test ptranspose(rho,1) == sum([coefs[i]*transpose(As[i])⊗Bs[i]⊗Cs[i] for i = 1 : nterm])
+  
 e = spinup(b1)
 g = spindown(b1)
 psi3 = (e ⊗ g - g ⊗ e)/sqrt(2)
 
-rho = dm(psi3)
+rho = dm(psi3)  
 rho_pT1 = ptranspose(rho, 1)
 rho_pT1_an = 0.5*(dm(e ⊗ g) + dm(g ⊗ e) - (e ⊗ e) ⊗ dagger(g ⊗ g) - (g ⊗ g) ⊗ dagger(e ⊗ e))
 rho_pT2 = ptranspose(rho, 2)
 @test rho_pT1.data ≈ rho_pT1_an.data
 @test rho_pT2.data ≈ rho_pT1_an.data
-
+        
 @test_throws MethodError ptranspose(e ⊗ dagger(psi1))
 @test_throws MethodError ptranspose(dm(e))
 
