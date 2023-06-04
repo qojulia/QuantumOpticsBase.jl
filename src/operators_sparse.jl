@@ -68,8 +68,7 @@ identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOpera
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:DataOperator,S<:Number} =
     Operator(b, b, Eye{S}(length(b)))
 
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2) # TODO this is piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.identityoperator
-identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOperator, T, b) # TODO this is piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.identityoperator
+identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2) # XXX This is purposeful type piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.DataOperator in identityoperator. Also necessary for backward compatibility.
 
 """
     diagonaloperator(b::Basis)
