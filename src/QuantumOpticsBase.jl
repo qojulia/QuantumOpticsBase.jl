@@ -3,8 +3,11 @@ module QuantumOpticsBase
 using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 
-import QuantumInterface: dagger, directsum, ⊕, dm, embed, expect, permutesystems,
-        projector, ptrace, reduced, tensor, ⊗
+import QuantumInterface: dagger, directsum, ⊕, dm, embed, expect, identityoperator,
+        permutesystems, projector, ptrace, reduced, tensor, ⊗, variance
+
+# index helpers
+import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
 
 export Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,
@@ -55,7 +58,6 @@ export Basis, GenericBasis, CompositeBasis, basis,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
         qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
 
-include("sortedindices.jl")
 include("polynomials.jl")
 include("bases.jl")
 include("states.jl")

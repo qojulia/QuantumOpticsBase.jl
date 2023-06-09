@@ -1,10 +1,9 @@
 using Test
-using QuantumOpticsBase
-
+using QuantumInterface
 
 @testset "sortedindices" begin
 
-s = QuantumOpticsBase
+s = QuantumInterface
 
 @test s.complement(6, [1, 4]) == [2, 3, 5, 6]
 

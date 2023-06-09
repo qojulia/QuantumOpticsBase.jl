@@ -24,12 +24,6 @@ SparseOperator(::Type{T},b::Basis) where T = SparseOperator(b,b,spzeros(T,length
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(ComplexF64, b1, b2)
 SparseOperator(b::Basis) = SparseOperator(ComplexF64, b, b)
 
-"""
-    sparse(op::AbstractOperator)
-
-Convert an arbitrary operator into a [`SparseOperator`](@ref).
-"""
-sparse(a::AbstractOperator) = throw(ArgumentError("Direct conversion from $(typeof(a)) not implemented. Use sparse(full(op)) instead."))
 sparse(a::DataOperator) = Operator(a.basis_l, a.basis_r, sparse(a.data))
 
 function ptrace(op::SparseOpPureType, indices)
@@ -56,7 +50,7 @@ function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:Composite
     @assert length(rho.basis_l.bases) == length(rho.basis_r.bases) == length(perm)
     @assert isperm(perm)
     shape = [rho.basis_l.shape; rho.basis_r.shape]
-    data = permutedims(rho.data, shape, [perm; perm .+ length(perm)])
+    data = _permutedims(rho.data, shape, [perm; perm .+ length(perm)])
     SparseOperator(permutesystems(rho.basis_l, perm), permutesystems(rho.basis_r, perm), data)
 end
 
@@ -74,10 +68,7 @@ identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOpera
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:DataOperator,S<:Number} =
     Operator(b, b, Eye{S}(length(b)))
 
-identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2)
-identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOperator, T, b)
-identityoperator(b1::Basis, b2::Basis) = identityoperator(ComplexF64, b1, b2)
-identityoperator(b::Basis) = identityoperator(ComplexF64, b)
+identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2) # XXX This is purposeful type piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.DataOperator in identityoperator. Also necessary for backward compatibility.
 
 """
     diagonaloperator(b::Basis)
