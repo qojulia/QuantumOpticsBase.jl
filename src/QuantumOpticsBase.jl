@@ -4,7 +4,7 @@ using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 
 import QuantumInterface: dagger, directsum, ⊕, dm, embed, expect, permutesystems,
-        projector, ptrace, reduced, tensor, ⊗
+        projector, ptrace, reduced, tensor, ⊗, apply!, basis, AbstractSuperOperator
 
 export Basis, GenericBasis, CompositeBasis, basis,
         tensor, ⊗, permutesystems, @samebases,
@@ -54,6 +54,8 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
         qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
+        #apply
+                apply!
 
 include("sortedindices.jl")
 include("polynomials.jl")
@@ -80,5 +82,6 @@ include("metrics.jl")
 include("spinors.jl")
 include("phasespace.jl")
 include("printing.jl")
+include("apply.jl")
 
 end # module
