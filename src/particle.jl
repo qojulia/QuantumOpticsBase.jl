@@ -1,5 +1,7 @@
-import Base: position
+import Base: position # TODO is it a good idea to abuse the Base namespace for a different use?
 using FFTW
+
+abstract type ParticleBasis <: Basis end
 
 """
     PositionBasis(xmin, xmax, Npoints)
@@ -16,7 +18,7 @@ of ``x_{min}`` and ``x_{max}`` are due to the periodic boundary conditions
 more or less arbitrary and are chosen to be
 ``-\\pi/dp`` and ``\\pi/dp`` with ``dp=(p_{max}-p_{min})/N``.
 """
-struct PositionBasis{X1,X2,T,F} <: Basis
+struct PositionBasis{X1,X2,T,F} <: ParticleBasis
     shape::Vector{T}
     xmin::F
     xmax::F
@@ -45,7 +47,7 @@ of ``p_{min}`` and ``p_{max}`` are due to the periodic boundary conditions
 more or less arbitrary and are chosen to be
 ``-\\pi/dx`` and ``\\pi/dx`` with ``dx=(x_{max}-x_{min})/N``.
 """
-struct MomentumBasis{P1,P2,T,F} <: Basis
+struct MomentumBasis{P1,P2,T,F} <: ParticleBasis
     shape::Vector{T}
     pmin::F
     pmax::F
@@ -168,7 +170,7 @@ function position(::Type{T}, b::PositionBasis) where T
     d = convert.(T, samplepoints(b))
     return SparseOperator(b, spdiagm(0 => d))
 end
-position(b::Basis) = position(ComplexF64, b)
+position(b::ParticleBasis) = position(ComplexF64, b)
 
 """
     position([T=ComplexF64,] b:MomentumBasis)
