@@ -20,13 +20,17 @@ for func in (:basis, :length, :size, :tr, :normalize, :normalize!,
     @eval $func(op::AbstractTimeDependentOperator) = $func(static_operator(op))
 end
 
-expect(op::AbstractTimeDependentOperator, x) = expect(static_operator(op), x)
-expect(index::Integer, op::AbstractTimeDependentOperator, x) = expect(index, static_operator(op), x)
-variance(op::AbstractTimeDependentOperator, x) = variance(static_operator(op), x)
-variance(index::Integer, op::AbstractTimeDependentOperator, x) = variance(index, static_operator(op), x)
+for func in (:expect, :variance)
+    @eval $func(op::AbstractTimeDependentOperator{B,B}, x::Ket{B}) where B = $func(static_operator(op), x)
+    @eval $func(op::AbstractTimeDependentOperator{B,B}, x::AbstractOperator{B,B}) where B = $func(static_operator(op), x)
+    @eval $func(index::Integer, op::AbstractTimeDependentOperator{B1,B2}, x::AbstractOperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = $func(index, static_operator(op), x)
+    @eval $func(indices, op::AbstractTimeDependentOperator{B1,B2}, x::AbstractOperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = $func(indices, static_operator(op), x)
+end
 
 promote_rule(::Type{T}, ::Type{S}) where {T<:AbstractTimeDependentOperator,S<:AbstractOperator} = T
 convert(::Type{T}, O::AbstractOperator) where {T<:AbstractTimeDependentOperator} = T(O)
+
+const VecOrTuple = Union{Tuple,AbstractVector}
 
 """
     TimeDependentSum(lazysum, coeffs, init_time)
@@ -42,13 +46,13 @@ coefficients as functions of time (or numbers).
 The coefficient type `Tf` may be specified explicitly.
 Time-dependent coefficients will be converted to this type on evaluation.
 """
-mutable struct TimeDependentSum{BL<:Basis,BR<:Basis,C,O<:LazySum,T<:Number} <: AbstractTimeDependentOperator{BL,BR}
+mutable struct TimeDependentSum{BL<:Basis,BR<:Basis,C<:VecOrTuple,O<:LazySum,T<:Number} <: AbstractTimeDependentOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     coefficients::C
     static_op::O
     current_time::T
-    function TimeDependentSum(coeffs::C, lazysum::O, init_time::T) where {C,O<:LazySum,T<:Number}
+    function TimeDependentSum(coeffs::C, lazysum::O, init_time::T) where {C<:VecOrTuple,O<:LazySum,T<:Number}
         length(coeffs) == length(lazysum.operators) || throw(ArgumentError("Number of coefficients does not match number of operators."))
         bl = lazysum.basis_l
         br = lazysum.basis_r
@@ -56,33 +60,33 @@ mutable struct TimeDependentSum{BL<:Basis,BR<:Basis,C,O<:LazySum,T<:Number} <: A
         new{typeof(bl), typeof(br), C, O, T}(bl, br, coeffs, lazysum, init_time)
     end
 end
-TimeDependentSum(coeffs::C, lazysum::O; init_time::T=0.0) where {C,O<:LazySum,T<:Number} = TimeDependentSum(coeffs, lazysum, init_time)
+TimeDependentSum(coeffs::C, lazysum::O; init_time::T=0.0) where {C<:VecOrTuple,O<:LazySum,T<:Number} = TimeDependentSum(coeffs, lazysum, init_time)
 
-function TimeDependentSum(::Type{Tf}, basis_l::Basis, basis_r::Basis; init_time::Number=0.0) where Tf
+function TimeDependentSum(::Type{Tf}, basis_l::Basis, basis_r::Basis; init_time::T=0.0) where {Tf<:Number,T<:Number}
     TimeDependentSum(Tf[], LazySum(Tf, basis_l, basis_r), init_time)
 end
 
-function TimeDependentSum(::Type{Tf}, basis_l::Basis, basis_r::Basis, coeffs, operators; init_time::Number=0.0) where Tf
+function TimeDependentSum(::Type{Tf}, basis_l::Basis, basis_r::Basis, coeffs::C, operators::O; init_time::T=0.0) where {Tf<:Number,C<:VecOrTuple,O<:VecOrTuple,T<:Number}
     coeff_vec = ones(Tf, length(coeffs))
     ls = LazySum(basis_l, basis_r, coeff_vec, operators)
     TimeDependentSum(coeffs, ls, init_time)
 end
 
-function TimeDependentSum(::Type{Tf}, coeffs, operators; init_time::Number=0.0) where Tf
+function TimeDependentSum(::Type{Tf}, coeffs::C, operators::O; init_time::T=0.0) where {Tf<:Number,C<:VecOrTuple,O<:VecOrTuple,T<:Number}
     TimeDependentSum(Tf, operators[1].basis_l, operators[1].basis_r, coeffs, operators; init_time)
 end
 
-function TimeDependentSum(coeffs, operators; init_time::Number=0.0)
+function TimeDependentSum(coeffs::C, operators::O; init_time::T=0.0)  where {C<:VecOrTuple,O<:VecOrTuple,T<:Number}
     Tf = mapreduce(typeof, promote_type, eval_coefficients(coeffs, init_time))
     TimeDependentSum(Tf, coeffs, operators; init_time)
 end
 
-function TimeDependentSum(::Type{Tf}, args::Vararg{Pair}; init_time::Number=0.0) where Tf
+function TimeDependentSum(::Type{Tf}, args::Vararg{Pair}; init_time::T=0.0) where {Tf<:Number,T<:Number}
     cs, ops = zip(args...)
     TimeDependentSum(Tf, [cs...], [ops...]; init_time)
 end
 
-function TimeDependentSum(args::Vararg{Pair}; init_time::Number=0.0)
+function TimeDependentSum(args::Vararg{Pair}; init_time::T=0.0) where {T<:Number}
     cs, ops = zip(args...)
     TimeDependentSum([cs...], [ops...]; init_time)
 end
@@ -209,9 +213,12 @@ function /(A::TimeDependentSum, B::Number)
     TimeDependentSum(_div_coeffs.(coefficients(A), B), static_operator(A) / B, current_time(A))
 end
 
-mul!(out, a::TimeDependentSum, b, alpha, beta) = mul!(out, static_operator(a), b, alpha, beta)
-mul!(out, a, b::TimeDependentSum, alpha, beta) = mul!(out, a, static_operator(b), alpha, beta)
-function mul!(out, a::TimeDependentSum, b::TimeDependentSum, alpha, beta)
+mul!(out::Operator{B1,B3}, a::TimeDependentSum{B1,B2}, b::Operator{B2,B3}, alpha, beta) where {B1,B2,B3} = mul!(out, static_operator(a), b, alpha, beta)
+mul!(out::Ket{B1}, a::TimeDependentSum{B1,B2}, b::Ket{B2}, alpha, beta) where {B1,B2} = mul!(out, static_operator(a), b, alpha, beta)
+mul!(out::Operator{B1,B3}, a::Operator{B1,B2}, b::TimeDependentSum{B2,B3}, alpha, beta) where {B1,B2,B3} = mul!(out, a, static_operator(b), alpha, beta)
+mul!(out::Bra{B2}, a::Bra{B1}, b::TimeDependentSum{B1,B2}, alpha, beta) where {B1,B2} = mul!(out, a, static_operator(b), alpha, beta)
+
+function mul!(out::Operator{B1,B3}, a::TimeDependentSum{B1,B2}, b::TimeDependentSum{B2,B3}, alpha, beta) where {B1,B2,B3}
     _check_same_time(a, b)
     mul!(out, static_operator(a), static_operator(b), alpha, beta)
 end
