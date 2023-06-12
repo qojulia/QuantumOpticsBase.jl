@@ -3,9 +3,11 @@ import Base: size, *, +, -, /, ==, isequal, adjoint, convert
 
 abstract type AbstractTimeDependentOperator{BL,BR} <: AbstractOperator{BL,BR} end
 
-set_time!(o::AbstractOperator, ::Number) = o
 current_time(::AbstractOperator) = throw(ArgumentError("Time not defined for operator."))
 static_operator(o::AbstractOperator) = o
+
+set_time!(o::AbstractOperator, ::Number) = o
+set_time!(o::LazyOperator, t::Number) = (set_time!.(o.operators, t); return o)
 
 (o::AbstractTimeDependentOperator)(t::Number) = set_time!(o, t)
 
@@ -34,8 +36,8 @@ convert(::Type{T}, O::AbstractOperator) where {T<:AbstractTimeDependentOperator}
     TimeDependentSum(::Tuple, op::TimeDependentSum)
 
 Lazy sum of operators with time-dependent coefficients. Wraps a `LazySum` `lazysum`,
-adding a `current_time` (operator "clock") and a means of specifying time
-coefficients as numbers or functions of time.
+adding a `current_time` (or operator "clock") and a means of specifying time
+coefficients as functions of time (or numbers).
 
 The coefficient type `Tf` may be specified explicitly.
 Time-dependent coefficients will be converted to this type on evaluation.
@@ -102,9 +104,7 @@ function set_time!(o::TimeDependentSum, t::Number)
         o.current_time = t
         update_static_coefficients!(static_operator(o), coefficients(o), t)
     end
-    for o in suboperators(o)
-        set_time!(o, t)
-    end
+    set_time!.(suboperators(o), t)
     o
 end
 
@@ -234,12 +234,10 @@ end
 @inline eval_coefficients(coeffs::AbstractVector, t::Number) = [eval_coefficient(c, t) for c in coeffs]
 @inline eval_coefficients(::Type{T}, coeffs::AbstractVector, t::Number) where T = T[T(eval_coefficient(c, t)) for c in coeffs]
 
-# This is needed to avoid allocations in some cases, modeled on map(f, t::Tuple)
-@inline eval_coefficients(coeffs::Tuple{Any,}, t::Number)          = (eval_coefficient(coeffs[1], t),)
-@inline eval_coefficients(coeffs::Tuple{Any, Any}, t::Number)      = (eval_coefficient(coeffs[1], t), eval_coefficient(coeffs[2], t))
-@inline eval_coefficients(coeffs::Tuple{Any, Any, Any}, t::Number) = (eval_coefficient(coeffs[1], t), eval_coefficient(coeffs[2], t), eval_coefficient(coeffs[3], t))
-@inline eval_coefficients(coeffs::Tuple, t::Number)                = (eval_coefficient(coeffs[1], t), eval_coefficients(Base.tail(coeffs), t)...)
+@inline eval_coefficients(coeffs::Tuple, t::Number) = map(c->eval_coefficient(c, t), coeffs)
 
+# This is the performance-critical implementation.
+# To avoid allocations in most cases, we model this on map(f, t::Tuple).
 @inline eval_coefficients(::Type{T}, coeffs::Tuple{Any,}, t::Number) where T          = (T(eval_coefficient(coeffs[1], t)),)
 @inline eval_coefficients(::Type{T}, coeffs::Tuple{Any, Any}, t::Number) where T      = (T(eval_coefficient(coeffs[1], t)), T(eval_coefficient(coeffs[2], t)))
 @inline eval_coefficients(::Type{T}, coeffs::Tuple{Any, Any, Any}, t::Number) where T = (T(eval_coefficient(coeffs[1], t)), T(eval_coefficient(coeffs[2], t)), T(eval_coefficient(coeffs[3], t)))

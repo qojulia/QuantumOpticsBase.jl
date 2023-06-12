@@ -71,7 +71,7 @@ using LinearAlgebra, Random
     @test all(isa(o.data, Adjoint) for o in suboperators(o_t_))
     @test eval_coefficients(o_t_, t) == conj.(eval_coefficients(o_t, t))
 
-    b = randoperator(FockBasis(2)) #LazyProduct(a)  LazyProduct appears to break things??
+    b = randoperator(FockBasis(2))
     o2_t = TimeDependentSum([t->cos(t), t->t/3.0], [b, n])
     
     # operations
