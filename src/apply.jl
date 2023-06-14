@@ -15,7 +15,7 @@ function apply!(state::Ket, indices, operation::T) where {T<:AbstractSuperOperat
 end
 
 function apply!(state::Operator, indices, operation::T) where {T<:AbstractSuperOperator}
-    op = basis(state)==basis(operation)[1] ? operation : embed(basis(state), indices, operation)
+    op = basis(state)==basis(operation) ? operation : embed(basis(state), indices, operation)
     state.data = (op*state).data
     state
 end
