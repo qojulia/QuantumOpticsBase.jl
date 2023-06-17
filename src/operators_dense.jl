@@ -32,6 +32,7 @@ Base.eltype(op::Operator) = eltype(op.data)
 Base.eltype(::Type{T}) where {BL,BR,D,T<:Operator{BL,BR,D}} = eltype(D)
 Base.size(op::Operator) = size(op.data)
 Base.size(op::Operator, d::Int) = size(op.data, d)
+Base.convert(::Type{Operator{BL,BR,T}}, op::Operator{BL,BR,S}) where {BL,BR,T,S} = Operator{BL,BR,T}(op.basis_l, op.basis_r, convert(T, op.data))
 
 # Convert data to CuArray with cu(::Operator)
 Adapt.adapt_structure(to, x::Operator) = Operator(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))

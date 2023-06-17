@@ -140,4 +140,9 @@ Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
 @test_throws ErrorException size(dense(Lop1),  0) # check for consistency
 @test_throws ErrorException size(dense(Lop1), -1)
 
+# issue 106 | https://github.com/qojulia/QuantumOpticsBase.jl/issues/106
+a = destroy(FockBasis(5))
+@test dagger(a^2) == dagger(a)^2
+@test convert(Base._return_type(*, Tuple{typeof(a'), typeof(a')}), a') == a'
+
 end # testset
