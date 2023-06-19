@@ -161,6 +161,15 @@ function *(a::DenseOpType{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3}
     result
 end
 
+*(a::LazyTensor{B1,B2}, b::LazyProduct{B2,B3}) where {B1,B2,B3} = LazyProduct(a) * b
+*(a::LazyProduct{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3} = a * LazyProduct(b)
+
+#*(a::LazyTensor{B1,B2}, b::AbstractOperator{B2,B3}) where {B1,B2,B3} = LazyProduct((a, b), 1)
+#*(a::AbstractOperator{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3} = LazyProduct((a, b), 1)
+#*(a::LazyTensor{B1,B2}, b::Operator{B2,B3}) where {B1,B2,B3} = LazyProduct((a, b), 1)
+#*(a::Operator{B1,B2}, b::LazyTensor{B2,B3}) where {B1,B2,B3} = LazyProduct((a, b), 1)
+
+
 /(a::LazyTensor, b::Number) = LazyTensor(a, a.factor/b)
 
 

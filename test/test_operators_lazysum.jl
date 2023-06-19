@@ -68,12 +68,15 @@ op1b = randoperator(b_l, b_r)
 op2a = randoperator(b_l, b_r)
 op2b = randoperator(b_l, b_r)
 op3a = randoperator(b_l, b_r)
+op4a = randoperator(b_r, b_l)
 op1 = LazySum([0.1, 0.3], (op1a, sparse(op1b)))
 op1_ = 0.1*op1a + 0.3*op1b
 op2 = LazySum([0.7, 0.9], [sparse(op2a), op2b])
 op2_ = 0.7*op2a + 0.9*op2b
 op3 = LazySum(op3a)
 op3_ = op3a
+op4 = LazySum(op4a)
+op4_ = op4a
 
 x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
 x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
@@ -94,13 +97,20 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 
 # Test multiplication
-@test_throws ArgumentError op1*op2
+@test_throws DimensionMismatch op1*op2
 @test LazySum([0.1, 0.1], (op1a, op2a)) == LazySum(op1a, op2a)*0.1
 @test LazySum([0.1, 0.1], (op1a, op2a)) == 0.1*LazySum(op1a, op2a)
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
 @test 1e-12 > D(dagger(x1)*dagger(0.3*op2), dagger(x1)*dagger(0.3*op2_))
+
+
+@test 1e-12 > D(op1*op4,op1_*op4_)
+@test 1e-12 > D(op4*op1,op4_*op1_)
+
+@test 1e-12 > D(LazyProduct(op1_)*op4,op1_*op4_)
+@test 1e-12 > D(op4*LazyProduct(op1_),op4_*op1_)
 
 ## Test multiplication with LazySum that has no elements
 @test iszero( LazySum(b_r, b_l) * op1a )

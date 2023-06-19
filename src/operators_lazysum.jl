@@ -104,6 +104,44 @@ end
 -(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) - LazySum(b)
 
 
+#*(a::LazySum{B1,B2}, b::AbstractOperator{B2,B3}) where {B1,B2,B3} = LazySum(a.basis_l, a.basis_r, a.factors, a.operators .* b)
+#*(a::AbstractOperator{B1,B2}, b::LazySum{B2,B3}) where {B1,B2,B3} = LazySum(a.basis_l, b.basis_r, b.factors, a.operators .* b)
+
+#*(a::Operator{B1,B2}, b::LazySum{B2,B3}) where {B1,B2,B3} = LazySum(a.basis_l, b.basis_r, b.factors, a.operators .* b)
+#*(a::LazySum{B1,B2}, b::Operator{B2,B3}) where {B1,B2,B3} = LazySum(a.basis_l, b.basis_r, a.factors, a.operators .* b)
+
+
+function Base.:*(a::LazySum{B1,B2}, b::O2) where {B1,B2,O2<:LazyOperator}
+    c = Array{AbstractOperator}(undef,length(a.operators))
+    for i in eachindex(a.operators)
+        c[i] = LazyProduct(a.operators[i]) * b
+    end
+    LazySum(a.basis_l, b.basis_r, a.factors, (c...,))
+end
+
+function Base.:*(a::O1, b::LazySum{B1,B2}) where {B1,B2,O1<:LazyOperator}
+    c = Array{AbstractOperator}(undef,length(b.operators))
+    for i in eachindex(b.operators)
+        c[i] = a * LazyProduct(b.operators[i])
+    end
+    LazySum(a.basis_l, b.basis_r, b.factors, (c...,))
+end
+
+
+function Base.:*(a::O1, b::O2) where {O1<:LazySum,O2<:LazySum}
+    c = Array{AbstractOperator}(undef,length(a.operators)*length(b.operators))
+    factors = similar(a.factors,length(a.operators)*length(b.operators))
+    k = 1
+    for i in eachindex(a.operators)
+        for j in eachindex(b.operators)
+            factors[k] = a.factors[i] * b.factors[j]
+            c[k] = a.operators[i] * b.operators[j]
+            k += 1
+        end
+    end
+    LazySum(a.basis_l, b.basis_r, factors, (c...,))
+end
+
 function *(a::LazySum, b::Number)
     factors = b*a.factors
     @samebases LazySum(a.basis_l, a.basis_r, factors, a.operators)

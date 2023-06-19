@@ -105,6 +105,11 @@ op3_ = 0.3*I1 ⊗ I2 ⊗ subop3
 op4 = 0.4*LazyTensor(b_l, b_r, 2, subop2)
 op4_ = 0.4*I1 ⊗ subop2 ⊗ I3
 
+subop4 = randoperator(b2b, b2a)
+op5 = 0.3*LazyTensor(b_r, b_l, 2, subop4)
+op5_ = 0.3*identityoperator(b1b,b1a) ⊗ subop4 ⊗ identityoperator(b3b,b3a)
+
+
 x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
 x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
@@ -157,6 +162,11 @@ op2_tensor_ =   op1_ ⊗ subop1
 @test 1e-12 > D(op1_*dagger(0.3*op2), op1_*dagger(0.3*op2_))
 @test 1e-12 > D(dagger(0.3*op2)*op1_, dagger(0.3*op2_)*op1_)
 @test 1e-12 > D(dagger(0.3*op2)*op1, dagger(0.3*op2_)*op1_)
+
+@test 1e-12 > D(op5*LazySum(op1_,op2_), op5_*(op1_+op2_))
+@test 1e-12 > D(LazySum(op1_,op2_)*op5, (op1_+op2_)*op5_)
+@test 1e-12 > D(op5*LazyProduct(op1_), op5_*op1_)
+@test 1e-12 > D(LazyProduct(op1_)*op5, op1_*op5_)
 
 
 # Test division
