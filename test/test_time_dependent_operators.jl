@@ -3,11 +3,6 @@ using QuantumOpticsBase
 using LinearAlgebra, Random
 
 @testset "time-dependent operators" begin
-    # TODO:
-    #  * Test time mismatch errors
-    #  * Test set_time!() and other new interfaces
-    #  * test mul!()
-
     QOB = QuantumOpticsBase
 
     subop = randoperator(FockBasis(1))
