@@ -3,7 +3,8 @@ import Base: size, *, +, -, /, ==, isequal, adjoint, convert
 
 abstract type AbstractTimeDependentOperator{BL,BR} <: AbstractOperator{BL,BR} end
 
-current_time(::AbstractOperator) = throw(ArgumentError("Time not defined for operator."))
+current_time(::T) where {T<:AbstractOperator} = 
+  throw(ArgumentError("Time not defined for operators of type $T. Consider using a TimeDependentSum or another time-dependence wrapper."))
 static_operator(o::AbstractOperator) = o
 
 set_time!(o::AbstractOperator, ::Number) = o
@@ -12,7 +13,10 @@ set_time!(o::LazyOperator, t::Number) = (set_time!.(o.operators, t); return o)
 (o::AbstractTimeDependentOperator)(t::Number) = set_time!(o, t)
 
 function _check_same_time(A::AbstractTimeDependentOperator, B::AbstractTimeDependentOperator)
-    current_time(A) == current_time(B) || throw(ArgumentError("Time-dependent operators with different times cannot be combined."))
+    tA = current_time(A)
+    tB = current_time(B)
+    tA == tB || throw(ArgumentError(
+        "Time-dependent operators with different times ($tA and $tB) cannot be combined. Consider setting their clocks to a common time with `set_time!`."))
 end
 
 for func in (:basis, :length, :size, :tr, :normalize, :normalize!,
@@ -39,9 +43,9 @@ const VecOrTuple = Union{Tuple,AbstractVector}
     TimeDependentSum([::Type{Tf},] coeff1=>op1, coeff2=>op2, ...; init_time=0.0)
     TimeDependentSum(::Tuple, op::TimeDependentSum)
 
-Lazy sum of operators with time-dependent coefficients. Wraps a `LazySum` `lazysum`,
-adding a `current_time` (or operator "clock") and a means of specifying time
-coefficients as functions of time (or numbers).
+Lazy sum of operators with time-dependent coefficients. Wraps a
+[`LazySum`](@ref) `lazysum`, adding a `current_time` (or operator "clock") and a
+means of specifying time coefficients as functions of time (or numbers).
 
 The coefficient type `Tf` may be specified explicitly.
 Time-dependent coefficients will be converted to this type on evaluation.
@@ -260,9 +264,9 @@ _timeshift_coeff(coeff::Number, _) = coeff
 """
     timeshift(op::TimeDependentSum, t0)
 
-Shift (translate) a TimeDependentSum `op` forward in time (delaying its
+Shift (translate) a [`TimeDependentSum`](@ref) `op` forward in time (delaying its
 action) by `t0` units, so that the coefficient functions of time `f(t)` become
-`f(t-t0)`. Return a new TimeDependentSum.
+`f(t-t0)`. Return a new [`TimeDependentSum`](@ref).
 """
 function timeshift(op::TimeDependentSum, t0)
     iszero(t0) && return op
@@ -274,8 +278,8 @@ _timestretch_coeff(coeff::Number, _) = coeff
 
 """
     timestretch(op::TimeDependentSum, Sfactor)
-Stretch (in time) a TimeDependentSum `op` by a factor of `Sfactor` (making it 'longer'),
-so that the coefficient functions of time `f(t)` become `f(t/Sfactor)`. Return a new TimeDependentSum.
+Stretch (in time) a [`TimeDependentSum`](@ref) `op` by a factor of `Sfactor` (making it 'longer'),
+so that the coefficient functions of time `f(t)` become `f(t/Sfactor)`. Return a new [`TimeDependentSum`](@ref).
 """
 function timestretch(op::TimeDependentSum, Sfactor)
     isone(Sfactor) && return op
@@ -291,10 +295,10 @@ _restrict_coeff(c, t_from, t_to) = (@inline restricted_coeff_f(t) = ifelse(t_fro
     timerestrict(op::TimeDependentSum, t_from, t_to)
     timerestrict(op::TimeDependentSum, t_to)
 
-Restrict a TimeDependentSum `op` to the time window `t_from <= t < t_to`,
+Restrict a [`TimeDependentSum`](@ref) `op` to the time window `t_from <= t < t_to`,
 forcing it to be exactly zero outside that range of times. If `t_from` is not
 provided, it is assumed to be zero.
-Return a new TimeDependentSum.
+Return a new [`TimeDependentSum`](@ref).
 """
 function timerestrict(op::TimeDependentSum, t_from, t_to)
     TimeDependentSum(_restrict_coeff.(coefficients(op), t_from, t_to), copy(static_operator(op)), current_time(op))
