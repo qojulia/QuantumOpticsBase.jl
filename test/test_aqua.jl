@@ -9,7 +9,6 @@ using FillArrays
                   piracy=(broken=true,)
                   )
     # manual piracy check to exclude identityoperator
-    # FIXME: also adjoint. Move StateVector def to QuantumInterface.
-    pirates = [pirate for pirate in Aqua.Piracy.hunt(QuantumOpticsBase) if pirate.name != :identityoperator && pirate.name != :adjoint]
+    pirates = [pirate for pirate in Aqua.Piracy.hunt(QuantumOpticsBase) if pirate.name != :identityoperator]
     @test isempty(pirates)
 end # testset
