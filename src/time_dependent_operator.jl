@@ -31,8 +31,9 @@ for func in (:expect, :variance)
     @eval $func(indices, op::AbstractTimeDependentOperator{B1,B2}, x::AbstractOperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = $func(indices, static_operator(op), x)
 end
 
-promote_rule(::Type{T}, ::Type{S}) where {T<:AbstractTimeDependentOperator,S<:AbstractOperator} = T
-convert(::Type{T}, O::AbstractOperator) where {T<:AbstractTimeDependentOperator} = T(O)
+# TODO: Consider using promotion to define arithmetic between operator types
+#promote_rule(::Type{T}, ::Type{S}) where {T<:AbstractTimeDependentOperator,S<:AbstractOperator} = T
+#convert(::Type{T}, O::AbstractOperator) where {T<:AbstractTimeDependentOperator} = T(O)
 
 const VecOrTuple = Union{Tuple,AbstractVector}
 
@@ -61,6 +62,7 @@ mutable struct TimeDependentSum{BL<:Basis,BR<:Basis,C<:VecOrTuple,O<:LazySum,T<:
         bl = lazysum.basis_l
         br = lazysum.basis_r
         update_static_coefficients!(lazysum, coeffs, init_time)
+        set_time!(lazysum, init_time)
         new{typeof(bl), typeof(br), C, O, T}(bl, br, coeffs, lazysum, init_time)
     end
 end
@@ -91,8 +93,9 @@ function TimeDependentSum(::Type{Tf}, args::Vararg{Pair}; init_time::T=0.0) wher
 end
 
 function TimeDependentSum(args::Vararg{Pair}; init_time::T=0.0) where {T<:Number}
-    cs, ops = zip(args...)
-    TimeDependentSum([cs...], [ops...]; init_time)
+    cs, _ = zip(args...)
+    Tf = mapreduce(typeof, promote_type, eval_coefficients(cs, init_time))
+    TimeDependentSum(Tf, args...; init_time)
 end
 
 TimeDependentSum(op::LazySum; init_time::Number=0.0) = TimeDependentSum(op.factors, op, init_time)
@@ -116,14 +119,16 @@ function set_time!(o::TimeDependentSum, t::Number)
     o
 end
 
+is_const(op::AbstractOperator) = true
+is_const(op::LazyOperator) = all(is_const(o) for o in suboperators(op))
 is_const(op::TimeDependentSum) = all(is_const(c) for c in op.coefficients)
 is_const(c::Number) = true
-is_const(c) = false
+is_const(c::Function) = false
 
 coefficient_type(o::TimeDependentSum) = coefficient_type(static_operator(o))
 coefficient_type(o::LazySum) = eltype(o.factors)
 
-Base.copy(op::TimeDependentSum) = TimeDependentSum(copy.(op.coefficients), copy(op.static_op))
+Base.copy(op::TimeDependentSum) = TimeDependentSum(copy(op.coefficients), copy(op.static_op); init_time=current_time(op))
 
 function ==(A::TimeDependentSum, B::TimeDependentSum)
     A.current_time == B.current_time && A.coefficients == B.coefficients && A.static_op == B.static_op
@@ -221,11 +226,6 @@ mul!(out::Operator{B1,B3}, a::TimeDependentSum{B1,B2}, b::Operator{B2,B3}, alpha
 mul!(out::Ket{B1}, a::TimeDependentSum{B1,B2}, b::Ket{B2}, alpha, beta) where {B1,B2} = mul!(out, static_operator(a), b, alpha, beta)
 mul!(out::Operator{B1,B3}, a::Operator{B1,B2}, b::TimeDependentSum{B2,B3}, alpha, beta) where {B1,B2,B3} = mul!(out, a, static_operator(b), alpha, beta)
 mul!(out::Bra{B2}, a::Bra{B1}, b::TimeDependentSum{B1,B2}, alpha, beta) where {B1,B2} = mul!(out, a, static_operator(b), alpha, beta)
-
-function mul!(out::Operator{B1,B3}, a::TimeDependentSum{B1,B2}, b::TimeDependentSum{B2,B3}, alpha, beta) where {B1,B2,B3}
-    _check_same_time(a, b)
-    mul!(out, static_operator(a), static_operator(b), alpha, beta)
-end
 
 function update_static_coefficients!(o::LazySum, coeffs, t)
     o.factors .= eval_coefficients(eltype(o.factors), coeffs, t)
