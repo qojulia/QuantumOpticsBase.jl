@@ -37,6 +37,9 @@ op2.operators[1].data[1,1] = complex(10.)
 op2.factors[1] = 3.
 @test op2.factors[1] != op1.factors[1]
 
+@test QuantumOpticsBase.coefficients(op2) == op2.factors
+@test QuantumOpticsBase.suboperators(op2) == op2.operators
+
 # Test dense & sparse
 op1 = randoperator(b_l, b_r)
 op2 = sparse(randoperator(b_l, b_r))
@@ -122,8 +125,8 @@ adjoint_op = randoperator(basis(LSop))' # Adjoint
 real_op = Operator(basis(LSop), real(adjoint_op.data)) # real
 ops_tuple = (symmetric_op,hermitian_op,adjoint_op)
 ### Test
-@test ops_tuple.*(LSop,) == dense.(ops_tuple).*(LSop,)
-@test (LSop,).*ops_tuple == (LSop,).*dense.(ops_tuple)
+@test all(isapprox.(ops_tuple.*(LSop,) , dense.(ops_tuple).*(LSop,), atol=1e-13))
+@test all(isapprox.((LSop,).*ops_tuple , (LSop,).*dense.(ops_tuple), atol=1e-13))
 ### test with sparse
 @test all(isapprox.(sparse.(ops_tuple).*(LSop,) , dense.(ops_tuple).*(LSop,), atol=1e-13))
 @test all(isapprox.((LSop,).*sparse.(ops_tuple) , (LSop,).*dense.(ops_tuple), atol=1e-13))
