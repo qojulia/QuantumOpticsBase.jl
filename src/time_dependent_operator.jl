@@ -262,13 +262,13 @@ _timeshift_coeff(coeff, t0) = (@inline shifted_coeff(t) = coeff(t-t0))
 _timeshift_coeff(coeff::Number, _) = coeff
 
 """
-    timeshift(op::TimeDependentSum, t0)
+    time_shift(op::TimeDependentSum, t0)
 
 Shift (translate) a [`TimeDependentSum`](@ref) `op` forward in time (delaying its
 action) by `t0` units, so that the coefficient functions of time `f(t)` become
 `f(t-t0)`. Return a new [`TimeDependentSum`](@ref).
 """
-function timeshift(op::TimeDependentSum, t0)
+function time_shift(op::TimeDependentSum, t0)
     iszero(t0) && return op
     TimeDependentSum(_timeshift_coeff.(coefficients(op), t0), copy(static_operator(op)), current_time(op))
 end
@@ -277,11 +277,11 @@ _timestretch_coeff(coeff, Sfactor) = (@inline stretched_coeff(t) = coeff(t/Sfact
 _timestretch_coeff(coeff::Number, _) = coeff
 
 """
-    timestretch(op::TimeDependentSum, Sfactor)
+    time_stretch(op::TimeDependentSum, Sfactor)
 Stretch (in time) a [`TimeDependentSum`](@ref) `op` by a factor of `Sfactor` (making it 'longer'),
 so that the coefficient functions of time `f(t)` become `f(t/Sfactor)`. Return a new [`TimeDependentSum`](@ref).
 """
-function timestretch(op::TimeDependentSum, Sfactor)
+function time_stretch(op::TimeDependentSum, Sfactor)
     isone(Sfactor) && return op
     TimeDependentSum(_timestretch_coeff.(coefficients(op), Sfactor), copy(static_operator(op)), current_time(op))
 end
@@ -292,15 +292,15 @@ _restrict_coeff(c::Number, t_from, t_to) = (@inline restricted_coeff_n(t) = ifel
 _restrict_coeff(c, t_from, t_to) = (@inline restricted_coeff_f(t) = ifelse(t_from <= t < t_to, c(t), zero(c(t_from))))
 
 """
-    timerestrict(op::TimeDependentSum, t_from, t_to)
-    timerestrict(op::TimeDependentSum, t_to)
+    time_restrict(op::TimeDependentSum, t_from, t_to)
+    time_restrict(op::TimeDependentSum, t_to)
 
 Restrict a [`TimeDependentSum`](@ref) `op` to the time window `t_from <= t < t_to`,
 forcing it to be exactly zero outside that range of times. If `t_from` is not
 provided, it is assumed to be zero.
 Return a new [`TimeDependentSum`](@ref).
 """
-function timerestrict(op::TimeDependentSum, t_from, t_to)
+function time_restrict(op::TimeDependentSum, t_from, t_to)
     TimeDependentSum(_restrict_coeff.(coefficients(op), t_from, t_to), copy(static_operator(op)), current_time(op))
 end
-timerestrict(op::TimeDependentSum, t_duration) = timerestrict(op, zero(t_duration), t_duration)
+time_restrict(op::TimeDependentSum, t_duration) = time_restrict(op, zero(t_duration), t_duration)

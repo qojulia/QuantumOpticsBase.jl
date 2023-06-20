@@ -30,7 +30,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
         #time_dependent_operators
                 AbstractTimeDependentOperator, TimeDependentSum, set_time!,
-                current_time, timeshift, timestretch, timerestrict,
+                current_time, time_shift, time_stretch, time_restrict,
         #superoperators
                 SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType, spre, spost, liouvillian,

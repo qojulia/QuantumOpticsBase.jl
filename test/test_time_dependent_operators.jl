@@ -208,27 +208,27 @@ end
 
     b = FockBasis(1)
     op = TimeDependentSum((1.0, identity), (number(b), destroy(b)))
-    op_shift = timeshift(op, 10.0)
+    op_shift = time_shift(op, 10.0)
     @test @inferred QOB.eval_coefficients(op_shift, 0.0) == (1.0, -10.0)
     @test @inferred QOB.eval_coefficients(op_shift, 10.0) == (1.0, 0.0)
     @test @inferred QOB.eval_coefficients(op_shift, 20.0) == (1.0, 10.0)
 
-    op_block_shift = timerestrict(op_shift, 5.0, 15.0)
+    op_block_shift = time_restrict(op_shift, 5.0, 15.0)
     @test @inferred QOB.eval_coefficients(op_block_shift, 4.9) == (0.0, 0.0)
     @test @inferred QOB.eval_coefficients(op_block_shift, 5.0) == (1.0, -5.0)
     @test @inferred QOB.eval_coefficients(op_block_shift, 20.0) == (0.0, 0.0)
     
-    op_stretch_block_shift = timestretch(op_block_shift, 2.0)
+    op_stretch_block_shift = time_stretch(op_block_shift, 2.0)
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 9.9) == (0.0, 0.0)
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 10.0) == (1.0, -5.0)
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0-√eps()) == (1.0, 5.0-0.5√eps())
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0) == (0.0, 0.0)
 
-    op_block = timerestrict(op, 15.0)
+    op_block = time_restrict(op, 15.0)
     @test @inferred QOB.eval_coefficients(op_block, -1.0) == (0.0, 0.0)
     @test @inferred QOB.eval_coefficients(op_block, 5.0) == (1.0, 5.0)
     @test @inferred QOB.eval_coefficients(op_block, 20.0) == (0.0, 0.0)
 
-    op_stretch = timestretch(op, 2.0)
+    op_stretch = time_stretch(op, 2.0)
     @test @inferred QOB.eval_coefficients(op_stretch, 5.0) == (1.0, 2.5)
 end
