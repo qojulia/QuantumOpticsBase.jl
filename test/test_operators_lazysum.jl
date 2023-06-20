@@ -97,6 +97,7 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 
 # Test multiplication
+@test_throws QuantumOpticsBase.IncompatibleBases op1*op2
 @test 1e-11 > D(dense(op1*op2'), op1_ * op2_')
 @test LazySum([0.1, 0.1], (op1a, op2a)) == LazySum(op1a, op2a)*0.1
 @test LazySum([0.1, 0.1], (op1a, op2a)) == 0.1*LazySum(op1a, op2a)
