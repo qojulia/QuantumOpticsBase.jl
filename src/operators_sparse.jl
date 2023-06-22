@@ -86,10 +86,14 @@ mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},M::SparseOpType{B2,B3},alp
 mul!(result::Ket{B1},M::SparseOpPureType{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2} = (gemv!(alpha,M.data,b.data,beta,result.data); result)
 mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1,B2} = (gemv!(alpha,b.data,M.data,beta,result.data); result)
 
+# Ensure that Eye is not densified # TODO - some of this can still be special cased on Eye or lazy embed
 +(op1::EyeOpType{BL,BR},op2::SparseOpType{BL,BR}) where {BL,BR} = sparse(op1) + op2
 -(op1::EyeOpType{BL,BR},op2::SparseOpType{BL,BR}) where {BL,BR} = sparse(op1) - op2
 +(op1::SparseOpType{BL,BR},op2::EyeOpType{BL,BR}) where {BL,BR} = sparse(op2) + op1
 -(op2::SparseOpType{BL,BR},op1::EyeOpType{BL,BR}) where {BL,BR} = op2 - sparse(op1)
+-(op::EyeOpType) = -sparse(op)
 *(op::EyeOpType,a::T) where {T<:Number} = a*sparse(op)
 *(a::T,op::EyeOpType) where {T<:Number} = a*sparse(op)
 /(op::EyeOpType,a::T) where {T<:Number} = sparse(op)/a
+tensor(a::EyeOpType, b::SparseOpType) = tensor(sparse(a),b)
+tensor(a::SparseOpType, b::EyeOpType) = tensor(a,sparse(b))
