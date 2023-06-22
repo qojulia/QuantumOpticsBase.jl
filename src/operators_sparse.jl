@@ -85,3 +85,11 @@ mul!(result::DenseOpType{B1,B3},M::SparseOpType{B1,B2},b::DenseOpType{B2,B3},alp
 mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},M::SparseOpType{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm!(alpha,a.data,M.data,beta,result.data); result)
 mul!(result::Ket{B1},M::SparseOpPureType{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2} = (gemv!(alpha,M.data,b.data,beta,result.data); result)
 mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1,B2} = (gemv!(alpha,b.data,M.data,beta,result.data); result)
+
++(op1::EyeOpType{BL,BR},op2::SparseOpType{BL,BR}) where {BL,BR} = sparse(op1) + op2
+-(op1::EyeOpType{BL,BR},op2::SparseOpType{BL,BR}) where {BL,BR} = sparse(op1) - op2
++(op1::SparseOpType{BL,BR},op2::EyeOpType{BL,BR}) where {BL,BR} = sparse(op2) + op1
+-(op2::SparseOpType{BL,BR},op1::EyeOpType{BL,BR}) where {BL,BR} = op2 - sparse(op1)
+*(op::EyeOpType,a::T) where {T<:Number} = a*sparse(op)
+*(a::T,op::EyeOpType) where {T<:Number} = a*sparse(op)
+/(op::EyeOpType,a::T) where {T<:Number} = sparse(op)/a

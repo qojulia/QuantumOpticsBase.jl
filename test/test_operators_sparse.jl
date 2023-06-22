@@ -117,6 +117,13 @@ IEye = identityoperator(b_l)
 @test sparse(IEye) == I
 Icomp = identityoperator(b1a) ⊗ identityoperator(b2a) ⊗ identityoperator(b3a)
 @test IEye == Icomp
+@test isa(2*IEye, SparseOpType)
+@test isa(IEye*2, SparseOpType)
+@test isa(IEye/2, SparseOpType)
+@test isa(IEye+sparse(IEye), SparseOpType)
+@test isa(sparse(IEye)+IEye, SparseOpType)
+@test isa(sparse(IEye)-IEye, SparseOpType)
+@test isa(IEye-sparse(IEye), SparseOpType)
 
 # Test tr and normalize
 op = sparse(DenseOperator(GenericBasis(3), [1 3 2;5 2 2;-1 2 5]))
