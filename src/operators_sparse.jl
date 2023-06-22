@@ -91,9 +91,13 @@ mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1
 -(op1::EyeOpType{BL,BR},op2::SparseOpType{BL,BR}) where {BL,BR} = sparse(op1) - op2
 +(op1::SparseOpType{BL,BR},op2::EyeOpType{BL,BR}) where {BL,BR} = sparse(op2) + op1
 -(op2::SparseOpType{BL,BR},op1::EyeOpType{BL,BR}) where {BL,BR} = op2 - sparse(op1)
++(op1::EyeOpType{BL,BR},op2::EyeOpType{BL,BR}) where {BL,BR} = sparse(op1) + sparse(op1)
+-(op2::EyeOpType{BL,BR},op1::EyeOpType{BL,BR}) where {BL,BR} = sparse(op2) - sparse(op1)
 -(op::EyeOpType) = -sparse(op)
 *(op::EyeOpType,a::T) where {T<:Number} = a*sparse(op)
 *(a::T,op::EyeOpType) where {T<:Number} = a*sparse(op)
 /(op::EyeOpType,a::T) where {T<:Number} = sparse(op)/a
 tensor(a::EyeOpType, b::SparseOpType) = tensor(sparse(a),b)
 tensor(a::SparseOpType, b::EyeOpType) = tensor(a,sparse(b))
+tensor(a::SparseOpType, b::EyeOpType) = tensor(a,sparse(b))
+tensor(a::EyeOpType, b::EyeOpType) = tensor(sparse(a),sparse(b))
