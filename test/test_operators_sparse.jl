@@ -117,20 +117,23 @@ IEye = identityoperator(b_l)
 @test sparse(IEye) == I
 Icomp = identityoperator(b1a) ⊗ identityoperator(b2a) ⊗ identityoperator(b3a)
 @test IEye == Icomp
-for IEye in (IEye, -IEye, IEye, dagger(IEye))
-    @test isa(2*IEye, SparseOpType)
-    @test isa(IEye*2, SparseOpType)
-    @test isa(IEye/2, SparseOpType)
-    @test isa(IEye+sparse(IEye), SparseOpType)
-    @test isa(sparse(IEye)+IEye, SparseOpType)
-    @test isa(sparse(IEye)-IEye, SparseOpType)
-    @test isa(IEye-sparse(IEye), SparseOpType)
-    @test isa(IEye+IEye, SparseOpType)
-    @test isa(IEye-IEye, SparseOpType)
-    @test isa(-IEye, SparseOpType)
-    @test isa(tensor(IEye, sparse(IEye)), SparseOpType)
-    @test isa(tensor(sparse(IEye), IEye), SparseOpType)
-    @test isa(tensor(IEye, IEye), SparseOpType)
+
+for _IEye in (identityoperator(b_l), identityoperator(b1a, b1b))
+    for IEye in (_IEye, -_IEye, _IEye', dagger(_IEye))
+        @test isa(2*IEye, SparseOpType)
+        @test isa(IEye*2, SparseOpType)
+        @test isa(IEye/2, SparseOpType)
+        @test isa(IEye+sparse(IEye), SparseOpType)
+        @test isa(sparse(IEye)+IEye, SparseOpType)
+        @test isa(sparse(IEye)-IEye, SparseOpType)
+        @test isa(IEye-sparse(IEye), SparseOpType)
+        @test isa(IEye+IEye, SparseOpType)
+        @test isa(IEye-IEye, SparseOpType)
+        @test isa(-IEye, SparseOpType)
+        @test isa(tensor(IEye, sparse(IEye)), SparseOpType)
+        @test isa(tensor(sparse(IEye), IEye), SparseOpType)
+        @test isa(tensor(IEye, IEye), SparseOpType)
+    end
 end
 
 # Test tr and normalize
