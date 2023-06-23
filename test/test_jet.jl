@@ -22,7 +22,7 @@ end
 using LinearAlgebra, LRUCache, Strided, Dates, SparseArrays
 
 @testset "jet" begin
-    if get(ENV,"QUANTUMOPTICS_JET_TEST","")=="true"
+    if get(ENV,"JET_TEST","")=="true"
         rep = report_package("QuantumOpticsBase";
             report_pass=MayThrowIsOk(), # TODO have something more fine grained than a generic "do not care about thrown errors"
             ignored_modules=( # TODO fix issues with these modules or report them upstream
