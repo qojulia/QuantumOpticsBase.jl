@@ -188,6 +188,7 @@ end
 
 # tout, ρt = timeevolution.master([0.,1.], ρ₀, H, J; reltol=1e-7)
 # @test tracedistance(exp(dense(L))*ρ₀, ρt[end]) < 1e-6
+# @test tracedistance(exp(sparse(L))*ρ₀, ρt[end]) < 1e-6
 
 @test dense(spre(op1)) == spre(op1)
 
@@ -216,5 +217,16 @@ Ldense .+= L
 @test isapprox(Ldense.data, 5*Ldense_.data)
 @test_throws ErrorException cos.(Ldense)
 @test_throws ErrorException cos.(L)
+
+b = FockBasis(20)
+L = liouvillian(identityoperator(b), [destroy(b)])
+@test exp(sparse(L)).data ≈ exp(dense(L)).data
+N = exp(log(2) * sparse(L)) # 50% loss channel
+ρ = N * dm(coherentstate(b, 1))
+@test (1 - real(tr(ρ^2))) < 1e-10 # coherent state remains pure under loss
+@test tracedistance(ρ, dm(coherentstate(b, 1/sqrt(2)))) < 1e-10
+ρ = N * dm(fockstate(b, 1))
+@test (0.5 - real(tr(ρ^2))) < 1e-10 # one photon state becomes maximally mixed
+@test tracedistance(ρ, normalize(dm(fockstate(b, 0)) + dm(fockstate(b, 1)))) < 1e-10
 
 end # testset

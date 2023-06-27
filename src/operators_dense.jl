@@ -226,6 +226,12 @@ function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1,B
     result
 end
 
+"""
+    exp(op::DenseOpType)
+
+Operator exponential used, for example, to calculate displacement operators.
+Uses LinearAlgebra's `Base.exp`.
+"""
 function exp(op::T) where {B,T<:DenseOpType{B,B}}
     return DenseOperator(op.basis_l, op.basis_r, exp(op.data))
 end
