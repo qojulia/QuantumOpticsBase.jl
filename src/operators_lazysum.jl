@@ -53,7 +53,7 @@ LazySum(::Type{Tf}, basis_l::Basis, basis_r::Basis) where Tf = LazySum(basis_l,b
 LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)
 
 function LazySum(::Type{Tf}, basis_l::Basis, basis_r::Basis, factors, operators) where Tf
-    factors_ = eltype(factors) != Tf ? Tf.(factors) : factors
+    factors_ = eltype(factors) != Tf ? map(Tf, factors) : factors
     LazySum(basis_l, basis_r, factors_, operators)
 end
 function LazySum(::Type{Tf}, factors, operators) where Tf
