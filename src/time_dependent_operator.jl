@@ -1,12 +1,38 @@
 
 import Base: size, *, +, -, /, ==, isequal, adjoint, convert
 
+"""
+    AbstractTimeDependentOperator{BL,BR} <: AbstractOperator{BL,BR}
+
+Abstract type providing a time-dependent operator interface. Time-dependent
+operators have internal "clocks" that can be addressed with [`set_time!`](@ref)
+and [`current_time`](@ref). A shorthand `op(t)`, equivalent to
+`set_time!(op, t)`, is available for brevity.
+
+A time-dependent operator is always concrete-valued according to the current
+time of its internal clock.
+"""
 abstract type AbstractTimeDependentOperator{BL,BR} <: AbstractOperator{BL,BR} end
 
+"""
+    current_time(op::AbstractOperator)
+
+Returns the current time of the operator `op`. If `op` is not time-dependent,
+this throws an `ArgumentError`.
+"""
 current_time(::T) where {T<:AbstractOperator} = 
   throw(ArgumentError("Time not defined for operators of type $T. Consider using a TimeDependentSum or another time-dependence wrapper."))
 static_operator(o::AbstractOperator) = o
 
+"""
+    set_time!(o::AbstractOperator, t::Number)
+
+Sets the clock of an operator (see [`AbstractTimeDependentOperator`](@ref)).
+If `o` contains other operators (e.g. in case `o` is a `LazyOperator`),
+recursively calls `set_time!` on those.
+
+This does nothing in case `o` is not time-dependent.
+"""
 set_time!(o::AbstractOperator, ::Number) = o
 set_time!(o::LazyOperator, t::Number) = (set_time!.(o.operators, t); return o)
 
@@ -255,9 +281,6 @@ end
 @inline eval_coefficients(::Type{T}, coeffs::Tuple, t::Number) where T                = (T(eval_coefficient(coeffs[1], t)), eval_coefficients(T, Base.tail(coeffs), t)...)
 
 
-################
-
-
 _timeshift_coeff(coeff, t0) = (@inline shifted_coeff(t) = coeff(t-t0))
 _timeshift_coeff(coeff::Number, _) = coeff
 
@@ -286,8 +309,6 @@ function time_stretch(op::TimeDependentSum, Sfactor)
     TimeDependentSum(_timestretch_coeff.(coefficients(op), Sfactor), copy(static_operator(op)), current_time(op))
 end
 
-# Could use `sign` to make a step/block function here, but those functions
-# also just use ifelse under the hood, so...
 _restrict_coeff(c::Number, t_from, t_to) = (@inline restricted_coeff_n(t) = ifelse(t_from <= t < t_to, c, zero(c)))
 _restrict_coeff(c, t_from, t_to) = (@inline restricted_coeff_f(t) = ifelse(t_from <= t < t_to, c(t), zero(c(t_from))))
 
