@@ -60,6 +60,20 @@ end
 
 displace(b::FockBasis, alpha::T) where {T <: Number} = displace(ComplexF64, b, alpha)
 
+"""
+    squeeze([T=ComplexF64,] b::FockBasis, z)
+
+Squeezing operator ``S(z)`` for the specified Fock space with optional data
+type `T`, computed as the matrix exponential of finite-dimensional (truncated)
+creation and annihilation operators.
+"""
+function squeeze(::Type{T}, b::FockBasis, z::Number) where T
+    z = T(z)/2
+    asq = destroy(T, b)^2
+    exp(dense(conj(z) * asq - z * dagger(asq)))
+end
+
+squeeze(b::FockBasis, z::T) where {T <: Number} = squeeze(ComplexF64, b, z)
 
 # associated Laguerre polynomial, borrowed from IonSim.jl
 function _alaguerre(x::Real, n::Int, k::Int)

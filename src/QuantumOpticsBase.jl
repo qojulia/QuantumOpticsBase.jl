@@ -38,7 +38,8 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
                 displace, displace_analytical, displace_analytical!,
-        randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,
+                squeeze,
+                randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,
         #spin
                 SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
         #subspace

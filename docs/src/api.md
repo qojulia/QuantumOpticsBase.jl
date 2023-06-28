@@ -249,6 +249,10 @@ displace
 ```
 
 ```@docs
+squeeze
+```
+
+```@docs
 fockstate
 ```
 
