@@ -28,6 +28,9 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #operators_lazytensor
                 LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
                 lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
+        #time_dependent_operators
+                AbstractTimeDependentOperator, TimeDependentSum, set_time!,
+                current_time, time_shift, time_stretch, time_restrict,
         #superoperators
                 SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType, spre, spost, liouvillian,
@@ -70,6 +73,7 @@ include("operators_sparse.jl")
 include("operators_lazysum.jl")
 include("operators_lazyproduct.jl")
 include("operators_lazytensor.jl")
+include("time_dependent_operator.jl")
 include("superoperators.jl")
 include("spin.jl")
 include("fock.jl")
