@@ -8,6 +8,7 @@ using SparseArrays, LinearAlgebra
 b = GenericBasis(3)
 @test_throws DimensionMismatch DenseSuperOperator((b, b), (b, b), zeros(ComplexF64, 3, 3))
 @test_throws DimensionMismatch SparseSuperOperator((b, b), (b, b), spzeros(ComplexF64, 3, 3))
+@test_throws DimensionMismatch ChoiState((b, b), (b, b), zeros(ComplexF64, 3, 3))
 
 # Test copy, sparse and dense
 b1 = GenericBasis(2)
@@ -153,29 +154,45 @@ J = [Ja, Jc]
 ρ₀ = dm(Ψ₀)
 
 @test identitysuperoperator(spinbasis)*sx == sx
+@test ChoiState(identitysuperoperator(spinbasis))*sx == sx
 @test identitysuperoperator(sparse(spre(sx)))*sx == sparse(sx)
+@test ChoiState(identitysuperoperator(sparse(spre(sx))))*sx == sparse(sx)
+@test sparse(ChoiState(identitysuperoperator(spre(sx))))*sx == sparse(sx)
 @test identitysuperoperator(dense(spre(sx)))*sx == dense(sx)
+@test ChoiState(identitysuperoperator(dense(spre(sx))))*sx == dense(sx)
+@test dense(ChoiState(identitysuperoperator(spre(sx))))*sx == dense(sx)
 
 op1 = DenseOperator(spinbasis, [1.2+0.3im 0.7+1.2im;0.3+0.1im 0.8+3.2im])
 op2 = DenseOperator(spinbasis, [0.2+0.1im 0.1+2.3im; 0.8+4.0im 0.3+1.4im])
 @test tracedistance(spre(op1)*op2, op1*op2) < 1e-12
+@test tracedistance(ChoiState(spre(op1))*op2, op1*op2) < 1e-12
 @test tracedistance(spost(op1)*op2, op2*op1) < 1e-12
+@test tracedistance(ChoiState(spost(op1))*op2, op2*op1) < 1e-12
 
 @test spre(sparse(op1))*op2 == op1*op2
+@test ChoiState(spre(sparse(op1)))*op2 == op1*op2
 @test spost(sparse(op1))*op2 == op2*op1
+@test ChoiState(spost(sparse(op1)))*op2 == op2*op1
 @test spre(sparse(dagger(op1)))*op2 == dagger(op1)*op2
+@test ChoiState(spre(sparse(dagger(op1))))*op2 == dagger(op1)*op2
 @test spre(dense(dagger(op1)))*op2 ≈ dagger(op1)*op2
+@test ChoiState(spre(dense(dagger(op1))))*op2 ≈ dagger(op1)*op2
 @test sprepost(sparse(op1), op1)*op2 ≈ op1*op2*op1
+@test ChoiState(sprepost(sparse(op1), op1))*op2 ≈ op1*op2*op1
 
 @test spre(sparse(op1))*sparse(op2) == sparse(op1*op2)
+@test ChoiState(spre(sparse(op1)))*sparse(op2) == sparse(op1*op2)
 @test spost(sparse(op1))*sparse(op2) == sparse(op2*op1)
+@test ChoiState(spost(sparse(op1)))*sparse(op2) == sparse(op2*op1)
 @test sprepost(sparse(op1), sparse(op1))*sparse(op2) ≈ sparse(op1*op2*op1)
+@test ChoiState(sprepost(sparse(op1), sparse(op1)))*sparse(op2) ≈ sparse(op1*op2*op1)
 
 @test sprepost(op1, op2) ≈ spre(op1)*spost(op2)
 b1 = FockBasis(1)
 b2 = FockBasis(5)
 op = fockstate(b1, 0) ⊗ dagger(fockstate(b2, 0))
 @test sprepost(dagger(op), op)*dm(fockstate(b1, 0)) == dm(fockstate(b2, 0))
+@test ChoiState(sprepost(dagger(op), op))*dm(fockstate(b1, 0)) == dm(fockstate(b2, 0))
 @test_throws ArgumentError spre(op)
 @test_throws ArgumentError spost(op)
 
@@ -185,12 +202,14 @@ for j=J
     ρ .+= j*ρ₀*dagger(j) - 0.5*dagger(j)*j*ρ₀ - 0.5*ρ₀*dagger(j)*j
 end
 @test tracedistance(L*ρ₀, ρ) < 1e-10
+@test tracedistance(ChoiState(L)*ρ₀, ρ) < 1e-10
 
 # tout, ρt = timeevolution.master([0.,1.], ρ₀, H, J; reltol=1e-7)
 # @test tracedistance(exp(dense(L))*ρ₀, ρt[end]) < 1e-6
 # @test tracedistance(exp(sparse(L))*ρ₀, ρt[end]) < 1e-6
 
 @test dense(spre(op1)) == spre(op1)
+@test dense(ChoiState(spre(op1))) == ChoiState(spre(op1))
 
 @test L/2.0 == 0.5*L == L*0.5
 @test -L == SparseSuperOperator(L.basis_l, L.basis_r, -L.data)
@@ -227,5 +246,21 @@ N = exp(log(2) * sparse(L)) # 50% loss channel
 ρ = N * dm(fockstate(b, 1))
 @test (0.5 - real(tr(ρ^2))) < 1e-10 # one photon state becomes maximally mixed
 @test tracedistance(ρ, normalize(dm(fockstate(b, 0)) + dm(fockstate(b, 1)))) < 1e-10
+
+# Testing 0-2-4 binomial code encoder
+b_logical = SpinBasis(1//2)
+b_fock = FockBasis(5)
+z_l = normalize(fockstate(b_fock, 0) + fockstate(b_fock, 4))
+o_l = fockstate(b_fock, 2)
+encoder_kraus = z_l ⊗ dagger(spinup(b_logical)) + o_l ⊗ dagger(spindown(b_logical))
+    encoder_sup = sprepost(encoder_kraus, dagger(encoder_kraus))
+decoder_sup = sprepost(dagger(encoder_kraus), encoder_kraus)
+@test SuperOperator(ChoiState(encoder_sup)).data == encoder_sup.data
+@test decoder_sup == dagger(encoder_sup)
+@test ChoiState(decoder_sup) == dagger(ChoiState(encoder_sup))
+@test decoder_sup*encoder_sup ≈ dense(identitysuperoperator(b_logical))
+@test decoder_sup*ChoiState(encoder_sup) ≈ dense(identitysuperoperator(b_logical))
+@test ChoiState(decoder_sup)*encoder_sup ≈ dense(identitysuperoperator(b_logical))
+@test SuperOperator(ChoiState(decoder_sup)*ChoiState(encoder_sup)) ≈ dense(identitysuperoperator(b_logical))
 
 end # testset
