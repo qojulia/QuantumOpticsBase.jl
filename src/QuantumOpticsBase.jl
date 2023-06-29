@@ -34,6 +34,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #superoperators
                 SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType, spre, spost, liouvillian,
+                identitysuperoperator,
         #fock
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
