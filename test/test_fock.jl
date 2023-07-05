@@ -46,12 +46,18 @@ basis = FockBasis(2)
 b = FockBasis(30)
 alpha = complex(0.5, 0.3)
 d = displace(b, alpha)
-a = destroy(b)
 @test 1e-12 > D(d*dagger(d), identityoperator(b))
 @test 1e-12 > D(dagger(d)*d, identityoperator(b))
 @test 1e-12 > D(dagger(d), displace(b, -alpha))
 @test 1e-15 > norm(coherentstate(b, alpha) - displace(b, alpha)*fockstate(b, 0))
 
+# Test squeezing operator
+b = FockBasis(30)
+z = complex(0.5, 0.3)
+s = squeeze(b, z)
+@test 1e-12 > D(s*dagger(s), identityoperator(b))
+@test 1e-12 > D(dagger(s)*s, identityoperator(b))
+@test 1e-12 > D(dagger(s), squeeze(b, -z))
 
 α = complex(rand(0.0:0.1:2.0), rand(0.0:0.1:2.0))
 for ofs in 0:3
