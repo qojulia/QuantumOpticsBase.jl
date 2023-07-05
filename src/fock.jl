@@ -49,7 +49,7 @@ create(b::FockBasis) = create(ComplexF64, b)
 """
     displace([T=ComplexF64,] b::FockBasis, alpha)
 
-Displacement operator ``D(α)`` for the specified Fock space with optional data
+Displacement operator ``D(α)=\\exp{\\left(α\\hat{a}^\\dagger-α^*\\hat{a}\\right)}`` for the specified Fock space with optional data
 type `T`, computed as the matrix exponential of finite-dimensional (truncated)
 creation and annihilation operators.
 """
@@ -63,7 +63,7 @@ displace(b::FockBasis, alpha::T) where {T <: Number} = displace(ComplexF64, b, a
 """
     squeeze([T=ComplexF64,] b::FockBasis, z)
 
-Squeezing operator ``S(z)`` for the specified Fock space with optional data
+Squeezing operator ``S(z)=\\exp{\\left(\\frac{z^*\\hat{a}^2-z\\hat{a}^{\\dagger2}}{2}\\right)}`` for the specified Fock space with optional data
 type `T`, computed as the matrix exponential of finite-dimensional (truncated)
 creation and annihilation operators.
 """
