@@ -288,6 +288,10 @@ displace_analytical!
 ```
 
 ```@docs
+squeeze
+```
+
+```@docs
 fockstate
 ```
 
