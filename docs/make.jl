@@ -1,4 +1,5 @@
 using Documenter
+using QuantumInterface
 using QuantumOpticsBase
 
 pages = [
@@ -8,7 +9,7 @@ pages = [
 
 makedocs(
     sitename = "QuantumOpticsBase.jl",
-    modules = [QuantumOpticsBase],
+    modules = [QuantumOpticsBase, QuantumInterface],
     pages = pages,
     checkdocs=:exports
     )

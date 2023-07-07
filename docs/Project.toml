@@ -1,5 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+QuantumInterface = "5717a53b-5d69-4fa3-b976-0bf2f97ca1e5"
 
 [compat]
 Documenter = "~0.26"
