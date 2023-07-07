@@ -226,7 +226,7 @@ dense
 sparse(::AbstractOperator)
 ```
 
-* Time-dependent operators. See also [Time-dependent operators](@ref).
+* Time-dependent operators.
 
 ```@docs
 current_time
