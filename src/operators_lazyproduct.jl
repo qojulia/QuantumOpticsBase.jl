@@ -10,7 +10,6 @@ The factors of the product are stored in the `operators` field. Additionally a
 complex factor is stored in the `factor` field which allows for fast
 multiplication with numbers.
 """
-
 mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: LazyOperator{BL,BR}
     basis_l::BL
     basis_r::BR
