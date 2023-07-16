@@ -81,7 +81,9 @@ end
 Creation operator for the i-th mode of the many-body basis `b`.
 """
 function create(::Type{T}, b::ManyBodyBasis, index) where T
-    result = SparseOperator(T, b)
+    Is = Int[]
+    Js = Int[]
+    Vs = T[]
     # <{m}_i| at |{m}_j>
     for i=1:length(b)
         occ_i = b.occupations[i]
@@ -90,11 +92,13 @@ function create(::Type{T}, b::ManyBodyBasis, index) where T
         end
         for j=1:length(b)
             if isnonzero(occ_i, b.occupations[j], index)
-                result.data[i, j] = sqrt(occ_i[index])
+                push!(Is, i)
+                push!(Js, j)
+                push!(Vs, sqrt(occ_i[index]))
             end
         end
     end
-    result
+    return SparseOperator(b, sparse(Is, Js, Vs, length(b), length(b)))
 end
 create(b::ManyBodyBasis, index) = create(ComplexF64, b, index)
 
@@ -104,7 +108,9 @@ create(b::ManyBodyBasis, index) = create(ComplexF64, b, index)
 Annihilation operator for the i-th mode of the many-body basis `b`.
 """
 function destroy(::Type{T}, b::ManyBodyBasis, index) where T
-    result = SparseOperator(T, b)
+    Is = Int[]
+    Js = Int[]
+    Vs = T[]
     # <{m}_j| a |{m}_i>
     for i=1:length(b)
         occ_i = b.occupations[i]
@@ -113,11 +119,13 @@ function destroy(::Type{T}, b::ManyBodyBasis, index) where T
         end
         for j=1:length(b)
             if isnonzero(occ_i, b.occupations[j], index)
-                result.data[j, i] = sqrt(occ_i[index])
+                push!(Is, j)
+                push!(Js, i)
+                push!(Vs, sqrt(occ_i[index]))
             end
         end
     end
-    result
+    return SparseOperator(b, sparse(Is, Js, Vs, length(b), length(b)))
 end
 destroy(b::ManyBodyBasis, index) = destroy(ComplexF64, b, index)
 
@@ -127,11 +135,7 @@ destroy(b::ManyBodyBasis, index) = destroy(ComplexF64, b, index)
 Particle number operator for the i-th mode of the many-body basis `b`.
 """
 function number(::Type{T}, b::ManyBodyBasis, index) where T
-    result = SparseOperator(T, b)
-    for i=1:length(b)
-        result.data[i, i] = b.occupations[i][index]
-    end
-    result
+    diagonaloperator(b, T[b.occupations[i][index] for i in 1:length(b)])
 end
 number(b::ManyBodyBasis, index) = number(ComplexF64, b, index)
 
@@ -141,11 +145,7 @@ number(b::ManyBodyBasis, index) = number(ComplexF64, b, index)
 Total particle number operator.
 """
 function number(::Type{T}, b::ManyBodyBasis) where T
-    result = SparseOperator(T, b)
-    for i=1:length(b)
-        result.data[i, i] = sum(b.occupations[i])
-    end
-    result
+    diagonaloperator(b, T[sum(b.occupations[i]) for i in 1:length(b)])
 end
 number(b::ManyBodyBasis) = number(ComplexF64, b)
 
@@ -178,7 +178,9 @@ end
 Operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|`` transferring particles between modes.
 """
 function transition(::Type{T}, b::ManyBodyBasis, to, from) where T
-    result = SparseOperator(T, b)
+    Is = Int[]
+    Js = Int[]
+    Vs = T[]
     # <{m}_j| at_to a_from |{m}_i>
     for i=1:length(b)
         occ_i = b.occupations[i]
@@ -188,11 +190,13 @@ function transition(::Type{T}, b::ManyBodyBasis, to, from) where T
         for j=1:length(b)
             occ_j = b.occupations[j]
             if isnonzero(occ_j, occ_i, to, from)
-                result.data[j, i] = sqrt(occ_i[from])*sqrt(occ_j[to])
+                push!(Is, j)
+                push!(Js, i)
+                push!(Vs, sqrt(occ_i[from]) * sqrt(occ_j[to]))
             end
         end
     end
-    result
+    return SparseOperator(b, sparse(Is, Js, Vs, length(b), length(b)))
 end
 transition(b::ManyBodyBasis, to, from) = transition(ComplexF64, b, to, from)
 
@@ -240,7 +244,7 @@ function manybodyoperator_1(basis::ManyBodyBasis, op::Operator)
     result = DenseOperator(basis)
     @inbounds for n=1:N, m=1:N
         for j=1:S, i=1:S
-            C = coefficient(basis.occupations[m], basis.occupations[n], [i], [j])
+            C = coefficient(basis.occupations[m], basis.occupations[n], i, j)
             if C != 0.
                 result.data[m,n] += C*op.data[i,j]
             end
@@ -252,22 +256,25 @@ manybodyoperator_1(basis::ManyBodyBasis, op::AdjointOperator) = dagger(manybodyo
 
 function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOpPureType)
     N = length(basis)
-    S = length(basis.onebodybasis)
-    result = SparseOperator(basis)
     M = op.data
+    Is = Int[]
+    Js = Int[]
+    Vs = ComplexF64[]
     @inbounds for colindex = 1:M.n
         for i=M.colptr[colindex]:M.colptr[colindex+1]-1
             row = M.rowval[i]
             value = M.nzval[i]
             for m=1:N, n=1:N
-                C = coefficient(basis.occupations[m], basis.occupations[n], [row], [colindex])
+                C = coefficient(basis.occupations[m], basis.occupations[n], row, colindex)
                 if C != 0.
-                    result.data[m, n] += C*value
+                    push!(Is, m)
+                    push!(Js, n)
+                    push!(Vs, C * value)
                 end
             end
         end
     end
-    return result
+    return SparseOperator(basis, sparse(Is, Js, Vs, N, N))
 end
 
 function manybodyoperator_2(basis::ManyBodyBasis, op::Operator)
@@ -280,7 +287,7 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::Operator)
     occupations = basis.occupations
     @inbounds for m=1:N, n=1:N
         for l=1:S, k=1:S, j=1:S, i=1:S
-            C = coefficient(occupations[m], occupations[n], [i, j], [k, l])
+            C = coefficient(occupations[m], occupations[n], (i, j), (k, l))
             result.data[m,n] += C*op_data[i, j, k, l]
         end
     end
@@ -290,7 +297,9 @@ end
 function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOpType)
     N = length(basis)
     S = length(basis.onebodybasis)
-    result = SparseOperator(basis)
+    Is = Int[]
+    Js = Int[]
+    Vs = ComplexF64[]
     occupations = basis.occupations
     rows = rowvals(op.data)
     values = nonzeros(op.data)
@@ -302,11 +311,13 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOpType)
             index = Tuple(CartesianIndices((S, S, S, S))[(column-1)*S^2 + row])
             C = coefficient(occupations[m], occupations[n], index[1:2], index[3:4])
             if C!=0.
-                result.data[m,n] += C*value
+                push!(Is, m)
+                push!(Js, n)
+                push!(Vs, C * value)
             end
         end
     end
-    return result
+    return SparseOperator(basis, sparse(Is, Js, Vs, N, N))
 end
 
 
@@ -354,7 +365,7 @@ function onebodyexpect_1(op::Operator, state::Ket)
     for m=1:N, n=1:N
         value = conj(state.data[m])*state.data[n]
         for i=1:S, j=1:S
-            C = coefficient(occupations[m], occupations[n], [i], [j])
+            C = coefficient(occupations[m], occupations[n], i, j)
             if C != 0.
                 result += C*op.data[i,j]*value
             end
@@ -371,7 +382,7 @@ function onebodyexpect_1(op::Operator, state::Operator)
     @inbounds for s=1:N, t=1:N
         value = state.data[t,s]
         for i=1:S, j=1:S
-            C = coefficient(occupations[s], occupations[t], [i], [j])
+            C = coefficient(occupations[s], occupations[t], i, j)
             if !iszero(C)
                 result += C*op.data[i,j]*value
             end
@@ -391,7 +402,7 @@ function onebodyexpect_1(op::SparseOpPureType, state::Ket)
             row = M.rowval[i]
             value = M.nzval[i]
             for m=1:N, n=1:N
-                C = coefficient(occupations[m], occupations[n], [row], [colindex])
+                C = coefficient(occupations[m], occupations[n], row, colindex)
                 if C != 0.
                     result += C*value*conj(state.data[m])*state.data[n]
                 end
@@ -412,7 +423,7 @@ function onebodyexpect_1(op::SparseOpPureType, state::Operator)
             row = M.rowval[i]
             value = M.nzval[i]
             for s=1:N, t=1:N
-                C = coefficient(occupations[s], occupations[t], [row], [colindex])
+                C = coefficient(occupations[s], occupations[t], row, colindex)
                 if C != 0.
                     result += C*value*state.data[t,s]
                 end
@@ -426,29 +437,18 @@ end
 """
 Calculate the matrix element <{m}|at_1...at_n a_1...a_n|{n}>.
 """
-function coefficient(occ_m, occ_n, at_indices, a_indices)
-    occ_m = copy(occ_m)
-    occ_n = copy(occ_n)
-    C = 1.
-    for i=at_indices
-        if occ_m[i] == 0
-            return 0.
-        end
-        C *= sqrt(occ_m[i])
-        occ_m[i] -= 1
+Base.@propagate_inbounds function coefficient(occ_m, occ_n, at_indices, a_indices)
+    any(==(0), (occ_m[m] for m in at_indices)) && return 0.
+    any(==(0), (occ_n[n] for n in a_indices)) && return 0.
+    C = prod(√, (occ_m[m] for m in at_indices)) * prod(√, (occ_n[n] for n in a_indices))
+    for i in 1:length(occ_m)
+        vm = occ_m[i]
+        vn = occ_n[i]
+        i in at_indices && (vm -= 1)
+        i in a_indices && (vn -= 1)
+        vm != vn && return zero(C)
     end
-    for i=a_indices
-        if occ_n[i] == 0
-            return 0.
-        end
-        C *= sqrt(occ_n[i])
-        occ_n[i] -= 1
-    end
-    if occ_m == occ_n
-        return C
-    else
-        return 0.
-    end
+    return C
 end
 
 function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
