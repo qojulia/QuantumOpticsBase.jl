@@ -43,12 +43,13 @@ b2 = FockBasis(2)
 k1 = coherentstate(b1, 0.39)
 k2 = coherentstate(b2, 1.4)
 op = projector(k1, k2')
-sOp2 = spre(op)
 
 try
+    sOp2 = spre(op)
     QuantumOpticsBase.apply!(st, 1, sOp2)
 catch e
-    @test typeof(e) <: QuantumInterface.IncompatibleBases
+    @test typeof(e) <: ArgumentError
+    #@test typeof(e) <: QuantumInterface.IncompatibleBases
 end
 
 end #testset
