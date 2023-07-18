@@ -115,7 +115,6 @@ x = -s1
 @test x.basis_l == (b1, b2)
 @test x.basis_r == (b3, b4)
 
-
 # TODO: Clean-up this part
 ωc = 1.2
 ωa = 0.9
@@ -148,6 +147,9 @@ J = [Ja, Jc]
 Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 5)
 ρ₀ = dm(Ψ₀)
 
+@test identitysuperoperator(spinbasis)*sx == sx
+@test identitysuperoperator(sparse(spre(sx)))*sx == sparse(sx)
+@test identitysuperoperator(dense(spre(sx)))*sx == dense(sx)
 
 op1 = DenseOperator(spinbasis, [1.2+0.3im 0.7+1.2im;0.3+0.1im 0.8+3.2im])
 op2 = DenseOperator(spinbasis, [0.2+0.1im 0.1+2.3im; 0.8+4.0im 0.3+1.4im])
@@ -156,6 +158,8 @@ op2 = DenseOperator(spinbasis, [0.2+0.1im 0.1+2.3im; 0.8+4.0im 0.3+1.4im])
 
 @test spre(sparse(op1))*op2 == op1*op2
 @test spost(sparse(op1))*op2 == op2*op1
+@test spre(sparse(dagger(op1)))*op2 == dagger(op1)*op2
+@test spre(dense(dagger(op1)))*op2 ≈ dagger(op1)*op2
 
 @test spre(sparse(op1))*sparse(op2) == sparse(op1*op2)
 @test spost(sparse(op1))*sparse(op2) == sparse(op2*op1)

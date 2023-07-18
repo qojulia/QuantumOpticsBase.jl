@@ -97,6 +97,9 @@ end
 -(a::SuperOperator) = SuperOperator(a.basis_l, a.basis_r, -a.data)
 -(a::SuperOperator, b::SuperOperator) = throw(IncompatibleBases())
 
+identitysuperoperator(b::Basis) =
+    SuperOperator((b,b), (b,b), Eye{ComplexF64}(length(b)^2))
+
 identitysuperoperator(op::DenseSuperOpType) = 
     SuperOperator(op.basis_l, op.basis_r, Matrix(one(eltype(op.data))I, size(op.data)))
 
