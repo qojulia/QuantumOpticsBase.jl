@@ -50,6 +50,8 @@ d = displace(b, alpha)
 @test 1e-12 > D(dagger(d)*d, identityoperator(b))
 @test 1e-12 > D(dagger(d), displace(b, -alpha))
 @test 1e-15 > norm(coherentstate(b, alpha) - displace(b, alpha)*fockstate(b, 0))
+alpha = 5
+@test coherentstate(b, alpha) ≈ displace_analytical(b, alpha)*fockstate(b, 0)
 
 # Test squeezing operator
 b = FockBasis(30)
