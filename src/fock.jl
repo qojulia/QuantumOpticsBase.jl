@@ -100,8 +100,9 @@ function displace_analytical(alpha::Number, n::Integer, m::Integer)
     if n < m
         return (-1)^isodd(abs(n - m)) * conj(displace_analytical(alpha, m, n))
     end
+    alpha = float(alpha) # promote alpha to float
     # compute factorial ratio directly, in float representation, to avoid integer overflow
-    s = 1.0 * one(real(alpha))
+    s = float(one(real(alpha)))
     for i in (m + 1):n
         s *= i
     end
