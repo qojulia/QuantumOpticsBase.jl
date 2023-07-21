@@ -9,6 +9,6 @@ using FillArrays
                   piracy=(broken=true,)
                   )
     # manual piracy check to exclude identityoperator
-    pirates = [pirate for pirate in Aqua.Piracy.hunt(QuantumOpticsBase) if pirate.name != :identityoperator]
+    pirates = [pirate for pirate in Aqua.Piracy.hunt(QuantumOpticsBase) if pirate.name ∉ [:identityoperator,:identitysuperoperator]]
     @test isempty(pirates)
 end # testset
