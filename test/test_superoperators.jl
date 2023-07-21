@@ -33,9 +33,14 @@ s_dense = dense(s_)
 
 # Test length
 b1 = GenericBasis(3)
+op = DenseOperator(b1, b1)
+S = spre(op)
+@test length(S) == length(S.data) == (3*3)^2
+S = spost(op)
+@test length(S) == length(S.data) == (3*3)^2
 b2 = GenericBasis(5)
 op = DenseOperator(b1, b2)
-S = spre(op)
+S = sprepost(dagger(op), op)
 @test length(S) == length(S.data) == (3*5)^2
 
 # Test arithmetic
@@ -156,9 +161,19 @@ op2 = DenseOperator(spinbasis, [0.2+0.1im 0.1+2.3im; 0.8+4.0im 0.3+1.4im])
 
 @test spre(sparse(op1))*op2 == op1*op2
 @test spost(sparse(op1))*op2 == op2*op1
+@test sprepost(sparse(op1), op1)*op2 ≈ op1*op2*op1
 
 @test spre(sparse(op1))*sparse(op2) == sparse(op1*op2)
 @test spost(sparse(op1))*sparse(op2) == sparse(op2*op1)
+@test sprepost(sparse(op1), sparse(op1))*sparse(op2) ≈ sparse(op1*op2*op1)
+
+@test sprepost(op1, op2) ≈ spre(op1)*spost(op2)
+b1 = FockBasis(1)
+b2 = FockBasis(5)
+op = fockstate(b1, 0) ⊗ dagger(fockstate(b2, 0))
+@test sprepost(dagger(op), op)*dm(fockstate(b1, 0)) == dm(fockstate(b2, 0))
+@test_throws ArgumentError spre(op)
+@test_throws ArgumentError spost(op)
 
 L = liouvillian(H, J)
 ρ = -1im*(H*ρ₀ - ρ₀*H)

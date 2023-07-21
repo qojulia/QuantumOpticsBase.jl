@@ -110,9 +110,16 @@ For operators ``A``, ``B`` the relation
 
 holds. `op` can be a dense or a sparse operator.
 """
-spre(op::AbstractOperator) = SuperOperator((op.basis_l, op.basis_l), (op.basis_r, op.basis_r), tensor(op, identityoperator(op)).data)
+function spre(op::AbstractOperator)
+    if !samebases(op.basis_l, op.basis_r)
+        throw(ArgumentError("It's not clear what spre of a non-square operator should be. See issue #113"))
+    end
+    SuperOperator((op.basis_l, op.basis_l), (op.basis_r, op.basis_r), tensor(op, identityoperator(op)).data)
+end
 
 """
+    spost(op)
+
 Create a super-operator equivalent for left side operator multiplication.
 
 For operators ``A``, ``B`` the relation
@@ -123,8 +130,27 @@ For operators ``A``, ``B`` the relation
 
 holds. `op` can be a dense or a sparse operator.
 """
-spost(op::AbstractOperator) = SuperOperator((op.basis_r, op.basis_r), (op.basis_l, op.basis_l), kron(permutedims(op.data), identityoperator(op).data))
+function spost(op::AbstractOperator)
+    if !samebases(op.basis_l, op.basis_r)
+        throw(ArgumentError("It's not clear what spost of a non-square operator should be. See issue #113"))
+    end
+    SuperOperator((op.basis_r, op.basis_r), (op.basis_l, op.basis_l), kron(permutedims(op.data), identityoperator(op).data))
+end
 
+"""
+    sprepost(op)
+
+Create a super-operator equivalent for left and right side operator multiplication.
+
+For operators ``A``, ``B``, ``C`` the relation
+
+```math
+    \\mathrm{sprepost}(A, B) C = A C B
+```
+
+holds. `A` ond `B` can be dense or a sparse operators.
+"""
+sprepost(A::AbstractOperator, B::AbstractOperator) = SuperOperator((A.basis_l, B.basis_r), (A.basis_r, B.basis_l), kron(permutedims(B.data), A.data))
 
 function _check_input(H::AbstractOperator{B1,B2}, J::Vector, Jdagger::Vector, rates) where {B1,B2}
     for j=J

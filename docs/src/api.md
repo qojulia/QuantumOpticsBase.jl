@@ -123,6 +123,10 @@ spost
 ```
 
 ```@docs
+sprepost
+```
+
+```@docs
 liouvillian
 ```
 
