@@ -1,5 +1,6 @@
 import Base: ==, *, /, +, -, Broadcast
 import SparseArrays: sparse
+import FastExpm: fastExpm
 
 const SparseOpPureType{BL,BR} = Operator{BL,BR,<:SparseMatrixCSC}
 const SparseOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:SparseMatrixCSC}}
@@ -43,6 +44,21 @@ function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1,B
         end
     end
     result
+end
+
+"""
+    exp(op::SparseOpType; opts...)
+
+Operator exponential used, for example, to calculate displacement operators.
+Uses [`FastExpm.jl.jl`](https://github.com/fmentink/FastExpm.jl) which will return a sparse
+or dense operator depending on which is more efficient.
+All optional arguments are passed to `fastExpm` and can be used to specify tolerances.
+
+If you only need the result of the exponential acting on a vector,
+consider using much faster implicit methods that do not calculate the entire exponential.
+"""
+function exp(op::T; opts...) where {B,T<:SparseOpType{B,B}}
+    return SparseOperator(op.basis_l, op.basis_r, fastExpm(op.data; opts...))
 end
 
 function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}

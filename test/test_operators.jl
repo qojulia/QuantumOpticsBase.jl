@@ -114,7 +114,10 @@ OP_cnot = embed(b8, [1,3], op_cnot)
 @test reduced(OP_cnot, [1,3])/2. == op_cnot
 @test_throws AssertionError embed(b2⊗b2, [1,1], op_cnot)
 
-@test_throws ArgumentError exp(sparse(op1))
+b = FockBasis(40)
+alpha = 1+5im
+H = alpha * create(b) - conj(alpha) * destroy(b)
+@test exp(sparse(H); threshold=1e-10) ≈ displace(b, alpha)
 
 @test one(b1).data == Diagonal(ones(b1.shape[1]))
 @test one(op1).data == Diagonal(ones(b1.shape[1]))
