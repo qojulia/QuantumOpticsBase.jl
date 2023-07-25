@@ -224,6 +224,9 @@ end
 
 Superoperator exponential which can, for example, be used to calculate time evolutions.
 Uses LinearAlgebra's `Base.exp`.
+
+If you only need the result of the exponential acting on an operator,
+consider using much faster implicit methods that do not calculate the entire exponential.
 """
 Base.exp(op::DenseSuperOpType) = DenseSuperOperator(op.basis_l, op.basis_r, exp(op.data))
 
@@ -234,6 +237,9 @@ Superoperator exponential which can, for example, be used to calculate time evol
 Uses [`FastExpm.jl.jl`](https://github.com/fmentink/FastExpm.jl) which will return a sparse
 or dense operator depending on which is more efficient.
 All optional arguments are passed to `fastExpm` and can be used to specify tolerances.
+
+If you only need the result of the exponential acting on an operator,
+consider using much faster implicit methods that do not calculate the entire exponential.
 """
 Base.exp(op::SparseSuperOpType; opts...) = SuperOperator(op.basis_l, op.basis_r, fastExpm(op.data; opts...))
 
