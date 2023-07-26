@@ -154,7 +154,10 @@ is_const(c::Function) = false
 coefficient_type(o::TimeDependentSum) = coefficient_type(static_operator(o))
 coefficient_type(o::LazySum) = eltype(o.factors)
 
-Base.copy(op::TimeDependentSum) = TimeDependentSum(copy.(op.coefficients), copy(op.static_op); init_time=current_time(op))
+_coeff_copy(c) = copy(c)
+_coeff_copy(c::Function) = c
+_coeff_copy(t::Tuple) = _coeff_copy.(t)
+Base.copy(op::TimeDependentSum) = TimeDependentSum(_coeff_copy(op.coefficients), copy(op.static_op); init_time=current_time(op))
 
 function ==(A::TimeDependentSum, B::TimeDependentSum)
     A.current_time == B.current_time && A.coefficients == B.coefficients && A.static_op == B.static_op
