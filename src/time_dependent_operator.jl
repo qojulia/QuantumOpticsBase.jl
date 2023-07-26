@@ -7,7 +7,7 @@ import Base: size, *, +, -, /, ==, isequal, adjoint, convert
 Abstract type providing a time-dependent operator interface. Time-dependent
 operators have internal "clocks" that can be addressed with [`set_time!`](@ref)
 and [`current_time`](@ref). A shorthand `op(t)`, equivalent to
-`set_time!(op, t)`, is available for brevity.
+`set_time!(copy(op), t)`, is available for brevity.
 
 A time-dependent operator is always concrete-valued according to the current
 time of its internal clock.
@@ -36,7 +36,7 @@ This does nothing in case `o` is not time-dependent.
 set_time!(o::AbstractOperator, ::Number) = o
 set_time!(o::LazyOperator, t::Number) = (set_time!.(o.operators, t); return o)
 
-(o::AbstractTimeDependentOperator)(t::Number) = set_time!(o, t)
+(o::AbstractTimeDependentOperator)(t::Number) = set_time!(copy(o), t)
 
 function _check_same_time(A::AbstractTimeDependentOperator, B::AbstractTimeDependentOperator)
     tA = current_time(A)
@@ -154,7 +154,10 @@ is_const(c::Function) = false
 coefficient_type(o::TimeDependentSum) = coefficient_type(static_operator(o))
 coefficient_type(o::LazySum) = eltype(o.factors)
 
-Base.copy(op::TimeDependentSum) = TimeDependentSum(copy(op.coefficients), copy(op.static_op); init_time=current_time(op))
+_coeff_copy(c) = copy(c)
+_coeff_copy(c::Function) = c
+_coeff_copy(t::Tuple) = _coeff_copy.(t)
+Base.copy(op::TimeDependentSum) = TimeDependentSum(_coeff_copy(op.coefficients), copy(op.static_op); init_time=current_time(op))
 
 function ==(A::TimeDependentSum, B::TimeDependentSum)
     A.current_time == B.current_time && A.coefficients == B.coefficients && A.static_op == B.static_op
