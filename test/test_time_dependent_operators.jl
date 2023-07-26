@@ -60,6 +60,8 @@ using LinearAlgebra, Random
     @test dense(o) == o
     @test sparse(o) == o
 
+    @test o(0.0) != o(1.0)
+
     o = TimeDependentSum(ComplexF64, FockBasis(2), FockBasis(2))
     b = FockBasis(2) ⊗ FockBasis(3)
 
@@ -99,7 +101,7 @@ using LinearAlgebra, Random
     o_t_tup = TimeDependentSum(Tuple, o_t)
     @test QOB.static_operator(o_t_tup(t)).factors == [1.0im, t*3.0 + 0.0im]
     @test all(QOB.static_operator(o_t_tup(t)).operators .=== (a, n))
-    @test (@allocated o_t_tup(t)) == 0
+    @test (@allocated set_time!(o_t_tup, t)) == 0
 
     o_t2 = TimeDependentSum(f1=>a, f2=>n)
     @test o_t(t) == o_t2(t)

@@ -36,7 +36,7 @@ This does nothing in case `o` is not time-dependent.
 set_time!(o::AbstractOperator, ::Number) = o
 set_time!(o::LazyOperator, t::Number) = (set_time!.(o.operators, t); return o)
 
-(o::AbstractTimeDependentOperator)(t::Number) = set_time!(o, t)
+(o::AbstractTimeDependentOperator)(t::Number) = set_time!(copy(o), t)
 
 function _check_same_time(A::AbstractTimeDependentOperator, B::AbstractTimeDependentOperator)
     tA = current_time(A)
