@@ -96,11 +96,11 @@ using LinearAlgebra, Random
 
     # function-call interface
     @test QOB.static_operator(o_t(t)).factors == [1.0im, t*3.0 + 0.0im]
-    @test all(QOB.static_operator(o_t(t)).operators .=== (a, n))
+    @test all(QOB.static_operator(o_t(t)).operators .== (a, n))
 
     o_t_tup = TimeDependentSum(Tuple, o_t)
     @test QOB.static_operator(o_t_tup(t)).factors == [1.0im, t*3.0 + 0.0im]
-    @test all(QOB.static_operator(o_t_tup(t)).operators .=== (a, n))
+    @test all(QOB.static_operator(o_t_tup(t)).operators .== (a, n))
     @test (@allocated set_time!(o_t_tup, t)) == 0
 
     o_t2 = TimeDependentSum(f1=>a, f2=>n)
@@ -125,44 +125,44 @@ using LinearAlgebra, Random
     o_res = o_t(0.0) + o2_t(0.0)
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0im, t*3.0, cos(t), t/3.0]
-    @test all(QOB.suboperators(o_res) .=== (a, n, b, n))
+    @test all(QOB.suboperators(o_res) .== (a, n, b, n))
 
     o_res = o_t - o2_t
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0im, t*3.0, -cos(t), -t/3.0]
-    @test all(QOB.suboperators(o_res) .=== (a, n, b, n))
+    @test all(QOB.suboperators(o_res) .== (a, n, b, n))
 
     o_res = -o_t
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == [-1.0im, -t*3.0]
-    @test all(QOB.suboperators(o_res) .=== (a, n))
+    @test all(QOB.suboperators(o_res) .== (a, n))
     
     o_res = a + o2_t
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0, cos(t), t/3.0]
-    @test all(QOB.suboperators(o_res) .=== (a, b, n))
+    @test all(QOB.suboperators(o_res) .== (a, b, n))
 
     o_res = a - o2_t
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0, -cos(t), -t/3.0]
-    @test all(QOB.suboperators(o_res) .=== (a, b, n))
+    @test all(QOB.suboperators(o_res) .== (a, b, n))
     
     o_res = LazySum(a, n) + o2_t
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0, 1.0, cos(t), t/3.0]
-    @test all(QOB.suboperators(o_res) .=== (a, n, b, n))
+    @test all(QOB.suboperators(o_res) .== (a, n, b, n))
 
     fac = randn(ComplexF64)
     o_res = fac * o2_t
     @test isa(o_res, TimeDependentSum)
     @test [QOB.eval_coefficients(o_res, t)...] ≈ [fac*cos(t), fac*t/3.0] rtol=1e-10
-    @test all(QOB.suboperators(o_res) .=== (b, n))
+    @test all(QOB.suboperators(o_res) .== (b, n))
 
     fac = randn(ComplexF64)
     o_res = o2_t / fac
     @test isa(o_res, TimeDependentSum)
     @test [QOB.eval_coefficients(o_res, t)...] ≈ [cos(t)/fac, t/3.0/fac] rtol=1e-10
-    @test all(QOB.suboperators(o_res) .=== (b, n))
+    @test all(QOB.suboperators(o_res) .== (b, n))
 
     o_res = o_t * o2_t
     @test isa(o_res, TimeDependentSum)
