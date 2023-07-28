@@ -42,6 +42,7 @@ op2 = randoperator(b_r, b_l)
 @test 0.1*(op1*op2) == dense(LazyProduct([sparse(op1), sparse(op2)], 0.1))
 @test 0.1*(sparse(op1)*sparse(op2)) == sparse(LazyProduct([op1, op2], 0.1))
 
+@test QuantumOpticsBase.is_const(op1)
 
 # Arithmetic operations
 # =====================

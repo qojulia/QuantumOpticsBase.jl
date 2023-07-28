@@ -26,6 +26,8 @@ op1 = DenseOperator(b1a, b1b, [1 1 1; 1 1 1])
 op2 = DenseOperator(b1b, b1a, [1 1; 1 1; 1 1])
 @test op1 == dagger(op2)
 
+@test QuantumOpticsBase.is_const(op1)
+
 ## Stacking Kets to make an Operator
 ### signle basis
 ψlist = basisstate.([GenericBasis(4)], 1:2)

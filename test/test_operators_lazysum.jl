@@ -40,6 +40,8 @@ op2.factors[1] = 3.
 @test QuantumOpticsBase.coefficients(op2) == op2.factors
 @test QuantumOpticsBase.suboperators(op2) == op2.operators
 
+@test QuantumOpticsBase.is_const(op1)
+
 # Test dense & sparse
 op1 = randoperator(b_l, b_r)
 op2 = sparse(randoperator(b_l, b_r))
