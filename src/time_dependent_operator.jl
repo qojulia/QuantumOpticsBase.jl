@@ -45,6 +45,13 @@ function _check_same_time(A::AbstractTimeDependentOperator, B::AbstractTimeDepen
         "Time-dependent operators with different times ($tA and $tB) cannot be combined. Consider setting their clocks to a common time with `set_time!`."))
 end
 
+is_const(op::AbstractTimeDependentOperator) = false
+is_const(op::AbstractOperator) = true
+is_const(op::LazyOperator) = all(is_const(o) for o in suboperators(op))
+is_const(op::LazyTensor) = all(is_const(o) for o in op.operators)
+is_const(c::Number) = true
+is_const(c::Function) = false
+
 for func in (:basis, :length, :size, :tr, :normalize, :normalize!,
     :identityoperator, :one, :eltype, :ptrace)
     @eval $func(op::AbstractTimeDependentOperator) = $func(static_operator(op))
@@ -145,11 +152,7 @@ function set_time!(o::TimeDependentSum, t::Number)
     o
 end
 
-is_const(op::AbstractOperator) = true
-is_const(op::LazyOperator) = all(is_const(o) for o in suboperators(op))
-is_const(op::TimeDependentSum) = all(is_const(c) for c in op.coefficients)
-is_const(c::Number) = true
-is_const(c::Function) = false
+is_const(op::TimeDependentSum) = all(is_const(c) for c in op.coefficients) && all(is_const(o) for o in suboperators(op))
 
 coefficient_type(o::TimeDependentSum) = coefficient_type(static_operator(o))
 coefficient_type(o::LazySum) = eltype(o.factors)
