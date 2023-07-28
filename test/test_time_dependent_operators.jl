@@ -12,6 +12,8 @@ using LinearAlgebra, Random
     @test_throws ArgumentError current_time(op)
     @test QOB.is_const(op)
 
+    op = dense(op)
+
     o = TimeDependentSum((t->2.0*cos(t))=>op)
     @test !QOB.is_const(o)
     @test TimeDependentSum(o) === o
