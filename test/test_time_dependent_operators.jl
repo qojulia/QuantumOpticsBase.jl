@@ -6,7 +6,7 @@ using LinearAlgebra, Random
     QOB = QuantumOpticsBase
 
     subop = randoperator(FockBasis(1))
-    op = subop ⊗ identityoperator(FockBasis(3))
+    op = LazyTensor(FockBasis(1) ⊗ FockBasis(3), 1, subop)
     @test QOB.static_operator(op) === op
     @test set_time!(op, 1.0) === op
     @test_throws ArgumentError current_time(op)
