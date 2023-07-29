@@ -36,13 +36,13 @@ op2.operators[1].data[1,1] = complex(10.)
 op2.factor = 3.
 @test op2.factor != op1.factor
 
+@test QuantumOpticsBase.is_const(op1)
+
 # Test dense & sparse
 op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_r, b_l)
 @test 0.1*(op1*op2) == dense(LazyProduct([sparse(op1), sparse(op2)], 0.1))
 @test 0.1*(sparse(op1)*sparse(op2)) == sparse(LazyProduct([op1, op2], 0.1))
-
-@test QuantumOpticsBase.is_const(op1)
 
 # Arithmetic operations
 # =====================
