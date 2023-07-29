@@ -54,6 +54,7 @@ x_.factor = 3.
 x_.indices[2] = 100
 @test x_.indices != x.indices
 
+@test QuantumOpticsBase.is_const(x)
 
 # Test dense & sparse
 I2 = identityoperator(b2a, b2b)

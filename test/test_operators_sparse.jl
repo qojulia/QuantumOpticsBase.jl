@@ -44,6 +44,8 @@ op2 = copy(op1)
 op2.data[1,1] = complex(10.)
 @test op1.data[1,1] != op2.data[1,1]
 
+@test QuantumOpticsBase.is_const(op1)
+
 # Arithmetic operations
 # =====================
 op_zero = SparseOperator(b_l, b_r)

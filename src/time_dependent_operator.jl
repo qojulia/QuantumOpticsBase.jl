@@ -47,8 +47,9 @@ end
 
 is_const(op::AbstractTimeDependentOperator) = false
 is_const(op::AbstractOperator) = true
-is_const(op::LazyOperator) = all(is_const(o) for o in suboperators(op))
+is_const(op::LazySum) = all(is_const(o) for o in op.operators)
 is_const(op::LazyTensor) = all(is_const(o) for o in op.operators)
+is_const(op::LazyProduct) = all(is_const(o) for o in op.operators)
 is_const(c::Number) = true
 is_const(c::Function) = false
 
