@@ -328,39 +328,28 @@ end
 
 Expectation value of the one-body operator `op` in respect to the many-body `state`.
 """
-function onebodyexpect(op::AbstractOperator, state::Ket)
-    @assert isa(state.basis, ManyBodyBasis)
+function onebodyexpect(op::AbstractOperator, state::Union{Ket,AbstractOperator})
+    bas = basis(state)
+    @assert bas isa ManyBodyBasis
     @assert op.basis_l == op.basis_r
-    if state.basis.onebodybasis == op.basis_l
-        result = onebodyexpect_1(op, state)
-        # Not yet implemented:
-        # elseif state.basis.basis ⊗ state.basis.basis == op.basis_l
-        #     result = onebodyexpect_2(op, state)
+    if bas.onebodybasis == op.basis_l
+        return onebodyexpect_1(op, state)
+    elseif bas.onebodybasis ⊗ bas.onebodybasis == op.basis_l
+        # Not yet implemented
+        throw(ArgumentError("`onebodyexpect` is not implemented for two-body states yet"))
     else
         throw(ArgumentError("The basis of the given operator has to either be equal to b or b ⊗ b where b is the 1st quantization basis associated to the nparticle basis of the state."))
     end
-    result
 end
 
-function onebodyexpect(op::AbstractOperator, state::AbstractOperator)
-    @assert op.basis_l == op.basis_r
-    @assert state.basis_l == state.basis_r
-    @assert isa(state.basis_l, ManyBodyBasis)
-    if state.basis_l.onebodybasis == op.basis_l
-        result = onebodyexpect_1(op, state)
-        # Not yet implemented
-        # elseif state.basis.basis ⊗ state.basis.basis == op.basis_l
-        #     result = onebodyexpect_2(op, state)
-    else
-        throw(ArgumentError("The basis of the given operator has to either be equal to b or b ⊗ b where b is the 1st quantization basis associated to the nparticle basis of the state."))
-    end
-    result
-end
 onebodyexpect(op::AbstractOperator, states::Vector) = [onebodyexpect(op, state) for state = states]
 
-function onebodyexpect_1(op::Operator, state::Ket)
-    S = length(state.basis.onebodybasis)
-    occupations = state.basis.occupations
+get_value(state::Ket,  m, n) = conj(state.data[m]) * state.data[n]
+get_value(state::Operator,  m, n) = state.data[n, m]
+function onebodyexpect_1(op::Operator, state)
+    b = basis(state)
+    occupations = b.occupations
+    S = length(b.onebodybasis)
     buffer = allocate_buffer(occupations)
     result = complex(0.0)
     for i = 1:S, j = 1:S
@@ -369,34 +358,16 @@ function onebodyexpect_1(op::Operator, state::Ket)
             C === nothing && continue
             n = state_index(occupations, buffer)
             n === nothing && continue
-            value = conj(state.data[m]) * state.data[n]
-            result += C * op.data[i, j] * value
+            result += C * op.data[i, j] * get_value(state, m, n)
         end
     end
     result
 end
 
-function onebodyexpect_1(op::Operator, state::Operator)
-    S = length(state.basis_l.onebodybasis)
-    result = complex(zero(promote_type(eltype(op), eltype(state))))
-    occupations = state.basis_l.occupations
-    buffer = allocate_buffer(occupations)
-    @inbounds for i = 1:S, j = 1:S
-        for (m, occ) in enumerate(occupations)
-            C = state_transition!(buffer, occ, i, j)
-            C === nothing && continue
-            n = state_index(occupations, buffer)
-            n === nothing && continue
-            value = state.data[n, m]
-            result += C * op.data[i, j] * value
-        end
-    end
-    result
-end
-
-function onebodyexpect_1(op::SparseOpPureType, state::Ket)
+function onebodyexpect_1(op::SparseOpPureType, state)
     result = complex(0.0)
-    occupations = state.basis.occupations
+    b = basis(state)
+    occupations = b.occupations
     buffer = allocate_buffer(occupations)
     M = op.data
     @inbounds for colindex = 1:M.n
@@ -408,28 +379,7 @@ function onebodyexpect_1(op::SparseOpPureType, state::Ket)
                 C === nothing && continue
                 n = state_index(occupations, buffer)
                 n === nothing && continue
-                result += C * value * conj(state.data[m]) * state.data[n]
-            end
-        end
-    end
-    result
-end
-
-function onebodyexpect_1(op::SparseOpPureType, state::Operator)
-    result = complex(0.0)
-    occupations = state.basis_l.occupations
-    buffer = allocate_buffer(occupations)
-    M = op.data
-    @inbounds for colindex = 1:M.n
-        for i = M.colptr[colindex]:M.colptr[colindex+1]-1
-            row = M.rowval[i]
-            value = M.nzval[i]
-            for (m, occ) in enumerate(occupations)
-                C = state_transition!(buffer, occ, row, colindex)
-                C === nothing && continue
-                n = state_index(occupations, buffer)
-                n === nothing && continue
-                result += C * value * state.data[n, m]
+                result += C * value * get_value(state, m, n)
             end
         end
     end
