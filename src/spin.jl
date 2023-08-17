@@ -83,3 +83,21 @@ Spin down state for the given Spin basis.
 """
 spindown(::Type{T}, b::SpinBasis) where T = basisstate(T, b, b.shape[1])
 spindown(b::SpinBasis) = spindown(ComplexF64, b)
+
+"""
+    squeeze(b::SpinBasis, x::Complex)
+
+This function generates a spin squeeze operator  
+along squeezing direction specified by arg(x)/2
+                   exp(0.5/N*( conj(x)*Jm^2 - x*Jp^2 ))
+note that due to the finiteness of the Hilbert space setting a too large
+ squeezing x will create an oversqueezed state. For nice squeezing
+ x should be smaller than sqrt(N). 
+"""
+function squeeze(b::SpinBasis,x)
+    N = length(b)-1
+    Jm = sigmam(b)/2
+    Jp = sigmap(b)/2
+    s = exp(conj(x)*dense(Jm)^2/2/N - x*dense(Jp)^2/2/N)
+    return s
+end
