@@ -84,20 +84,19 @@ Spin down state for the given Spin basis.
 spindown(::Type{T}, b::SpinBasis) where T = basisstate(T, b, b.shape[1])
 spindown(b::SpinBasis) = spindown(ComplexF64, b)
 
-"""
-    squeeze(b::SpinBasis, x::Complex)
 
-This function generates a spin squeeze operator  
-along squeezing direction specified by arg(x)/2
-                   exp(0.5/N*( conj(x)*Jm^2 - x*Jp^2 ))
-note that due to the finiteness of the Hilbert space setting a too large
- squeezing x will create an oversqueezed state. For nice squeezing
- x should be smaller than sqrt(N). 
 """
-function squeeze(b::SpinBasis,x)
-    N = length(b)-1
+    squeeze([T=ComplexF64,] b::SpinBasis, z)
+
+Squeezing operator ``S(z)=\\exp{\\left(\\frac{z^*\\hat{J_-}^2 - z\\hat{J}_+}{2 N}\\right)}`` for the 
+specified Spin-``N/2`` basis with optional data type `T`, computed as the matrix exponential. Too
+large squeezing (``|z| > \\sqrt{N}``) will create an oversqueezed state.
+"""
+function squeeze(::Type{T}, b::SpinBasis, z::Number) where T
+    N = Int(length(b)-1)
+    z = T(z)/2N
     Jm = sigmam(b)/2
     Jp = sigmap(b)/2
-    s = exp(conj(x)*dense(Jm)^2/2/N - x*dense(Jp)^2/2/N)
-    return s
+    exp(conj(z)*dense(Jm)^2 - z*dense(Jp)^2)
 end
+squeeze(b::SpinBasis, z::T) where {T <: Number} = squeeze(ComplexF64, b, z)

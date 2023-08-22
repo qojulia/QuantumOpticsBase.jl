@@ -113,21 +113,21 @@ antikommutator(x, y) = x*y + y*x
 @test 1e-11 > norm(sm*spinup(spinbasis) - spindown(spinbasis))
 @test 1e-11 > norm(sp*spindown(spinbasis) - spinup(spinbasis))
 
-# squeeze oerator test SPIN
+# squeeze operator test SPIN
 Nspins = 500
 b_spin = SpinBasis(Nspins//2)
-ss = squeeze(b_spin,rand()*sqrt(Nspins)*exp(1im*rand()*pi));
-st = ss*spindown(b_spin);
+s1 = squeeze(b_spin,0.23*sqrt(Nspins)*exp(1im*0.23*pi))
+s2 = s1*spindown(b_spin);
 
 # Heisenberg uncertainty test
-@test abs(variance(sigmax(b_spin)/2,st)*variance(sigmay(b_spin)/2,st)) ≥ abs2(expect(sigmaz(b_spin)/2,st))/4
+@test abs(variance(sigmax(b_spin)/2,s2)*variance(sigmay(b_spin)/2,s2)) ≥ abs2(expect(sigmaz(b_spin)/2,s2))/4
 
 # small squeezing test
-xx = rand()/10
-ss = squeeze(b_spin,xx*sqrt(Nspins));
-st = ss*spindown(b_spin);
+x1 = 0.023
+s1 = squeeze(b_spin,x1*sqrt(Nspins));
+s2 = s1*spindown(b_spin);
 
-@test isapprox(2*log(real(variance(sigmax(b_spin)/2,st))/Nspins*4) , -xx*sqrt(Nspins), atol=1e-2)
-@test isapprox(2*log(real(variance(sigmay(b_spin)/2,st))/Nspins*4) , xx*sqrt(Nspins), atol=1e-2)
+@test isapprox(2*log(real(variance(sigmax(b_spin)/2,s2))/Nspins*4) , -x1*sqrt(Nspins), atol=1e-2)
+@test isapprox(2*log(real(variance(sigmay(b_spin)/2,s2))/Nspins*4) , x1*sqrt(Nspins), atol=1e-2)
 
 end # testset
