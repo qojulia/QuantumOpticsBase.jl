@@ -87,7 +87,7 @@ identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOpe
 """
     diagonaloperator(b::Basis)
 
-Create a diagonal operator of type  [`SparseOperator`](@ref).
+Create a diagonal operator of type [`SparseOperator`](@ref).
 """
 function diagonaloperator(b::Basis, diag)
   @assert 1 <= length(diag) <= length(b)
