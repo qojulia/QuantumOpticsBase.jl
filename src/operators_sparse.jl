@@ -6,14 +6,12 @@ const SparseOpPureType{BL,BR} = Operator{BL,BR,<:SparseMatrixCSC}
 const SparseOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:SparseMatrixCSC}}
 const SparseOpType{BL,BR} = Union{SparseOpPureType{BL,BR},SparseOpAdjType{BL,BR}}
 
-
 """
     SparseOperator(b1[, b2, data])
 
 Sparse array implementation of Operator.
 
-The matrix is stored as the julia built-in type `SparseMatrixCSC`
-in the `data` field.
+The matrix is stored as the julia built-in type `SparseMatrixCSC` in the `data` field.
 """
 SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, SparseMatrixCSC(data))
 SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC) = Operator(b1, b2, data)
