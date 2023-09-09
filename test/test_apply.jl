@@ -52,4 +52,8 @@ catch e
     #@test typeof(e) <: QuantumInterface.IncompatibleBases
 end
 
+#test CNOT₂₋₁
+CNOT = DenseOperator(_b2⊗_b2, Complex.([1 0 0 0; 0 0 0 1; 0 0 1 0; 0 1 0 0]))
+@test QuantumOpticsBase.apply!(_l0⊗_l1, [2,1], CNOT) == _l1⊗_l1
+
 end #testset
