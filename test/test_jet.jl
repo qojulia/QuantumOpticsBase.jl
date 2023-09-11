@@ -19,7 +19,7 @@ function (::MayThrowIsOk)(report_type::Type{<:InferenceErrorReport}, @nospeciali
 end
 
 # imported to be declared as modules filtered out from analysis result
-using LinearAlgebra, LRUCache, Strided, Dates, SparseArrays
+using LinearAlgebra, LRUCache, Strided, StridedViews, Dates, SparseArrays
 
 @testset "jet" begin
     if get(ENV,"JET_TEST","")=="true"
@@ -29,6 +29,7 @@ using LinearAlgebra, LRUCache, Strided, Dates, SparseArrays
                 AnyFrameModule(LinearAlgebra),
                 AnyFrameModule(LRUCache),
                 AnyFrameModule(Strided),
+                AnyFrameModule(StridedViews),
                 AnyFrameModule(Dates),
                 AnyFrameModule(SparseArrays))
             )

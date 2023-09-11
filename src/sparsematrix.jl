@@ -246,7 +246,7 @@ function _permutedims(x::AbstractSparseMatrix, shape, perm) # TODO upstream as `
     shape = (shape...,)
     shape_perm = ([shape[i] for i in perm]...,)
     y = spzeros(eltype(x), x.m, x.n)
-    for I in eachindex(x)
+    for I in eachindex(x)::CartesianIndices # Help with inference (detected by JET)
         linear_index = LinearIndices((x.m, x.n))[I.I...]
         cartesian_index = CartesianIndices(shape)[linear_index]
         cartesian_index_perm = [cartesian_index[i] for i=perm]
