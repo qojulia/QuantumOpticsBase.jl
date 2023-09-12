@@ -241,9 +241,16 @@ All optional arguments are passed to `fastExpm` and can be used to specify toler
 If you only need the result of the exponential acting on an operator,
 consider using much faster implicit methods that do not calculate the entire exponential.
 """
-Base.exp(op::SparseSuperOpType; opts...) = SuperOperator(op.basis_l, op.basis_r, fastExpm(op.data; opts...))
+function Base.exp(op::SparseSuperOpType; opts...)
+    if iszero(op)
+        return identitysuperoperator(op)
+    else
+        return SuperOperator(op.basis_l, op.basis_r, fastExpm(op.data; opts...))
+    end
+end
 
 # Array-like functions
+Base.zero(A::SuperOperator) = SuperOperator(A.basis_l, A.basis_r, zero(A.data))
 Base.size(A::SuperOperator) = size(A.data)
 @inline Base.axes(A::SuperOperator) = axes(A.data)
 Base.ndims(A::SuperOperator) = 2

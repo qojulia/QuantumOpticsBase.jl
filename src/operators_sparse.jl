@@ -56,7 +56,11 @@ If you only need the result of the exponential acting on a vector,
 consider using much faster implicit methods that do not calculate the entire exponential.
 """
 function exp(op::T; opts...) where {B,T<:SparseOpType{B,B}}
-    return SparseOperator(op.basis_l, op.basis_r, fastExpm(op.data; opts...))
+    if iszero(op)
+        return identityoperator(op)
+    else
+        return SparseOperator(op.basis_l, op.basis_r, fastExpm(op.data; opts...))
+    end
 end
 
 function permutesystems(rho::SparseOpPureType{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
