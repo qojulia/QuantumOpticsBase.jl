@@ -1,3 +1,4 @@
+import ClassicalOrthogonalPolynomials: Hermite, Normalized, OrthonormalWeighted
 """
     transform([S=ComplexF64, ]b1::PositionBasis, b2::FockBasis; x0=1)
     transform([S=ComplexF64, ]b1::FockBasis, b2::PositionBasis; x0=1)
@@ -15,38 +16,14 @@ a harmonic trap potential at position ``x``, i.e.:
             \\frac{1}{\\sqrt{2^n n!}} H_n\\left(\\frac{x}{x_0}\\right)
 ```
 """
-function transform(::Type{S}, b1::PositionBasis, b2::FockBasis; x0=1) where S
-    T = Matrix{S}(undef, length(b1), length(b2))
-    xvec = samplepoints(b1)
-    A = hermite.A(b2.N)
-    delta_x = spacing(b1)
-    c = 1.0/sqrt(x0*sqrt(pi))*sqrt(delta_x)
-    for i in 1:length(b1)
-        u = xvec[i]/x0
-        C = c*exp(-u^2/2)
-        for n=b2.offset:b2.N
-            idx = n-b2.offset+1
-            T[i,idx] = C*horner(A[n+1], u)
-        end
-    end
-    DenseOperator(b1, b2, T)
+function transform(::Type{S}, bp::PositionBasis, bf::FockBasis) where S
+    xvec = samplepoints(bp)
+    C = sqrt(spacing(bp))
+    H = OrthonormalWeighted(Normalized(Hermite()))
+    T = H[xvec, (bf.offset+1):(bf.N+1)]
+    DenseOperator(bp, bf, convert(Matrix{S}, C*T))
 end
 
-function transform(::Type{S}, b1::FockBasis, b2::PositionBasis; x0=1) where S
-    T = Matrix{S}(undef, length(b1), length(b2))
-    xvec = samplepoints(b2)
-    A = hermite.A(b1.N)
-    delta_x = spacing(b2)
-    c = 1.0/sqrt(x0*sqrt(pi))*sqrt(delta_x)
-    for i in 1:length(b2)
-        u = xvec[i]/x0
-        C = c*exp(-u^2/2)
-        for n=b1.offset:b1.N
-            idx = n-b1.offset+1
-            T[idx,i] = C*horner(A[n+1], u)
-        end
-    end
-    DenseOperator(b1, b2, T)
-end
+transform(::Type{S}, bf::FockBasis, bp::PositionBasis) where S = dagger(transform(S, bp, bf))
 
 transform(b1::Basis,b2::Basis;kwargs...) = transform(ComplexF64,b1,b2;kwargs...)

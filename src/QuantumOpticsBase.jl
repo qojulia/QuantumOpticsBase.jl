@@ -65,7 +65,6 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #apply
                 apply!
 
-include("polynomials.jl")
 include("bases.jl")
 include("states.jl")
 include("operators.jl")

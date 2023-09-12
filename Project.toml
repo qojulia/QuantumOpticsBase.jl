@@ -4,6 +4,7 @@ version = "0.4.14"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+ClassicalOrthogonalPolynomials = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FastExpm = "7868e603-8603-432e-a1a1-694bd70b01f2"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
@@ -17,6 +18,7 @@ UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
 [compat]
 Adapt = "1, 2, 3.3"
+ClassicalOrthogonalPolynomials = "0.11"
 FFTW = "1.2"
 FastExpm = "1.1.0"
 FillArrays = "0.13, 1"
