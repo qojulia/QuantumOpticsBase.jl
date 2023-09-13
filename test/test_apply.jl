@@ -64,4 +64,13 @@ CNOT = DenseOperator(_b2⊗_b2, Complex.([1 0 0 0; 0 0 0 1; 0 0 1 0; 0 1 0 0]))
 # 3-operator operator permutation
 @test QuantumOpticsBase.apply!(_x⊗_y⊗_z, [2,3,1], _x⊗_y⊗_z) ≈ (_y⊗_z⊗_x)*(_x⊗_y⊗_z)*(_y⊗_z⊗_x)'
 
+#3-qubit/operator errors when called for applying superoperator
+sOp1 = spre(create(FockBasis(1)))
+sOp2 = spost(create(FockBasis(1)))
+st1 = coherentstate(FockBasis(1), 1.4)
+st2 = coherentstate(FockBasis(1), 0.3)
+st3 = coherentstate(FockBasis(1), 0.8)
+
+@test_throws "Applying SuperOperator to multiple qubits/operators is not supported currently, due to missing tensor product method for SuperOperators" QuantumOpticsBase.apply!(st1⊗st2⊗st3, [2,3,1], sOp1)
+
 end #testset

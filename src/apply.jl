@@ -31,6 +31,9 @@ function apply!(state::Ket, indices, operation::T) where {T<:AbstractSuperOperat
 end
 
 function apply!(state::Operator, indices, operation::T) where {T<:AbstractSuperOperator}
+    if length(indices)>1
+        throw("Applying SuperOperator to multiple qubits/operators is not supported currently, due to missing tensor product method for SuperOperators")
+    end
     op = basis(state)==basis(operation) ? operation : embed(basis(state), indices, operation)
     state.data = (op*state).data
     state
