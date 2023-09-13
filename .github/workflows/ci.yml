@@ -22,6 +22,10 @@ jobs:
         exclude:
           - os: macOS-latest
             arch: x86
+        include:
+          - os: ubuntu-latest
+            arch: x64
+            version: '1.3'
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
