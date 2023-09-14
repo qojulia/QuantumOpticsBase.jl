@@ -36,9 +36,10 @@ names = [
 
     "test_printing.jl",
 
+    "test_apply.jl",
+
     "test_aqua.jl",
-    "test_jet.jl",
-    "test_apply.jl"
+    "test_jet.jl"
 ]
 
 detected_tests = filter(
