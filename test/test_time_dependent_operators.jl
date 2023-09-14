@@ -90,7 +90,7 @@ using LinearAlgebra, Random
 
     o_t1_comp2_ = embed(FockBasis(2) ⊗ GenericBasis(2), [1], o_t1)
     @test o_t1_comp2 == o_t1_comp2_
-    
+
     o_t = TimeDependentSum([f1, f2], [a,n])
     @test !QOB.is_const(o_t)
 
@@ -122,7 +122,7 @@ using LinearAlgebra, Random
 
     b = randoperator(FockBasis(2))
     o2_t = TimeDependentSum([t->cos(t), t->t/3.0], [b, n])
-    
+
     # operations
     o_res = o_t(0.0) + o2_t(0.0)
     @test isa(o_res, TimeDependentSum)
@@ -138,7 +138,7 @@ using LinearAlgebra, Random
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == [-1.0im, -t*3.0]
     @test all(QOB.suboperators(o_res) .== (a, n))
-    
+
     o_res = a + o2_t
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0, cos(t), t/3.0]
@@ -148,7 +148,7 @@ using LinearAlgebra, Random
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0, -cos(t), -t/3.0]
     @test all(QOB.suboperators(o_res) .== (a, b, n))
-    
+
     o_res = LazySum(a, n) + o2_t
     @test isa(o_res, TimeDependentSum)
     @test QOB.eval_coefficients(o_res, t) == ComplexF64[1.0, 1.0, cos(t), t/3.0]
@@ -221,11 +221,11 @@ end
     @test @inferred QOB.eval_coefficients(op_block_shift, 4.9) == (0.0, 0.0)
     @test @inferred QOB.eval_coefficients(op_block_shift, 5.0) == (1.0, -5.0)
     @test @inferred QOB.eval_coefficients(op_block_shift, 20.0) == (0.0, 0.0)
-    
+
     op_stretch_block_shift = time_stretch(op_block_shift, 2.0)
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 9.9) == (0.0, 0.0)
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 10.0) == (1.0, -5.0)
-    @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0-√eps()) == (1.0, 5.0-0.5√eps())
+    @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0-√eps()) == (1.0, 5.0-0.5*√eps())
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0) == (0.0, 0.0)
 
     op_block = time_restrict(op, 15.0)
