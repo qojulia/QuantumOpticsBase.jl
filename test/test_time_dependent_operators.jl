@@ -225,7 +225,7 @@ end
     op_stretch_block_shift = time_stretch(op_block_shift, 2.0)
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 9.9) == (0.0, 0.0)
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 10.0) == (1.0, -5.0)
-    @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0-√eps()) == (1.0, 5.0-0.5√eps())
+    @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0-√eps()) == (1.0, 5.0-0.5*√eps())
     @test @inferred QOB.eval_coefficients(op_stretch_block_shift, 30.0) == (0.0, 0.0)
 
     op_block = time_restrict(op, 15.0)
