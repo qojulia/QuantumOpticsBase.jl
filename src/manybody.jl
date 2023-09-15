@@ -4,30 +4,26 @@ struct Occupations{T} <: OccupationsIterator
     occupations::Vector{T}
     function Occupations(occ::Vector{T}) where {T}
         length(occ) > 0 && @assert all(==(length(first(occ))) ∘ length, occ)
-        if issorted(occ, lt=vector_isless, rev=true)
+        if issorted(occ)
             new{T}(occ)
         else
-            new{T}(sort(occ, lt=vector_isless, rev=true))
+            new{T}(sort(occ))
         end
     end
     Occupations(occ::Vector{T}, ::Val{:no_checks}) where {T} = new{T}(occ)
 end
 Base.:(==)(occ1::Occupations, occ2::Occupations) = occ1.occupations == occ2.occupations
+Base.@propagate_inbounds function Base.getindex(occ::Occupations, i::Int)
+    @boundscheck !checkbounds(Bool, occ.occupations, i) && throw(BoundsError(occ, i))
+    return occ.occupations[i]
+end
 Base.iterate(occ::Occupations, s...) = iterate(occ.occupations, s...)
 Base.length(occ::Occupations) = length(occ.occupations)
 allocate_buffer(occ::Occupations) = similar(first(occ))
-function vector_isless(a::T, b::T) where {T<:AbstractVector}
-    @assert length(a) == length(b)
-    @inbounds for i in eachindex(a)
-        isless(a[i], b[i]) && return true
-        isless(b[i], a[i]) && return false
-    end
-    return false
-end
 function state_index(occ::Occupations, state)
     length(state) != length(first(occ)) && return nothing
-    ret = searchsortedfirst(occ.occupations, state, lt=vector_isless, rev=true)
-    ret in (0, length(occ) + 1) && return nothing
+    ret = searchsortedfirst(occ.occupations, state)
+    ret == length(occ) + 1 && return nothing
     return occ.occupations[ret] == state ? ret : nothing
 end
 Base.union(occ1::Occupations{T}, occ2::Occupations{T}) where {T} =
@@ -42,19 +38,18 @@ The basis has to know the associated one-body basis `b` and which occupation sta
 should be included. The occupations_hash is used to speed up checking if two
 many-body bases are equal.
 """
-struct ManyBodyBasis{B,O,H,UT} <: Basis
+struct ManyBodyBasis{B,O,UT} <: Basis
     shape::Int
     onebodybasis::B
     occupations::O
     occupations_hash::UT
-
-    function ManyBodyBasis{B,O,H}(onebodybasis::B, occupations::O) where {B,O<:OccupationsIterator,H}
-        @assert isa(H, UInt)
-        new{B,O,H,typeof(H)}(length(occupations), onebodybasis, occupations, hash(hash.(occupations)))
+    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O<:OccupationsIterator}
+        h = hash(hash.(occupations))
+        new{B,O,typeof(h)}(length(occupations), onebodybasis, occupations, h)
     end
 end
-ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O,hash(hash.(occupations))}(onebodybasis, occupations)
-ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis{B,Occupations{T},hash(hash.(occupations))}(onebodybasis, Occupations(occupations))
+ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(onebodybasis, occupations)
+ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis{B,Occupations{T}}(onebodybasis, Occupations(occupations))
 
 """
     fermionstates(Nmodes, Nparticles)
