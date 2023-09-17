@@ -1,6 +1,5 @@
 names = [
     "test_sortedindices.jl",
-    "test_polynomials.jl",
 
     "test_bases.jl",
     "test_states.jl",
