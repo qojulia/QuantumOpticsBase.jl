@@ -1,6 +1,4 @@
-abstract type OccupationsIterator end
-
-struct Occupations{T} <: OccupationsIterator
+struct Occupations{T} <: AbstractVector{Vector{T}}
     occupations::Vector{T}
     function Occupations(occ::Vector{T}) where {T}
         length(occ) > 0 && @assert all(==(length(first(occ))) ∘ length, occ)
@@ -13,12 +11,11 @@ struct Occupations{T} <: OccupationsIterator
     Occupations(occ::Vector{T}, ::Val{:no_checks}) where {T} = new{T}(occ)
 end
 Base.:(==)(occ1::Occupations, occ2::Occupations) = occ1.occupations == occ2.occupations
+Base.size(occ::Occupations) = (length(occ.occupations),)
 Base.@propagate_inbounds function Base.getindex(occ::Occupations, i::Int)
     @boundscheck !checkbounds(Bool, occ.occupations, i) && throw(BoundsError(occ, i))
     return occ.occupations[i]
 end
-Base.iterate(occ::Occupations, s...) = iterate(occ.occupations, s...)
-Base.length(occ::Occupations) = length(occ.occupations)
 allocate_buffer(occ::Occupations) = similar(first(occ))
 function state_index(occ::Occupations, state)
     length(state) != length(first(occ)) && return nothing
@@ -26,8 +23,9 @@ function state_index(occ::Occupations, state)
     ret == length(occ) + 1 && return nothing
     return occ.occupations[ret] == state ? ret : nothing
 end
-Base.union(occ1::Occupations{T}, occ2::Occupations{T}) where {T} =
-    Occupations(union(occ1.occupations, occ2.occupations))
+state_index(occ::AbstractVector, state) = findfirst(==(state), occ)
+Base.union(occ1::Occupations{T}, occs::Occupations{T}...) where {T} =
+    Occupations(union(occ1.occupations, (occ.occupations for occ in occs)...))
 
 """
     ManyBodyBasis(b, occupations)
@@ -43,7 +41,7 @@ struct ManyBodyBasis{B,O,UT} <: Basis
     onebodybasis::B
     occupations::O
     occupations_hash::UT
-    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O<:OccupationsIterator}
+    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O}
         h = hash(hash.(occupations))
         new{B,O,typeof(h)}(length(occupations), onebodybasis, occupations, h)
     end
