@@ -16,7 +16,7 @@ Base.@propagate_inbounds function Base.getindex(occ::Occupations, i::Int)
     @boundscheck !checkbounds(Bool, occ.occupations, i) && throw(BoundsError(occ, i))
     return occ.occupations[i]
 end
-allocate_buffer(occ::Occupations) = similar(first(occ))
+allocate_buffer(occ::AbstractVector) = similar(first(occ))
 function state_index(occ::Occupations, state)
     length(state) != length(first(occ)) && return nothing
     ret = searchsortedfirst(occ.occupations, state, lt= >)
@@ -41,7 +41,7 @@ struct ManyBodyBasis{B,O,UT} <: Basis
     onebodybasis::B
     occupations::O
     occupations_hash::UT
-    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O}
+    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O<:AbstractVector}
         h = hash(hash.(occupations))
         new{B,O,typeof(h)}(length(occupations), onebodybasis, occupations, h)
     end
