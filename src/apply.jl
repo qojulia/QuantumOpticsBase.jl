@@ -1,6 +1,6 @@
 nsubsystems(s::Ket) = nsubsystems(s.basis)
 function nsubsystems(s::Operator)
-    @assert s.basis_l == s.basis_r
+    s.basis_l == s.basis_r || throw(ArgumentError("`nsubsystem(::Operator)` is well defined only if the left and right bases are the same"))
     nsubsystems(s.basis_l)
 end
 nsubsystems(b::CompositeBasis) = length(b.bases)
