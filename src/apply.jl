@@ -1,27 +1,32 @@
-function apply!(state::Ket, indices, operation::Operator)
-    op = basis(state)==basis(operation) ? operation : embed(basis(state), indices, operation)
-    if (length(indices)>1)
-        for i in 2:length(indices)
-            if indices[i]<indices[i-1]
-                op = permutesystems(op, indices)
-                break
-            end
-        end
+nsubsystems(s::Ket) = nsubsystems(s.basis)
+function nsubsystems(s::Operator)
+    s.basis_l == s.basis_r || throw(ArgumentError("`nsubsystem(::Operator)` is well defined only if the left and right bases are the same"))
+    nsubsystems(s.basis_l)
+end
+nsubsystems(b::CompositeBasis) = length(b.bases)
+nsubsystems(b::Basis) = 1
+
+function is_apply_shortcircuit(state, indices, operation)
+    if nsubsystems(state) == 1
+        basis(state)==basis(operation) || throw(ArgumentError("`apply!` failed due to incompatible bases of the state and the operation attempted to be applied on it"))
     end
+    basis(state)==basis(operation) || return false
+    j = 1
+    for i in indices
+        i == j || return false
+        j+=1
+    end
+    return j-1 == length(indices)
+end
+
+function apply!(state::Ket, indices, operation::Operator)
+    op = is_apply_shortcircuit(state, indices, operation) ? operation : embed(basis(state), indices, operation)
     state.data = (op*state).data
     state
 end
 
 function apply!(state::Operator, indices, operation::Operator)
-    op = basis(state)==basis(operation) ? operation : embed(basis(state), indices, operation)
-    if (length(indices)>1)
-        for i in 2:length(indices)
-            if indices[i]<indices[i-1]
-                op = permutesystems(op, indices)
-                break
-            end
-        end
-    end
+    op = is_apply_shortcircuit(state, indices, operation) ? operation : embed(basis(state), indices, operation)
     state.data = (op*state*op').data
     state
 end
@@ -31,10 +36,10 @@ function apply!(state::Ket, indices, operation::T) where {T<:AbstractSuperOperat
 end
 
 function apply!(state::Operator, indices, operation::T) where {T<:AbstractSuperOperator}
-    if length(indices)>1
-        error("Applying SuperOperator to multiple qubits/operators is not supported currently, due to missing tensor product method for SuperOperators")
+    if is_apply_shortcircuit(state, indices, operation)
+        state.data = (operation*state).data
+        return state
+    else
+        error("`apply!` does not yet support embedding superoperators acting only on a subsystem of the given state")
     end
-    op = basis(state)==basis(operation) ? operation : embed(basis(state), indices, operation)
-    state.data = (op*state).data
-    state
 end
