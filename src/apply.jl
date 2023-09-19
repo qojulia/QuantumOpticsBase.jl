@@ -1,11 +1,3 @@
-nsubsystems(s::Ket) = nsubsystems(s.basis)
-function nsubsystems(s::Operator)
-    s.basis_l == s.basis_r || throw(ArgumentError("`nsubsystem(::Operator)` is well defined only if the left and right bases are the same"))
-    nsubsystems(s.basis_l)
-end
-nsubsystems(b::CompositeBasis) = length(b.bases)
-nsubsystems(b::Basis) = 1
-
 function is_apply_shortcircuit(state, indices, operation)
     if nsubsystems(state) == 1
         basis(state)==basis(operation) || throw(ArgumentError("`apply!` failed due to incompatible bases of the state and the operation attempted to be applied on it"))
