@@ -41,6 +41,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 displace, displace_analytical, displace_analytical!,
                 squeeze,
         randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,
+        randstate_haar, randunitary_haar,
         #spin
                 SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
         #subspace
