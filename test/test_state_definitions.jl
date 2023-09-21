@@ -1,5 +1,6 @@
 using Test
 using QuantumOpticsBase
+using Random
 
 @testset "state_definitions" begin
 
@@ -36,5 +37,14 @@ end
 @test isapprox(expect(number(b),rpas),1/(exp(omega/T)-1), atol=1e-14)
 @test isapprox(expect(destroy(b),rpas),0, atol=1e-14)
 @test isapprox(entropy_vn(rpas),S, atol=1e-14)
+
+Random.seed!(0)
+
+for n in 1:5:50
+    b = FockBasis(n)
+    @test isapprox(norm(randstate_haar(b)), 1, atol=1e-8)
+    U = randunitary_haar(b)
+    @test isapprox(dagger(U)*U, identityoperator(b), atol=1e-8)
+end
 
 end # testset
