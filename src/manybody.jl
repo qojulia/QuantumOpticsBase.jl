@@ -1,31 +1,31 @@
-struct Occupations{T} <: AbstractVector{Vector{T}}
-    occupations::Vector{T}
-    function Occupations(occ::Vector{T}) where {T}
-        length(occ) > 0 && @assert all(==(length(first(occ))) ∘ length, occ)
-        if issorted(occ, lt= >)
-            new{T}(occ)
+struct SortedVector{T, OT} <: AbstractVector{T}
+    sortedvector::Vector{T}
+    ord::OT
+    function SortedVector(occ::AbstractVector{T}, ord::OT=Base.Order.Forward) where {T, OT}
+        if issorted(occ, order=ord)
+            new{T, OT}(occ, ord)
         else
-            new{T}(sort(occ, lt= >))
+            new{T, OT}(sort(occ, order=ord), ord)
         end
     end
-    Occupations(occ::Vector{T}, ::Val{:no_checks}) where {T} = new{T}(occ)
 end
-Base.:(==)(occ1::Occupations, occ2::Occupations) = occ1.occupations == occ2.occupations
-Base.size(occ::Occupations) = (length(occ.occupations),)
-Base.@propagate_inbounds function Base.getindex(occ::Occupations, i::Int)
-    @boundscheck !checkbounds(Bool, occ.occupations, i) && throw(BoundsError(occ, i))
-    return occ.occupations[i]
+Base.:(==)(sv1::SortedVector, sv2::SortedVector) = sv1.sortedvector == sv2.sortedvector
+Base.size(sv::SortedVector) = (length(sv.sortedvector),)
+Base.@propagate_inbounds function Base.getindex(sv::SortedVector, i::Int)
+    @boundscheck !checkbounds(Bool, sv.sortedvector, i) && throw(BoundsError(sv, i))
+    return sv.sortedvector[i]
 end
-allocate_buffer(occ::AbstractVector) = similar(first(occ))
-function state_index(occ::Occupations, state)
-    length(state) != length(first(occ)) && return nothing
-    ret = searchsortedfirst(occ.occupations, state, lt= >)
-    ret == length(occ) + 1 && return nothing
-    return occ.occupations[ret] == state ? ret : nothing
+Base.union(sv1::SortedVector{T}, svs::SortedVector{T}...) where {T} =
+    SortedVector(union(sv1.sortedvector, (occ.sortedvector for occ in svs)...))
+
+# Special methods for fast operator construction
+allocate_buffer(sv::AbstractVector) = similar(first(sv))
+function state_index(sv::SortedVector, state)
+    ret = searchsortedfirst(sv.sortedvector, state, order = sv.ord)
+    ret == length(sv) + 1 && return nothing
+    return sv.sortedvector[ret] == state ? ret : nothing
 end
-state_index(occ::AbstractVector, state) = findfirst(==(state), occ)
-Base.union(occ1::Occupations{T}, occs::Occupations{T}...) where {T} =
-    Occupations(union(occ1.occupations, (occ.occupations for occ in occs)...))
+state_index(sv::AbstractVector, state) = findfirst(==(state), sv)
 
 """
     ManyBodyBasis(b, occupations)
@@ -41,13 +41,13 @@ struct ManyBodyBasis{B,O,UT} <: Basis
     onebodybasis::B
     occupations::O
     occupations_hash::UT
-    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O<:AbstractVector}
+    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O<:AbstractVector{Vector{Int}}}
         h = hash(hash.(occupations))
         new{B,O,typeof(h)}(length(occupations), onebodybasis, occupations, h)
     end
 end
 ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(onebodybasis, occupations)
-ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis{B,Occupations{T}}(onebodybasis, Occupations(occupations))
+ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis(onebodybasis, SortedVector(occupations))
 
 """
     fermionstates(Nmodes, Nparticles)
@@ -57,7 +57,7 @@ Generate all fermionic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
 particle number.
 """
-fermionstates(Nmodes::Int, Nparticles::Int) = Occupations(_distribute_fermions(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[]), Val(:no_checks))
+fermionstates(Nmodes::Int, Nparticles::Int) = SortedVector(_distribute_fermions(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[]), Base.Reverse)
 fermionstates(Nmodes::Int, Nparticles::Vector{Int}) = union((fermionstates(Nmodes, N) for N in Nparticles)...)
 fermionstates(onebodybasis::Basis, Nparticles) = fermionstates(length(onebodybasis), Nparticles)
 
@@ -69,7 +69,7 @@ Generate all bosonic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
 particle number.
 """
-bosonstates(Nmodes::Int, Nparticles::Int) = Occupations(_distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[]), Val(:no_checks))
+bosonstates(Nmodes::Int, Nparticles::Int) = SortedVector(_distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[]), Base.Reverse)
 bosonstates(Nmodes::Int, Nparticles::Vector{Int}) = union((bosonstates(Nmodes, N) for N in Nparticles)...)
 bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis), Nparticles)
 
