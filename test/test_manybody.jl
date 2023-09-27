@@ -9,6 +9,19 @@ Random.seed!(0)
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)
 
+# Test `SortedVector`
+ve = [3, 2, 1, 4, 5]
+sv1 = QuantumOpticsBase.SortedVector(ve)
+sv2 = QuantumOpticsBase.SortedVector(ve, Base.Reverse)
+@test length(sv1) == 5
+@test length(sv2) == 5
+@test collect(sv1) == [1, 2, 3, 4, 5]
+@test collect(sv2) == [5, 4, 3, 2, 1]
+@test map(x -> x^2, sv1) == [1, 4, 9, 16, 25]
+@test map(x -> x^2, sv2) == [25, 16, 9, 4, 1]
+@test findfirst(iseven, sv1) == 2
+@test findfirst(iseven, sv2) == 2
+
 # Test state creation
 Nmodes = 5
 b = GenericBasis(Nmodes)
@@ -105,6 +118,10 @@ t32 = transition(b_mb, 3, 2)
 @test 1e-12 > D(t32*basisstate(b_mb, [0, 2, 1, 0]), 2*basisstate(b_mb, [0, 1, 2, 0]))
 @test 1e-12 > D(number(b_mb, 2), transition(b_mb, 2, 2))
 
+t22_33 = transition(b_mb, (2, 2), (3, 3))
+d3 = destroy(b_mb, 3)
+c2 = create(b_mb, 2)
+@test t22_33 ≈ c2 * c2 * d3 * d3
 
 # Single particle operator in second quantization
 b_single = GenericBasis(Nmodes)
