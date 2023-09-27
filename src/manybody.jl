@@ -167,6 +167,9 @@ number(b::ManyBodyBasis) = number(ComplexF64, b)
     transition([T=ComplexF64,] b::ManyBodyBasis, to, from)
 
 Operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|`` transferring particles between modes.
+
+Note that `to` and `from` can be collections of indices. The resulting operator in this case
+will be equal to ``a^\\dagger_{to_1} a^\\dagger_{to_2} \\ldots a_{from_2} a_{from_1}``.
 """
 function transition(::Type{T}, b::ManyBodyBasis, to, from) where {T}
     Is = Int[]
@@ -175,16 +178,13 @@ function transition(::Type{T}, b::ManyBodyBasis, to, from) where {T}
     buffer = allocate_buffer(b.occupations)
     # <{m}_j| at_to a_from |{m}_i>
     for (i, occ_i) in enumerate(b.occupations)
-        if occ_i[from] == 0
-            continue
-        end
         C = state_transition!(buffer, occ_i, from, to)
         C === nothing && continue
         j = state_index(b.occupations, buffer)
         j === nothing && continue
         push!(Is, j)
         push!(Js, i)
-        push!(Vs, sqrt(occ_i[from]) * sqrt(buffer[to]))
+        push!(Vs, C)
     end
     return SparseOperator(b, sparse(Is, Js, Vs, length(b), length(b)))
 end
@@ -373,7 +373,7 @@ end
 
 Base.@propagate_inbounds function state_transition!(buffer, occ_m, at_indices, a_indices)
     any(==(0), (occ_m[m] for m in at_indices)) && return nothing
-    result = 1.0
+    result = 1
     copyto!(buffer, occ_m)
     for i in at_indices
         result *= buffer[i]
