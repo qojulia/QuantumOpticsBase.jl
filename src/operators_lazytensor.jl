@@ -96,7 +96,7 @@ isequal(x::LazyTensor, y::LazyTensor) = samebases(x,y) && isequal(x.indices, y.i
 # Arithmetic operations
 -(a::LazyTensor) = LazyTensor(a, -a.factor)
 
-const single_dataoperator{B1,B2} = LazyTensor{B1,B2,F,I,Tuple{T}} where {B1,B2,F,I,T<:DataOperator} 
+const single_dataoperator{B1,B2} = LazyTensor{B1,B2,F,I,Tuple{T}} where {B1,B2,F,I,T<:DataOperator}
 function +(a::T1,b::T2) where {T1 <: single_dataoperator{B1,B2},T2 <: single_dataoperator{B1,B2}} where {B1,B2}
     if a.indices == b.indices
         op = a.operators[1] * a.factor + b.operators[1] * b.factor
@@ -349,7 +349,7 @@ function _tp_matmul_mid!(result, a::AbstractMatrix, loc::Integer, b, α::Number,
     result_r = Base.ReshapedArray(result, (sz_b_1, size(a, 1), sz_b_3), ())
 
     if a isa FillArrays.Eye
-        # Square Eyes are skipped higher up. This handles the non-square case. 
+        # Square Eyes are skipped higher up. This handles the non-square case.
         size(b, loc) == size(a, 2) && size(result, loc) == size(a, 1) || throw(DimensionMismatch("Dimensions of Eye matrix do not match subspace dimensions."))
         d = min(size(a)...)
 
@@ -505,7 +505,7 @@ function _explicit_isometries(::Type{T}, used_indices, bl::Basis, br::Basis, shi
                 iso_inds = [i + shift]
             else
                 push!(isos, Eye{T}(sl, sr))
-                push!(iso_inds, i + shift)
+                push!(iso_inds::Vector{Int}, i + shift) # Help with inference (detected by JET)
             end
         end
     end
@@ -752,4 +752,3 @@ _mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::Dense
 _mul_puresparse!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3,F,I,T},alpha,beta) where {B1,B2,B3,F,I,T} = (_gemm_puresparse(alpha, op.data, h, beta, result.data); result)
 _mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T} = (_gemm_puresparse(alpha, a, b.data, beta, result.data); result)
 _mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T} = (_gemm_puresparse(alpha, a.data, b, beta, result.data); result)
-

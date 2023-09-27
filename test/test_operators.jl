@@ -118,6 +118,7 @@ b = FockBasis(40)
 alpha = 1+5im
 H = alpha * create(b) - conj(alpha) * destroy(b)
 @test exp(sparse(H); threshold=1e-10) ≈ displace(b, alpha)
+@test exp(sparse(zero(identityoperator(b)))) ≈ identityoperator(b)
 
 @test one(b1).data == Diagonal(ones(b1.shape[1]))
 @test one(op1).data == Diagonal(ones(b1.shape[1]))

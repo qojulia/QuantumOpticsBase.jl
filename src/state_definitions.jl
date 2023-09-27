@@ -1,3 +1,4 @@
+using RandomMatrices
 """
     randstate([T=ComplexF64,] basis)
 
@@ -11,6 +12,13 @@ end
 randstate(b) = randstate(ComplexF64, b)
 
 """
+    randstate_haar(b::Basis)
+
+Returns a Haar random pure state of dimension `length(b)` by applying a Haar random unitary to a fixed pure state.
+"""
+randstate_haar(b::Basis) = Ket(b, rand(Haar(2), length(b), 2)[:,1])
+
+"""
     randoperator([T=ComplexF64,] b1[, b2])
 
 Calculate a random unnormalized dense operator.
@@ -19,6 +27,13 @@ randoperator(::Type{T}, b1::Basis, b2::Basis) where T = DenseOperator(b1, b2, ra
 randoperator(b1::Basis, b2::Basis) = randoperator(ComplexF64, b1, b2)
 randoperator(::Type{T}, b::Basis) where T = randoperator(T, b, b)
 randoperator(b) = randoperator(ComplexF64, b)
+
+"""
+    randunitary_haar(b::Basis)
+
+Returns a Haar random unitary matrix of dimension `length(b)`.
+"""
+randunitary_haar(b::Basis) = DenseOperator(b, b, rand(Haar(2), length(b), 2))
 
 """
     thermalstate(H,T)

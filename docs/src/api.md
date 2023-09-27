@@ -594,3 +594,21 @@ DenseChiMatrix
 ```@docs
 QuantumOpticsBase.set_printing
 ```
+
+## [LazyTensor functions](@id API: LazyTensor functions)
+
+```@docs
+lazytensor_enable_cache
+```
+
+```@docs
+lazytensor_disable_cache
+```
+
+```@docs
+lazytensor_cachesize
+```
+
+```@docs
+lazytensor_clear_cache
+```

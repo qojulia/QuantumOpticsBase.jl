@@ -1,6 +1,5 @@
 names = [
     "test_sortedindices.jl",
-    "test_polynomials.jl",
 
     "test_bases.jl",
     "test_states.jl",
@@ -36,9 +35,10 @@ names = [
 
     "test_printing.jl",
 
+    "test_apply.jl",
+
     "test_aqua.jl",
-    "test_jet.jl",
-    "test_apply.jl"
+    "test_jet.jl"
 ]
 
 detected_tests = filter(

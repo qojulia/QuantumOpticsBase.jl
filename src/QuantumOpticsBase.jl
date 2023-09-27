@@ -3,7 +3,7 @@ module QuantumOpticsBase
 using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 
-import QuantumInterface: dagger, directsum, ⊕, dm, embed, expect, identityoperator, identitysuperoperator,
+import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
         permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, AbstractSuperOperator
 
 # index helpers
@@ -41,6 +41,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 displace, displace_analytical, displace_analytical!,
                 squeeze,
         randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,
+        randstate_haar, randunitary_haar,
         #spin
                 SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
         #subspace
@@ -65,7 +66,6 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #apply
                 apply!
 
-include("polynomials.jl")
 include("bases.jl")
 include("states.jl")
 include("operators.jl")

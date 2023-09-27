@@ -250,4 +250,4 @@ end
 @inline Base.copyto!(dest::Bra{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:BraStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())
 
-@inline Base.copyto!(A::T,B::T) where T<:StateVector = (copyto!(A.data,B.data); A)
+@inline Base.copyto!(A::T,B::T) where T<:Union{Ket, Bra} = (copyto!(A.data,B.data); A) # Can not use T<:QuantumInterface.StateVector, because StateVector does not imply the existence of a data property

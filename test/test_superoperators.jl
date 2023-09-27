@@ -221,6 +221,7 @@ Ldense .+= L
 b = FockBasis(20)
 L = liouvillian(identityoperator(b), [destroy(b)])
 @test exp(sparse(L)).data ≈ exp(dense(L)).data
+@test exp(sparse(zero(identitysuperoperator(b)))).data ≈ identitysuperoperator(b).data
 N = exp(log(2) * sparse(L)) # 50% loss channel
 ρ = N * dm(coherentstate(b, 1))
 @test (1 - real(tr(ρ^2))) < 1e-10 # coherent state remains pure under loss
