@@ -28,7 +28,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #operators_lazytensor
                 LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
                 lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
-        #operators_lazyket
+        #states_lazyket
                 LazyKet,
         #time_dependent_operators
                 AbstractTimeDependentOperator, TimeDependentSum, set_time!,
@@ -77,11 +77,8 @@ include("operators_sparse.jl")
 include("operators_lazysum.jl")
 include("operators_lazyproduct.jl")
 include("operators_lazytensor.jl")
-<<<<<<< HEAD
 include("time_dependent_operator.jl")
-=======
-include("operators_lazyket.jl")
->>>>>>> 6c13438 (lazy ket implementation)
+include("states_lazyket.jl")
 include("superoperators.jl")
 include("spin.jl")
 include("fock.jl")

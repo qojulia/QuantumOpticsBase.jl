@@ -440,19 +440,6 @@ Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
 @test_throws DimensionMismatch Lop1*dense(Lop1)
 @test_throws DimensionMismatch Lop1*sparse(Lop1)
 
-# LazyKet
-b1 = SpinBasis(1//2)
-b2 = SpinBasis(1)
-b = b1⊗b2
-ψ1 = spindown(b1)
-ψ2 = spinup(b2)
-ψ = LazyKet(b, (ψ1,ψ2))
-sz1 = LazyTensor(b,1,(sigmaz(b1),))
-sz2 = LazyTensor(b,2,(sigmaz(b2),))
-sz = sz1*sz2
-@test expect(sz, ψ) == expect(sigmaz(b1)⊗sigmaz(b2), ψ1⊗ψ2)
-
-
 end # testset
 
 @testset "LazyTensor: explicit isometries" begin
