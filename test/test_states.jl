@@ -220,4 +220,8 @@ op_prod = rand(ComplexF64) * LazyProduct(op, op)
 op_nested = rand(ComplexF64) * LazySum(op_prod, op)
 @test expect(op_nested, ψ) ≈ expect(dense(op_prod), Ket(ψ)) * op_nested.factors[1] + expect(dense(op), Ket(ψ)) * op_nested.factors[2]
 
+# test lazytensor with missing indices
+op = rand(ComplexF64) * LazyTensor(b, b, (1, 3), (op1, op3))
+@test expect(op, ψ) ≈ expect(sparse(op), Ket(ψ))
+
 end

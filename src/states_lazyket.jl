@@ -68,11 +68,16 @@ function expect(op::LazyTensor{B, B}, state::LazyKet{B}) where B <: Basis
 
     T = promote_type(eltype(op), eltype(state))
     exp_val = convert(T, op.factor)
+
+    # loop over all operators and match with corresponding kets
+    for (i, op_) in enumerate(op.operators)
+        exp_val *= expect(op_, kets[inds[i]])
+    end
+
+    # loop over remaining kets and just add the norm (should be one for normalized ones, but hey, who knows..)
     for i in 1:length(kets)
-        if i ∈ inds
-            exp_val *= expect(ops[i], kets[i])
-        else
-            exp_val *= dot(kets[i], kets[i])
+        if i ∉ inds
+            exp_val *= dot(kets[i].data, kets[i].data)
         end
     end
 
