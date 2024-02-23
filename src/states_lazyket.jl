@@ -14,7 +14,7 @@ mutable struct LazyKet{B,T} <: AbstractKet{B,T}
         N = length(b.bases)
         for n=1:N
             @assert isa(kets[n], Ket)
-            @assert kets[n].basis == b.bases[n] #
+            @assert kets[n].basis == b.bases[n]
         end
         new{B,T}(b, kets)
     end
