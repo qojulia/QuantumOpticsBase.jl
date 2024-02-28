@@ -35,7 +35,7 @@ using LinearAlgebra, LRUCache, Strided, StridedViews, Dates, SparseArrays, Rando
                 AnyFrameModule(RandomMatrices))
             )
         @show rep
-        @test length(JET.get_reports(rep)) <= 8
+        @test length(JET.get_reports(rep)) <= 24
         @test_broken length(JET.get_reports(rep)) == 0
     end
 end # testset

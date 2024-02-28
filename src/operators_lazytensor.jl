@@ -79,7 +79,7 @@ if there is no corresponding operator (i.e. it would be an identity operater).
 suboperator(op::LazyTensor, index::Integer) = op.operators[findfirst(isequal(index), op.indices)]
 
 """
-    suboperators(op::LazyTensor, index)
+    suboperators(op::LazyTensor, indices)
 
 Return the suboperators corresponding to the subsystems specified by `indices`. Fails
 if there is no corresponding operator (i.e. it would be an identity operater).
