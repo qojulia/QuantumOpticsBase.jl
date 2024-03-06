@@ -170,3 +170,58 @@ bra_ .= 3*bra123
 @test_throws ErrorException cos.(bra_)
 
 end # testset
+
+
+@testset "LazyKet" begin
+
+Random.seed!(1)
+
+# LazyKet
+b1 = SpinBasis(1//2)
+b2 = SpinBasis(1)
+b = b1⊗b2
+ψ1 = spindown(b1)
+ψ2 = spinup(b2)
+ψ = LazyKet(b, (ψ1,ψ2))
+sz = LazyTensor(b,(1, 2),(sigmaz(b1), sigmaz(b2)))
+@test expect(sz, ψ) == expect(sigmaz(b1)⊗sigmaz(b2), ψ1⊗ψ2)
+
+@test ψ ⊗ ψ == LazyKet(b ⊗ b, (ψ1, ψ2, ψ1, ψ2))
+
+ψ2 = deepcopy(ψ)
+mul!(ψ2, sz, ψ)
+@test Ket(ψ2) == dense(sz) * Ket(ψ)
+
+# randomize data
+b1 = GenericBasis(4)
+b2 = FockBasis(5)
+b3 = SpinBasis(1//2)
+ψ1 = randstate(b1)
+ψ2 = randstate(b2)
+ψ3 = randstate(b3)
+
+b = b1⊗b2⊗b3
+ψ = LazyKet(b1⊗b2⊗b3, [ψ1, ψ2, ψ3])
+
+op1 = randoperator(b1)
+op2 = randoperator(b2)
+op3 = randoperator(b3)
+
+op = rand(ComplexF64) * LazyTensor(b, b, (1, 2, 3), (op1, op2, op3))
+
+@test expect(op, ψ) ≈ expect(dense(op), Ket(ψ))
+
+op_sum = rand(ComplexF64) * LazySum(op, op)
+@test expect(op_sum, ψ) ≈ expect(op, ψ) * sum(op_sum.factors)
+
+op_prod = rand(ComplexF64) * LazyProduct(op, op)
+@test expect(op_prod, ψ) ≈ expect(dense(op)^2, Ket(ψ)) * op_prod.factor
+
+op_nested = rand(ComplexF64) * LazySum(op_prod, op)
+@test expect(op_nested, ψ) ≈ expect(dense(op_prod), Ket(ψ)) * op_nested.factors[1] + expect(dense(op), Ket(ψ)) * op_nested.factors[2]
+
+# test lazytensor with missing indices
+op = rand(ComplexF64) * LazyTensor(b, b, (1, 3), (op1, op3))
+@test expect(op, ψ) ≈ expect(sparse(op), Ket(ψ))
+
+end

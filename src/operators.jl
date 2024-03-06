@@ -1,7 +1,7 @@
 import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!, transpose
 import LinearAlgebra: tr, ishermitian
 import SparseArrays: sparse
-import QuantumInterface: AbstractOperator
+import QuantumInterface: AbstractOperator, AbstractKet
 
 """
 Abstract type for operators with a data field.
@@ -110,6 +110,9 @@ Expectation value of the given operator `op` for the specified `state`.
 `state` can either be a (density) operator or a ket.
 """
 expect(op::AbstractOperator{B,B}, state::Ket{B}) where B = dot(state.data, (op * state).data)
+
+# TODO upstream this one
+# expect(op::AbstractOperator{B,B}, state::AbstractKet{B}) where B = norm(op * state) ^ 2
 
 function expect(indices, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis}
     N = length(state.basis.shape)
