@@ -80,7 +80,7 @@ a5 = destroy(b_mb, 5)
 @test 1e-12 > norm(a1*vac)
 
 # Test commutator and anticommutator
-bos_mb = ManyBodyBasis(b, bosonstates(b, [0, 1, 2]))
+bos_mb = bosonbasis(b, [0, 1, 2])
 state = basisstate(bos_mb, [1, 0, 0, 0, 0])
 a1 = destroy(bos_mb, 1)
 at2 = create(bos_mb, 2)
@@ -88,7 +88,7 @@ at3 = create(bos_mb, 3)
 @test 1e-12 > D(a1 * at2 * state, at2 * a1 * state)
 @test 1e-12 > D(at2 * at3 * state, at3 * at2 * state)
 
-ferm_mb = ManyBodyBasis(b, fermionstates(b, [0, 1, 2]), true)
+ferm_mb = fermionbasis(b, [0, 1, 2])
 state = basisstate(ferm_mb, [1, 0, 0, 0, 0])
 a1 = destroy(ferm_mb, 1)
 at2 = create(ferm_mb, 2)

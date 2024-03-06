@@ -28,13 +28,14 @@ end
 state_index(sv::AbstractVector, state) = findfirst(==(state), sv)
 
 """
-    ManyBodyBasis(b, occupations)
+    ManyBodyBasis(b, occupations[, isfermistatistics])
 
 Basis for a many body system.
 
 The basis has to know the associated one-body basis `b` and which occupation states
-should be included. The occupations_hash is used to speed up checking if two
-many-body bases are equal.
+should be included.
+
+The optional argument `isfermistatistics` specifies if the occupations denote fermionic states. Default is `false`.
 """
 struct ManyBodyBasis{B,O,UT} <: Basis
     shape::Int
@@ -44,6 +45,9 @@ struct ManyBodyBasis{B,O,UT} <: Basis
     isfermistatistics::Bool
     function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O, isfermistatistics::Bool=false) where {B,O<:AbstractVector{Vector{Int}}}
         h = hash(hash.(occupations))
+        if isfermistatistics
+            @assert all(o -> all(in((0, 1)), o), occupations) "Occupation numbers must be 0 or 1 for fermions."
+        end
         new{B,O,typeof(h)}(length(occupations), onebodybasis, occupations, h, isfermistatistics)
     end
 end
@@ -65,6 +69,14 @@ fermionstates(Nmodes::Int, Nparticles::Vector{Int}) = union((fermionstates(Nmode
 fermionstates(onebodybasis::Basis, Nparticles) = fermionstates(length(onebodybasis), Nparticles)
 
 """
+    fermionbasis(onebodybasis, Nparticles)
+
+Generate a many-body basis for fermions with the given one-body basis and N-particles.
+"""
+fermionbasis(onebodybasis::Basis, Nparticles) =
+    ManyBodyBasis(onebodybasis, fermionstates(onebodybasis, Nparticles), true)
+
+"""
     bosonstates(Nmodes, Nparticles)
     bosonstates(b, Nparticles)
 
@@ -75,6 +87,14 @@ particle number.
 bosonstates(Nmodes::Int, Nparticles::Int) = SortedVector(_distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[]), Base.Reverse)
 bosonstates(Nmodes::Int, Nparticles::Vector{Int}) = union((bosonstates(Nmodes, N) for N in Nparticles)...)
 bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis), Nparticles)
+
+"""
+    bosonbasis(onebodybasis, Nparticles)
+
+Generate a many-body basis for bosons with the given one-body basis and N-particles.
+"""
+bosonbasis(onebodybasis::Basis, Nparticles) =
+    ManyBodyBasis(onebodybasis, bosonstates(onebodybasis, Nparticles))
 
 ==(b1::ManyBodyBasis, b2::ManyBodyBasis) =
     b1.occupations_hash == b2.occupations_hash &&
@@ -121,7 +141,7 @@ number(b::ManyBodyBasis) = number(ComplexF64, b)
 Operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|`` transferring particles between modes.
 
 Note that `to` and `from` can be collections of indices. The resulting operator in this case
-will be equal to ``a^\\dagger_{to_1} a^\\dagger_{to_2} \\ldots a_{from_2} a_{from_1}``.
+will be equal to ``\\ldots a^\\dagger_{to_2} a^\\dagger_{to_1} \\ldots a_{from_2} a_{from_1}``.
 """
 function transition(::Type{T}, b::ManyBodyBasis, to, from) where {T}
     Is = Int[]
@@ -339,15 +359,14 @@ function onebodyexpect_1(op::SparseOpPureType, state::StateType)
     result
 end
 
-Base.@propagate_inbounds function state_transition!(buffer, occ_m, a_indices, at_indices, isfermistatistics)
+Base.@propagate_inbounds function state_transition!(buffer, occ, a_indices, at_indices, isfermistatistics)
     if isfermistatistics
         allunique(at_indices) || return nothing
         allunique(a_indices) || return nothing
-        @assert all(in((0, 1)), occ_m) "Occupation numbers must be 0 or 1 for fermions."
     end
-    any(==(0), (occ_m[m] for m in a_indices)) && return nothing
+    any(==(0), (occ[m] for m in a_indices)) && return nothing
     result = 1
-    copyto!(buffer, occ_m)
+    copyto!(buffer, occ)
     for i in a_indices
         isfermistatistics && (result *= (-1)^sum(@view buffer[1:i-1]))
         result *= buffer[i]

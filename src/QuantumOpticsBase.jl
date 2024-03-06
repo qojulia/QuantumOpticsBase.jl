@@ -52,7 +52,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #nlevel
                 NLevelBasis, transition, nlevelstate,
         #manybody
-                ManyBodyBasis, fermionstates, bosonstates,
+                ManyBodyBasis, fermionstates, bosonstates, fermionbasis, bosonbasis,
                 manybodyoperator, onebodyexpect,
         #metrics
                 tracenorm, tracenorm_h, tracenorm_nh,
