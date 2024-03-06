@@ -16,7 +16,7 @@ Base.@propagate_inbounds function Base.getindex(sv::SortedVector, i::Int)
     return sv.sortedvector[i]
 end
 Base.union(sv1::SortedVector{T}, svs::SortedVector{T}...) where {T} =
-    SortedVector(union(sv1.sortedvector, (occ.sortedvector for occ in svs)...))
+    SortedVector(union(sv1.sortedvector, (occ.sortedvector for occ in svs)...), sv1.ord)
 
 # Special methods for fast operator construction
 allocate_buffer(sv::AbstractVector) = similar(first(sv))
@@ -309,14 +309,14 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOpType)
     return SparseOperator(basis, sparse(Is, Js, Vs, N, N))
 end
 
-
+const StateType = Union{Ket,DataOperator}
 # Calculate expectation value of one-body operator
 """
     onebodyexpect(op, state)
 
 Expectation value of the one-body operator `op` in respect to the many-body `state`.
 """
-function onebodyexpect(op::AbstractOperator, state::Union{Ket,AbstractOperator})
+function onebodyexpect(op::AbstractOperator, state::StateType)
     bas = basis(state)
     @assert bas isa ManyBodyBasis
     @assert op.basis_l == op.basis_r
@@ -333,13 +333,13 @@ end
 onebodyexpect(op::AbstractOperator, states::Vector) = [onebodyexpect(op, state) for state = states]
 
 get_value(state::Ket,  m, n) = conj(state.data[m]) * state.data[n]
-get_value(state::Operator,  m, n) = state.data[n, m]
-function onebodyexpect_1(op::Operator, state)
+get_value(state::DataOperator,  m, n) = state.data[n, m]
+function onebodyexpect_1(op::Operator, state::StateType)
     b = basis(state)
     occupations = b.occupations
     S = length(b.onebodybasis)
     buffer = allocate_buffer(occupations)
-    result = complex(0.0)
+    result = complex(zero(eltype(state.data)))
     for i = 1:S, j = 1:S
         value = op.data[i, j]
         iszero(value) && continue
@@ -354,11 +354,11 @@ function onebodyexpect_1(op::Operator, state)
     result
 end
 
-function onebodyexpect_1(op::SparseOpPureType, state)
+function onebodyexpect_1(op::SparseOpPureType, state::StateType)
     b = basis(state)
     occupations = b.occupations
     buffer = allocate_buffer(occupations)
-    result = complex(0.0)
+    result = complex(zero(eltype(state.data)))
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(occupations)
             C = state_transition!(buffer, occ, row, column)
@@ -371,16 +371,16 @@ function onebodyexpect_1(op::SparseOpPureType, state)
     result
 end
 
-Base.@propagate_inbounds function state_transition!(buffer, occ_m, at_indices, a_indices)
-    any(==(0), (occ_m[m] for m in at_indices)) && return nothing
+Base.@propagate_inbounds function state_transition!(buffer, occ_m, a_indices, at_indices)
+    any(==(0), (occ_m[m] for m in a_indices)) && return nothing
     result = 1
     copyto!(buffer, occ_m)
-    for i in at_indices
+    for i in a_indices
         result *= buffer[i]
         result == 0 && return nothing
         buffer[i] -= 1
     end
-    for i in a_indices
+    for i in at_indices
         buffer[i] += 1
         result *= buffer[i]
     end
