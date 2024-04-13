@@ -51,16 +51,22 @@ ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(
 ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis(onebodybasis, SortedVector(occupations))
 
 """
-    fermionstates(Nmodes, Nparticles)
-    fermionstates(b, Nparticles)
+    fermionstates([T, ]Nmodes, Nparticles)
+    fermionstates([T, ]b, Nparticles)
 
 Generate all fermionic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
-particle number.
+particle number. `T` is the type of the occupation states - default is `Vector{Int}`,
+but can also be `FermionBitstring`.
 """
-fermionstates(Nmodes::Int, Nparticles::Int) = SortedVector(_distribute_fermions(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[]), Base.Reverse)
-fermionstates(Nmodes::Int, Nparticles::Vector{Int}) = union((fermionstates(Nmodes, N) for N in Nparticles)...)
-fermionstates(onebodybasis::Basis, Nparticles) = fermionstates(length(onebodybasis), Nparticles)
+function fermionstates(T::Type, Nmodes::Int, Nparticles::Int)
+    occ_buffer = zero(similar(T, Nmodes))
+    OT = typeof(occ_buffer)
+    SortedVector(_distribute_fermions(Nparticles, Nmodes, 1, occ_buffer, OT[]), Base.Reverse)
+end
+fermionstates(T::Type, Nmodes::Int, Nparticles::Vector{Int}) = union((fermionstates(T, Nmodes, N) for N in Nparticles)...)
+fermionstates(T::Type, onebodybasis::Basis, Nparticles) = fermionstates(T, length(onebodybasis), Nparticles)
+fermionstates(arg1, arg2) = fermionstates(Vector{Int}, arg1, arg2)
 
 """
     bosonstates(Nmodes, Nparticles)
@@ -351,18 +357,45 @@ Base.@propagate_inbounds function state_transition!(buffer, occ::Vector{Int}, at
     return √result
 end
 
-# Occupations as bitstrings (fermions only)
+"""
+    FermionBitstring(bits, n)
+
+Fermionic occupation state represented as a bitstring. The bitstring `bits` is represented
+as an unsigned integer with the `n` least significant bits representing the occupation
+state. The bitstring is assumed to be in the canonical form where the bits are ordered
+from left to right with the most significant bit being the first mode.
+
+---
+
+    FermionBitstring(bits, n)
+
+Create a `FermionBitstring` from an unsigned integer `bits` with the `n` least significant
+bits representing the occupation state. All remaining bits are set to zero.
+"""
 struct FermionBitstring{T<:Unsigned}
     bits::T
     n::Int
-end
-function FermionBitstring(bits::T, n::Int) where T<:Unsigned
-    n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
-    nrest = sizeof(bits) * 8 - n
-    FermionBitstring{T}(UInt((bits << nrest) >> nrest), n)
+    function FermionBitstring{T}(bits, n) where T<:Unsigned
+        n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
+        new{T}(bits, n)
+    end
+    function FermionBitstring(bits::T, n::Int) where T<:Unsigned
+        n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
+        nrest = sizeof(bits) * 8 - n
+        FermionBitstring{T}(UInt((bits << nrest) >> nrest), n)
+    end
 end
 FermionBitstring(bits::Integer, n::Int) = FermionBitstring(unsigned(bits), n)
 
+Base.zero(fb::FermionBitstring) = FermionBitstring(zero(fb.bits), fb.n)
+Base.similar(::Type{FermionBitstring{T}}, n::Int) where {T} = FermionBitstring(zero(T), n)
+function Base.similar(::Type{FermionBitstring}, n::Int)
+    for type in (UInt8, UInt16, UInt32, UInt64, UInt128)
+        n ≤ sizeof(type) * 8 && return FermionBitstring(zero(type), n)
+    end
+    throw(ArgumentError("n must be less than 128"))
+end
+Base.copy(fb::FermionBitstring) = fb
 @inline Base.:(==)(fb1::FermionBitstring, fb2::FermionBitstring) =
     fb1.bits == fb2.bits && fb1.n == fb2.n
 @inline Base.isless(fb1::FermionBitstring, fb2::FermionBitstring) =
@@ -380,7 +413,10 @@ Base.@propagate_inbounds function write_bit(fb::FermionBitstring, i::Int, value:
     value ? FermionBitstring(fb.bits | (one(fb.bits) << offset), fb.n) :
             FermionBitstring(fb.bits & ~(one(fb.bits) << offset), fb.n)
 end
-
+Base.@propagate_inbounds function write_bit(v::AbstractVector, i::Int, value::Bool)
+    setindex!(v, value, i)
+    return v
+end
 Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstring, at_indices, a_indices)
     for i in a_indices
         occ[i] || return nothing
@@ -429,14 +465,14 @@ function _distribute_fermions(Nparticles, Nmodes, index, occupations, results)
     if (Nmodes - index) + 1 < Nparticles
         return results
     end
-    if index == Nmodes
-        occupations[index] = Nparticles
-        push!(results, copy(occupations))
-    else
-        for n = min(1, Nparticles):-1:0
-            occupations[index] = n
-            _distribute_fermions(Nparticles - n, Nmodes, index + 1, occupations, results)
+    for new_index in index:Nmodes - Nparticles + 1
+        occupations = write_bit(occupations, new_index, true)
+        if Nparticles == 1
+            push!(results, copy(occupations))
+        else
+            _distribute_fermions(Nparticles - 1, Nmodes, new_index + 1, occupations, results)
         end
+        occupations = write_bit(occupations, new_index, false)
     end
     return results
 end
