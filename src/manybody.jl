@@ -49,7 +49,6 @@ struct ManyBodyBasis{B,O,UT} <: Basis
 end
 ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(onebodybasis, occupations)
 ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis(onebodybasis, SortedVector(occupations))
-_vec2fb(mb::ManyBodyBasis) = ManyBodyBasis(mb.onebodybasis, _vec2fb.(mb.occupations))
 
 """
     fermionstates(Nmodes, Nparticles)
@@ -356,35 +355,30 @@ end
 struct FermionBitstring{T<:Unsigned}
     bits::T
     n::Int
-    function FermionBitstring(bits::T, n::Int) where T<:Unsigned
-        n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
-        nrest = sizeof(bits) * 8 - n
-        new{T}(UInt((bits << nrest) >> nrest), n)
-    end
+end
+function FermionBitstring(bits::T, n::Int) where T<:Unsigned
+    n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
+    nrest = sizeof(bits) * 8 - n
+    FermionBitstring{T}(UInt((bits << nrest) >> nrest), n)
 end
 FermionBitstring(bits::Integer, n::Int) = FermionBitstring(unsigned(bits), n)
 
-Base.:(==)(fb1::FermionBitstring, fb2::FermionBitstring) =
+@inline Base.:(==)(fb1::FermionBitstring, fb2::FermionBitstring) =
     fb1.bits == fb2.bits && fb1.n == fb2.n
-Base.isless(fb1::FermionBitstring, fb2::FermionBitstring) =
+@inline Base.isless(fb1::FermionBitstring, fb2::FermionBitstring) =
     fb1.bits < fb2.bits || fb1.bits == fb2.bits && fb1.n < fb2.n
+Base.show(io::IO, fb::FermionBitstring{T}) where {T} =
+    print(io, "FermionBitstring{$T}(0b", bitstring(fb.bits)[end-fb.n+1:end], ", ", fb.n, ")")
 
-Base.getindex(fb::FermionBitstring, i::Int) = Bool((fb.bits >> (i - 1)) & 1)
-write_bit(fb::FermionBitstring, i::Int, value::Bool) =
-    value ? FermionBitstring{T}(fb.bits | (one(fb.bits) << (i - 1)), fb.n) :
-            FermionBitstring{T}(fb.bits & ~(one(fb.bits) << (i - 1)), fb.n)
-
-function _vec2fb(occ::Vector{Int})
-    n = length(occ)
-    n > sizeof(UInt) * 8 && throw(ArgumentError("n must be less than $(sizeof(UInt) * 8)"))
-    bits = UInt(0)
-    for i in 1:n
-        if occ[i] != 0 && occ[i] != 1
-            throw(ArgumentError("Occupations must be 0 or 1"))
-        end
-        occ[i] == 1 && (bits |= UInt(1) << (i - 1))
-    end
-    FermionBitstring(bits, n)
+Base.@propagate_inbounds function Base.getindex(fb::FermionBitstring, i::Int)
+    @boundscheck i in 1:fb.n || throw(BoundsError(fb, i))
+    Bool((fb.bits >> (fb.n - i)) & 1)
+end
+Base.@propagate_inbounds function write_bit(fb::FermionBitstring, i::Int, value::Bool)
+    @boundscheck i in 1:fb.n || throw(BoundsError(fb, i))
+    offset = fb.n - i
+    value ? FermionBitstring(fb.bits | (one(fb.bits) << offset), fb.n) :
+            FermionBitstring(fb.bits & ~(one(fb.bits) << offset), fb.n)
 end
 
 Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstring, at_indices, a_indices)
@@ -398,6 +392,24 @@ Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstrin
     end
     buffer[] = occ
     return 1
+end
+
+# This function exists merely for testing purposes
+function _vec2fb(occ::Vector{Int})
+    n = length(occ)
+    n > sizeof(UInt) * 8 && throw(ArgumentError("n must be less than $(sizeof(UInt) * 8)"))
+    bits = UInt(0)
+    for i in 1:n
+        if occ[i] != 0 && occ[i] != 1
+            throw(ArgumentError("Occupations must be 0 or 1"))
+        end
+        occ[i] == 1 && (bits |= UInt(1) << (i - 1))
+    end
+    FermionBitstring(bits, n)
+end
+function _vec2fb(mb::ManyBodyBasis)
+    new_sv = SortedVector(_vec2fb.(mb.occupations.sortedvector), mb.occupations.ord)
+    ManyBodyBasis(mb.onebodybasis, new_sv)
 end
 
 function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
