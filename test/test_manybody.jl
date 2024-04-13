@@ -34,6 +34,20 @@ b = GenericBasis(Nmodes)
 @test ManyBodyBasis(b, bosonstates(b, 1)) == ManyBodyBasis(b, fermionstates(b, 1))
 @test ManyBodyBasis(b, bosonstates(b, 2)) != ManyBodyBasis(b, fermionstates(b, 2))
 
+function _vec2fb(occ::Vector{Int})
+    n = length(occ)
+    n > sizeof(UInt) * 8 && throw(ArgumentError("n must be less than $(sizeof(UInt) * 8)"))
+    bits = UInt(0)
+    for i in 1:n
+        if occ[i] != 0 && occ[i] != 1
+            throw(ArgumentError("Occupations must be 0 or 1"))
+        end
+        occ[i] == 1 && (bits |= UInt(1) << (n - i))
+    end
+    FermionBitstring(bits, n)
+end
+@test collect(fermionstates(FermionBitstring, b, 3)) == _vec2fb.(fermionstates(b, 3))
+
 # Test basisstate
 b_mb = ManyBodyBasis(b, bosonstates(b, 2))
 psi_mb = basisstate(b_mb, [2, 0, 0, 0, 0])
@@ -140,6 +154,15 @@ y_ = sparse(y)
 @test 1e-12 > D(Y, manybodyoperator(b, y_))
 @test 1e-12 > D(X + Y, manybodyoperator(b, x_ + y_))
 
+# Same for fermions
+bf1 = ManyBodyBasis(b_single, fermionstates(b_single, [1, 2]))
+bf2 = ManyBodyBasis(b_single, fermionstates(FermionBitstring, b_single, [1, 2]))
+
+X1 = manybodyoperator(bf1, x)
+X2 = manybodyoperator(bf2, x)
+@test X1.data == X2.data
+@test 1e-12 > D(X2, manybodyoperator(bf2, x_))
+
 # Particle-particle interaction operator in second quantization
 x = randoperator(b_single ⊗ b_single)
 y = randoperator(b_single ⊗ b_single)
@@ -154,6 +177,14 @@ y_ = sparse(y)
 @test 1e-12 > D(X, manybodyoperator(b, x_))
 @test 1e-12 > D(Y, manybodyoperator(b, y_))
 @test 1e-12 > D(X + Y, manybodyoperator(b, x_ + y_))
+
+# Same for fermions
+X1 = manybodyoperator(bf1, x)
+X2 = manybodyoperator(bf2, x)
+Y2 = manybodyoperator(bf2, y)
+@test X1.data == X2.data
+@test 1e-12 > D(X2, manybodyoperator(bf2, x_))
+@test 1e-12 > D(X2 + Y2, manybodyoperator(bf2, x + y))
 
 # Test one-body expect
 x = randoperator(b_single)

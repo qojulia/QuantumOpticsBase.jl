@@ -430,24 +430,6 @@ Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstrin
     return 1
 end
 
-# This function exists merely for testing purposes
-function _vec2fb(occ::Vector{Int})
-    n = length(occ)
-    n > sizeof(UInt) * 8 && throw(ArgumentError("n must be less than $(sizeof(UInt) * 8)"))
-    bits = UInt(0)
-    for i in 1:n
-        if occ[i] != 0 && occ[i] != 1
-            throw(ArgumentError("Occupations must be 0 or 1"))
-        end
-        occ[i] == 1 && (bits |= UInt(1) << (i - 1))
-    end
-    FermionBitstring(bits, n)
-end
-function _vec2fb(mb::ManyBodyBasis)
-    new_sv = SortedVector(_vec2fb.(mb.occupations.sortedvector), mb.occupations.ord)
-    ManyBodyBasis(mb.onebodybasis, new_sv)
-end
-
 function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
     if index == Nmodes
         occupations[index] = Nparticles
