@@ -20,12 +20,13 @@ Base.union(sv1::SortedVector{T}, svs::SortedVector{T}...) where {T} =
 
 # Special methods for fast operator construction
 allocate_buffer(sv::AbstractVector) = ismutable(first(sv)) ? similar(first(sv)) : Ref(first(sv))
-function state_index(sv::SortedVector, state)
+function state_index(sv::SortedVector{T}, state::T) where {T}
     ret = searchsortedfirst(sv.sortedvector, state, order = sv.ord)
     ret == length(sv) + 1 && return nothing
     return sv.sortedvector[ret] == state ? ret : nothing
 end
-state_index(sv::AbstractVector, state) = findfirst(==(state), sv)
+state_index(sv::AbstractVector{T}, state::T) where {T} = findfirst(==(state), sv)
+state_index(occs, state::Base.RefValue) = state_index(occs, state[])
 
 """
     ManyBodyBasis(b, occupations)
@@ -48,6 +49,7 @@ struct ManyBodyBasis{B,O,UT} <: Basis
 end
 ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(onebodybasis, occupations)
 ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis(onebodybasis, SortedVector(occupations))
+_vec2fb(mb::ManyBodyBasis) = ManyBodyBasis(mb.onebodybasis, _vec2fb.(mb.occupations))
 
 """
     fermionstates(Nmodes, Nparticles)
@@ -333,7 +335,8 @@ function onebodyexpect_1(op::SparseOpPureType, state)
     result
 end
 
-Base.@propagate_inbounds function state_transition!(buffer::Vector{Int}, occ::Vector{Int}, at_indices, a_indices)
+# Occupations as Vector{Int}
+Base.@propagate_inbounds function state_transition!(buffer, occ::Vector{Int}, at_indices, a_indices)
     any(==(0), (occ[m] for m in a_indices)) && return nothing
     result = 1
     copyto!(buffer, occ)
@@ -347,6 +350,54 @@ Base.@propagate_inbounds function state_transition!(buffer::Vector{Int}, occ::Ve
         result *= buffer[i]
     end
     return √result
+end
+
+# Occupations as bitstrings (fermions only)
+struct FermionBitstring{T<:Unsigned}
+    bits::T
+    n::Int
+    function FermionBitstring(bits::T, n::Int) where T<:Unsigned
+        n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
+        nrest = sizeof(bits) * 8 - n
+        new{T}(UInt((bits << nrest) >> nrest), n)
+    end
+end
+FermionBitstring(bits::Integer, n::Int) = FermionBitstring(unsigned(bits), n)
+
+Base.:(==)(fb1::FermionBitstring, fb2::FermionBitstring) =
+    fb1.bits == fb2.bits && fb1.n == fb2.n
+Base.isless(fb1::FermionBitstring, fb2::FermionBitstring) =
+    fb1.bits < fb2.bits || fb1.bits == fb2.bits && fb1.n < fb2.n
+
+Base.getindex(fb::FermionBitstring, i::Int) = Bool((fb.bits >> (i - 1)) & 1)
+write_bit(fb::FermionBitstring, i::Int, value::Bool) =
+    value ? FermionBitstring{T}(fb.bits | (one(fb.bits) << (i - 1)), fb.n) :
+            FermionBitstring{T}(fb.bits & ~(one(fb.bits) << (i - 1)), fb.n)
+
+function _vec2fb(occ::Vector{Int})
+    n = length(occ)
+    n > sizeof(UInt) * 8 && throw(ArgumentError("n must be less than $(sizeof(UInt) * 8)"))
+    bits = UInt(0)
+    for i in 1:n
+        if occ[i] != 0 && occ[i] != 1
+            throw(ArgumentError("Occupations must be 0 or 1"))
+        end
+        occ[i] == 1 && (bits |= UInt(1) << (i - 1))
+    end
+    FermionBitstring(bits, n)
+end
+
+Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstring, at_indices, a_indices)
+    for i in a_indices
+        occ[i] || return nothing
+        occ = write_bit(occ, i, false)
+    end
+    for i in at_indices
+        occ[i] && return nothing
+        occ = write_bit(occ, i, true)
+    end
+    buffer[] = occ
+    return 1
 end
 
 function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
