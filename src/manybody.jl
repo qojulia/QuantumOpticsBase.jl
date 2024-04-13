@@ -19,7 +19,7 @@ Base.union(sv1::SortedVector{T}, svs::SortedVector{T}...) where {T} =
     SortedVector(union(sv1.sortedvector, (occ.sortedvector for occ in svs)...))
 
 # Special methods for fast operator construction
-allocate_buffer(sv::AbstractVector) = similar(first(sv))
+allocate_buffer(sv::AbstractVector) = ismutable(first(sv)) ? similar(first(sv)) : Ref(first(sv))
 function state_index(sv::SortedVector, state)
     ret = searchsortedfirst(sv.sortedvector, state, order = sv.ord)
     ret == length(sv) + 1 && return nothing
@@ -41,7 +41,7 @@ struct ManyBodyBasis{B,O,UT} <: Basis
     onebodybasis::B
     occupations::O
     occupations_hash::UT
-    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O<:AbstractVector{Vector{Int}}}
+    function ManyBodyBasis{B,O}(onebodybasis::B, occupations::O) where {B,O<:AbstractVector}
         h = hash(hash.(occupations))
         new{B,O,typeof(h)}(length(occupations), onebodybasis, occupations, h)
     end
@@ -94,26 +94,7 @@ end
 
 Creation operator for the i-th mode of the many-body basis `b`.
 """
-function create(::Type{T}, b::ManyBodyBasis, index) where {T}
-    Is = Int[]
-    Js = Int[]
-    Vs = T[]
-    # <{m}_i| at |{m}_j>
-    buffer = allocate_buffer(b.occupations)
-    for (i, occ_i) in enumerate(b.occupations)
-        if occ_i[index] == 0
-            continue
-        end
-        copyto!(buffer, occ_i)
-        buffer[index] -= 1
-        j = state_index(b.occupations, buffer)
-        j === nothing && continue
-        push!(Is, i)
-        push!(Js, j)
-        push!(Vs, sqrt(occ_i[index]))
-    end
-    return SparseOperator(b, sparse(Is, Js, Vs, length(b), length(b)))
-end
+create(::Type{T}, b::ManyBodyBasis, index) where {T} = transition(T, b, index, ())
 create(b::ManyBodyBasis, index) = create(ComplexF64, b, index)
 
 """
@@ -121,26 +102,7 @@ create(b::ManyBodyBasis, index) = create(ComplexF64, b, index)
 
 Annihilation operator for the i-th mode of the many-body basis `b`.
 """
-function destroy(::Type{T}, b::ManyBodyBasis, index) where {T}
-    Is = Int[]
-    Js = Int[]
-    Vs = T[]
-    buffer = allocate_buffer(b.occupations)
-    # <{m}_j| a |{m}_i>
-    for (i, occ_i) in enumerate(b.occupations)
-        if occ_i[index] == 0
-            continue
-        end
-        copyto!(buffer, occ_i)
-        buffer[index] -= 1
-        j = state_index(b.occupations, buffer)
-        j === nothing && continue
-        push!(Is, j)
-        push!(Js, i)
-        push!(Vs, sqrt(occ_i[index]))
-    end
-    return SparseOperator(b, sparse(Is, Js, Vs, length(b), length(b)))
-end
+destroy(::Type{T}, b::ManyBodyBasis, index) where {T} = transition(T, b, (), index)
 destroy(b::ManyBodyBasis, index) = destroy(ComplexF64, b, index)
 
 """
@@ -178,7 +140,7 @@ function transition(::Type{T}, b::ManyBodyBasis, to, from) where {T}
     buffer = allocate_buffer(b.occupations)
     # <{m}_j| at_to a_from |{m}_i>
     for (i, occ_i) in enumerate(b.occupations)
-        C = state_transition!(buffer, occ_i, from, to)
+        C = state_transition!(buffer, occ_i, to, from)
         C === nothing && continue
         j = state_index(b.occupations, buffer)
         j === nothing && continue
@@ -236,7 +198,7 @@ function manybodyoperator_1(basis::ManyBodyBasis, op::Operator)
         value = op.data[i, j]
         iszero(value) && continue
         for (m, occ) in enumerate(basis.occupations)
-            C = state_transition!(buffer, occ, i, j)
+            C = state_transition!(buffer, occ, j, i)
             C === nothing && continue
             n = state_index(basis.occupations, buffer)
             n === nothing && continue
@@ -255,7 +217,7 @@ function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOpPureType)
     buffer = allocate_buffer(basis.occupations)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(basis.occupations)
-            C = state_transition!(buffer, occ, row, column)
+            C = state_transition!(buffer, occ, column, row)
             C === nothing && continue
             n = state_index(basis.occupations, buffer)
             n === nothing && continue
@@ -277,7 +239,7 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::Operator)
         value = op_data[i, j, k, l]
         iszero(value) && continue
         for (m, occ) in enumerate(basis.occupations)
-            C = state_transition!(buffer, occ, (i, j), (k, l))
+            C = state_transition!(buffer, occ, (k, l), (i, j))
             C === nothing && continue
             n = state_index(basis.occupations, buffer)
             n === nothing && continue
@@ -297,7 +259,7 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOpType)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(basis.occupations)
             index = Tuple(CartesianIndices((S, S, S, S))[(column-1)*S^2+row])
-            C = state_transition!(buffer, occ, index[1:2], index[3:4])
+            C = state_transition!(buffer, occ, index[3:4], index[1:2])
             C === nothing && continue
             n = state_index(basis.occupations, buffer)
             n === nothing && continue
@@ -332,8 +294,8 @@ end
 
 onebodyexpect(op::AbstractOperator, states::Vector) = [onebodyexpect(op, state) for state = states]
 
-get_value(state::Ket,  m, n) = conj(state.data[m]) * state.data[n]
-get_value(state::Operator,  m, n) = state.data[n, m]
+get_value(state::Ket, m, n) = conj(state.data[m]) * state.data[n]
+get_value(state::Operator, m, n) = state.data[n, m]
 function onebodyexpect_1(op::Operator, state)
     b = basis(state)
     occupations = b.occupations
@@ -344,7 +306,7 @@ function onebodyexpect_1(op::Operator, state)
         value = op.data[i, j]
         iszero(value) && continue
         for (m, occ) in enumerate(occupations)
-            C = state_transition!(buffer, occ, i, j)
+            C = state_transition!(buffer, occ, j, i)
             C === nothing && continue
             n = state_index(occupations, buffer)
             n === nothing && continue
@@ -361,7 +323,7 @@ function onebodyexpect_1(op::SparseOpPureType, state)
     result = complex(0.0)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(occupations)
-            C = state_transition!(buffer, occ, row, column)
+            C = state_transition!(buffer, occ, column, row)
             C === nothing && continue
             n = state_index(occupations, buffer)
             n === nothing && continue
@@ -371,16 +333,16 @@ function onebodyexpect_1(op::SparseOpPureType, state)
     result
 end
 
-Base.@propagate_inbounds function state_transition!(buffer, occ_m, at_indices, a_indices)
-    any(==(0), (occ_m[m] for m in at_indices)) && return nothing
+Base.@propagate_inbounds function state_transition!(buffer::Vector{Int}, occ::Vector{Int}, at_indices, a_indices)
+    any(==(0), (occ[m] for m in a_indices)) && return nothing
     result = 1
-    copyto!(buffer, occ_m)
-    for i in at_indices
+    copyto!(buffer, occ)
+    for i in a_indices
         result *= buffer[i]
         result == 0 && return nothing
         buffer[i] -= 1
     end
-    for i in a_indices
+    for i in at_indices
         buffer[i] += 1
         result *= buffer[i]
     end
