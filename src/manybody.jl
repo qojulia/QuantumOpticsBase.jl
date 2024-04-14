@@ -1,11 +1,11 @@
 struct SortedVector{T, OT} <: AbstractVector{T}
     sortedvector::Vector{T}
-    ord::OT
-    function SortedVector(occ::AbstractVector{T}, ord::OT=Base.Order.Forward) where {T, OT}
-        if issorted(occ, order=ord)
-            new{T, OT}(occ, ord)
+    order::OT
+    function SortedVector(occ::AbstractVector{T}, order::OT=Base.Order.Forward) where {T, OT}
+        if issorted(occ, order=order)
+            new{T, OT}(occ, order)
         else
-            new{T, OT}(sort(occ, order=ord), ord)
+            new{T, OT}(sort(occ, order=order), order)
         end
     end
 end
@@ -16,17 +16,17 @@ Base.@propagate_inbounds function Base.getindex(sv::SortedVector, i::Int)
     return sv.sortedvector[i]
 end
 Base.union(sv1::SortedVector{T}, svs::SortedVector{T}...) where {T} =
-    SortedVector(union(sv1.sortedvector, (occ.sortedvector for occ in svs)...))
+    SortedVector(union(sv1.sortedvector, (occ.sortedvector for occ in svs)...), sv1.order)
 
 # Special methods for fast operator construction
-function state_index(sv::SortedVector{T}, state::T) where {T}
-    ret = searchsortedfirst(sv.sortedvector, state, order = sv.ord)
+function state_index(sv::SortedVector{T}, occ::T) where {T}
+    ret = searchsortedfirst(sv.sortedvector, occ, order = sv.order)
     ret == length(sv) + 1 && return nothing
-    return sv.sortedvector[ret] == state ? ret : nothing
+    return sv.sortedvector[ret] == occ ? ret : nothing
 end
-state_index(sv::AbstractVector{T}, state::T) where {T} = findfirst(==(state), sv)
-state_index(occs::AbstractVector{T}, state::Base.RefValue{T}) where {T} = state_index(occs, state[])
-state_index(sv::AbstractVector{T}, state::Any) where {T} = state_index(sv, convert(T, state))
+state_index(occupations::AbstractVector{T}, state::T) where {T} = findfirst(==(state), occupations)
+state_index(occupations::AbstractVector{T}, state::Base.RefValue{T}) where {T} = state_index(occupations, state[])
+state_index(occupations::AbstractVector{T}, state::Any) where {T} = state_index(occupations, convert(T, state))
 
 """
     ManyBodyBasis(b, occupations)
@@ -90,85 +90,85 @@ bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis),
 ==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash == b2.occupations_hash && b1.onebodybasis == b2.onebodybasis
 
 """
-    basisstate([T=ComplexF64,] b::ManyBodyBasis, occupation::Vector)
+    basisstate([T=ComplexF64,] mb::ManyBodyBasis, occupation::Vector)
 
 Return a ket state where the system is in the state specified by the given
 occupation numbers.
 """
-function basisstate(::Type{T}, basis::ManyBodyBasis, occupation::Vector) where {T}
-    index = state_index(basis.occupations, occupation)
+function basisstate(::Type{T}, mb::ManyBodyBasis, occupation::Vector) where {T}
+    index = state_index(mb.occupations, occupation)
     if isa(index, Nothing)
         throw(ArgumentError("Occupation not included in many-body basis."))
     end
-    basisstate(T, basis, index)
+    basisstate(T, mb, index)
 end
 
 """
-    create([T=ComplexF64,] b::ManyBodyBasis, index)
+    create([T=ComplexF64,] mb::ManyBodyBasis, index)
 
 Creation operator for the i-th mode of the many-body basis `b`.
 """
-create(::Type{T}, b::ManyBodyBasis, index) where {T} = transition(T, b, index, ())
-create(b::ManyBodyBasis, index) = create(ComplexF64, b, index)
+create(::Type{T}, mb::ManyBodyBasis, index) where {T} = transition(T, mb, index, ())
+create(mb::ManyBodyBasis, index) = create(ComplexF64, mb, index)
 
 """
-    destroy([T=ComplexF64,] b::ManyBodyBasis, index)
+    destroy([T=ComplexF64,] mb::ManyBodyBasis, index)
 
 Annihilation operator for the i-th mode of the many-body basis `b`.
 """
-destroy(::Type{T}, b::ManyBodyBasis, index) where {T} = transition(T, b, (), index)
-destroy(b::ManyBodyBasis, index) = destroy(ComplexF64, b, index)
+destroy(::Type{T}, mb::ManyBodyBasis, index) where {T} = transition(T, mb, (), index)
+destroy(mb::ManyBodyBasis, index) = destroy(ComplexF64, mb, index)
 
 """
-    number([T=ComplexF64,] b::ManyBodyBasis, index)
+    number([T=ComplexF64,] mb::ManyBodyBasis, index)
 
 Particle number operator for the i-th mode of the many-body basis `b`.
 """
-function number(::Type{T}, b::ManyBodyBasis, index) where {T}
-    diagonaloperator(b, T[occ[index] for occ in b.occupations])
+function number(::Type{T}, mb::ManyBodyBasis, index) where {T}
+    diagonaloperator(mb, T[occ[index] for occ in mb.occupations])
 end
-number(b::ManyBodyBasis, index) = number(ComplexF64, b, index)
+number(mb::ManyBodyBasis, index) = number(ComplexF64, mb, index)
 
 """
-    number([T=ComplexF64,] b::ManyBodyBasis)
+    number([T=ComplexF64,] mb::ManyBodyBasis)
 
 Total particle number operator.
 """
-function number(::Type{T}, b::ManyBodyBasis) where {T}
-    diagonaloperator(b, T[sum(occ) for occ in b.occupations])
+function number(::Type{T}, mb::ManyBodyBasis) where {T}
+    diagonaloperator(mb, T[sum(occ) for occ in mb.occupations])
 end
-number(b::ManyBodyBasis) = number(ComplexF64, b)
+number(mb::ManyBodyBasis) = number(ComplexF64, mb)
 
 """
-    transition([T=ComplexF64,] b::ManyBodyBasis, to, from)
+    transition([T=ComplexF64,] mb::ManyBodyBasis, to, from)
 
 Operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|`` transferring particles between modes.
 
 Note that `to` and `from` can be collections of indices. The resulting operator in this case
 will be equal to ``a^\\dagger_{to_1} a^\\dagger_{to_2} \\ldots a_{from_2} a_{from_1}``.
 """
-function transition(::Type{T}, b::ManyBodyBasis, to, from) where {T}
+function transition(::Type{T}, mb::ManyBodyBasis, to, from) where {T}
     Is = Int[]
     Js = Int[]
     Vs = T[]
-    buffer = allocate_buffer(b)
+    buffer = allocate_buffer(mb)
     # <{m}_j| at_to a_from |{m}_i>
-    for (i, occ_i) in enumerate(b.occupations)
+    for (i, occ_i) in enumerate(mb.occupations)
         C = state_transition!(buffer, occ_i, to, from)
         C === nothing && continue
-        j = state_index(b.occupations, buffer)
+        j = state_index(mb.occupations, buffer)
         j === nothing && continue
         push!(Is, j)
         push!(Js, i)
         push!(Vs, C)
     end
-    return SparseOperator(b, sparse(Is, Js, Vs, length(b), length(b)))
+    return SparseOperator(mb, sparse(Is, Js, Vs, length(mb), length(mb)))
 end
-transition(b::ManyBodyBasis, to, from) = transition(ComplexF64, b, to, from)
+transition(mb::ManyBodyBasis, to, from) = transition(ComplexF64, mb, to, from)
 
 # Calculate many-Body operator from one-body operator
 """
-    manybodyoperator(b::ManyBodyBasis, op)
+    manybodyoperator(mb::ManyBodyBasis, op)
 
 Create the many-body operator from the given one-body operator `op`.
 
@@ -192,70 +192,69 @@ where ``X`` is the N-particle operator, ``x`` is the one-body operator and
 ``|u⟩`` are the one-body states associated to the
 different modes of the N-particle basis.
 """
-function manybodyoperator(basis::ManyBodyBasis, op)
+function manybodyoperator(mb::ManyBodyBasis, op)
     @assert op.basis_l == op.basis_r
-    if op.basis_l == basis.onebodybasis
-        result = manybodyoperator_1(basis, op)
-    elseif op.basis_l == basis.onebodybasis ⊗ basis.onebodybasis
-        result = manybodyoperator_2(basis, op)
+    if op.basis_l == mb.onebodybasis
+        result = manybodyoperator_1(mb, op)
+    elseif op.basis_l == mb.onebodybasis ⊗ mb.onebodybasis
+        result = manybodyoperator_2(mb, op)
     else
         throw(ArgumentError("The basis of the given operator has to either be equal to b or b ⊗ b where b is the 1st quantization basis associated to the nparticle basis."))
     end
     result
 end
 
-function manybodyoperator_1(basis::ManyBodyBasis, op::Operator)
-    S = length(basis.onebodybasis)
-    result = DenseOperator(basis)
-    buffer = allocate_buffer(basis)
+function manybodyoperator_1(mb::ManyBodyBasis, op::Operator)
+    S = length(mb.onebodybasis)
+    result = DenseOperator(mb)
+    buffer = allocate_buffer(mb)
     @inbounds for j = 1:S, i = 1:S
         value = op.data[i, j]
         iszero(value) && continue
-        for (m, occ) in enumerate(basis.occupations)
+        for (m, occ) in enumerate(mb.occupations)
             C = state_transition!(buffer, occ, j, i)
             C === nothing && continue
-            n = state_index(basis.occupations, buffer)
+            n = state_index(mb.occupations, buffer)
             n === nothing && continue
             result.data[m, n] += C * value
         end
     end
     return result
 end
-manybodyoperator_1(basis::ManyBodyBasis, op::AdjointOperator) = dagger(manybodyoperator_1(basis, dagger(op)))
+manybodyoperator_1(mb::ManyBodyBasis, op::AdjointOperator) = dagger(manybodyoperator_1(mb, dagger(op)))
 
-function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOpPureType)
-    N = length(basis)
+function manybodyoperator_1(mb::ManyBodyBasis, op::SparseOpPureType)
+    N = length(mb)
     Is = Int[]
     Js = Int[]
     Vs = ComplexF64[]
-    buffer = allocate_buffer(basis)
+    buffer = allocate_buffer(mb)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
-        for (m, occ) in enumerate(basis.occupations)
+        for (m, occ) in enumerate(mb.occupations)
             C = state_transition!(buffer, occ, column, row)
             C === nothing && continue
-            n = state_index(basis.occupations, buffer)
+            n = state_index(mb.occupations, buffer)
             n === nothing && continue
             push!(Is, m)
             push!(Js, n)
             push!(Vs, C * value)
         end
     end
-    return SparseOperator(basis, sparse(Is, Js, Vs, N, N))
+    return SparseOperator(mb, sparse(Is, Js, Vs, N, N))
 end
 
-function manybodyoperator_2(basis::ManyBodyBasis, op::Operator)
-    S = length(basis.onebodybasis)
-    @assert S^2 == length(op.basis_l)
-    result = DenseOperator(basis)
+function manybodyoperator_2(mb::ManyBodyBasis, op::Operator)
+    S = length(mb.onebodybasis)
+    result = DenseOperator(mb)
     op_data = reshape(op.data, S, S, S, S)
-    buffer = allocate_buffer(basis)
+    buffer = allocate_buffer(mb)
     @inbounds for l = 1:S, k = 1:S, j = 1:S, i = 1:S
         value = op_data[i, j, k, l]
         iszero(value) && continue
-        for (m, occ) in enumerate(basis.occupations)
+        for (m, occ) in enumerate(mb.occupations)
             C = state_transition!(buffer, occ, (k, l), (i, j))
             C === nothing && continue
-            n = state_index(basis.occupations, buffer)
+            n = state_index(mb.occupations, buffer)
             n === nothing && continue
             result.data[m, n] += C * value
         end
@@ -263,26 +262,26 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::Operator)
     return result
 end
 
-function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOpType)
-    N = length(basis)
-    S = length(basis.onebodybasis)
+function manybodyoperator_2(mb::ManyBodyBasis, op::SparseOpType)
+    N = length(mb)
+    S = length(mb.onebodybasis)
     Is = Int[]
     Js = Int[]
     Vs = ComplexF64[]
-    buffer = allocate_buffer(basis)
+    buffer = allocate_buffer(mb)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
-        for (m, occ) in enumerate(basis.occupations)
+        for (m, occ) in enumerate(mb.occupations)
             index = Tuple(CartesianIndices((S, S, S, S))[(column-1)*S^2+row])
             C = state_transition!(buffer, occ, index[3:4], index[1:2])
             C === nothing && continue
-            n = state_index(basis.occupations, buffer)
+            n = state_index(mb.occupations, buffer)
             n === nothing && continue
             push!(Is, m)
             push!(Js, n)
             push!(Vs, C * value)
         end
     end
-    return SparseOperator(basis, sparse(Is, Js, Vs, N, N))
+    return SparseOperator(mb, sparse(Is, Js, Vs, N, N))
 end
 
 
@@ -308,13 +307,13 @@ end
 
 onebodyexpect(op::AbstractOperator, states::Vector) = [onebodyexpect(op, state) for state = states]
 
-get_value(state::Ket, m, n) = conj(state.data[m]) * state.data[n]
-get_value(state::Operator, m, n) = state.data[n, m]
+matrix_element(state::Ket, m, n) = conj(state.data[m]) * state.data[n]
+matrix_element(state::Operator, m, n) = state.data[n, m]
 function onebodyexpect_1(op::Operator, state)
-    b = basis(state)
-    occupations = b.occupations
-    S = length(b.onebodybasis)
-    buffer = allocate_buffer(b)
+    mb = basis(state)
+    occupations = mb.occupations
+    S = length(mb.onebodybasis)
+    buffer = allocate_buffer(mb)
     result = complex(0.0)
     for i = 1:S, j = 1:S
         value = op.data[i, j]
@@ -324,16 +323,16 @@ function onebodyexpect_1(op::Operator, state)
             C === nothing && continue
             n = state_index(occupations, buffer)
             n === nothing && continue
-            result += C * value * get_value(state, m, n)
+            result += C * value * matrix_element(state, m, n)
         end
     end
     result
 end
 
 function onebodyexpect_1(op::SparseOpPureType, state)
-    b = basis(state)
-    occupations = b.occupations
-    buffer = allocate_buffer(b)
+    mb = basis(state)
+    occupations = mb.occupations
+    buffer = allocate_buffer(mb)
     result = complex(0.0)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(occupations)
@@ -341,7 +340,7 @@ function onebodyexpect_1(op::SparseOpPureType, state)
             C === nothing && continue
             n = state_index(occupations, buffer)
             n === nothing && continue
-            result += C * value * get_value(state, m, n)
+            result += C * value * matrix_element(state, m, n)
         end
     end
     result
@@ -438,7 +437,7 @@ function Base.similar(::Type{FermionBitstring}, n::Int)
     for type in (UInt8, UInt16, UInt32, UInt64, UInt128)
         n ≤ sizeof(type) * 8 && return FermionBitstring(zero(type), n)
     end
-    throw(ArgumentError("n must be less than 128"))
+    throw(ArgumentError("n must be less than 128; got $n"))
 end
 function Base.convert(::Type{FermionBitstring{T}}, v::AbstractVector) where {T}
     n = length(v)
