@@ -137,6 +137,30 @@ d3 = destroy(b_mb, 3)
 c2 = create(b_mb, 2)
 @test t22_33 ≈ c2 * c2 * d3 * d3
 
+# Test commutator and anticommutator
+state = basisstate(b_mb, [1, 0, 0, 0])
+a1 = destroy(b_mb, 1)
+at2 = create(b_mb, 2)
+at3 = create(b_mb, 3)
+@test 1e-12 > D(a1 * at2 * state, at2 * a1 * state)
+@test 1e-12 > D(at2 * at3 * state, at3 * at2 * state)
+
+f_mb = ManyBodyBasis(b, fermionstates(b, [0, 1, 2]))
+state = basisstate(f_mb, [1, 0, 0, 0])
+a1 = destroy(f_mb, 1)
+at2 = create(f_mb, 2)
+at3 = create(f_mb, 3)
+@test 1e-12 > D(a1 * at2 * state, -at2 * a1 * state)
+@test 1e-12 > D(at2 * at3 * state, -at3 * at2 * state)
+
+f_mb2 = ManyBodyBasis(b, fermionstates(FermionBitstring, b, [0, 1, 2]))
+state = basisstate(f_mb2, [1, 0, 0, 0])
+a1 = destroy(f_mb2, 1)
+at2 = create(f_mb2, 2)
+at3 = create(f_mb2, 3)
+@test 1e-12 > D(a1 * at2 * state, -at2 * a1 * state)
+@test 1e-12 > D(at2 * at3 * state, -at3 * at2 * state)
+
 # Single particle operator in second quantization
 b_single = GenericBasis(Nmodes)
 b = ManyBodyBasis(b_single, bosonstates(b_single, [1, 2]))

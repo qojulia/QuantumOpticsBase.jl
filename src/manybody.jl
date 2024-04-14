@@ -440,6 +440,16 @@ function Base.similar(::Type{FermionBitstring}, n::Int)
     end
     throw(ArgumentError("n must be less than 128"))
 end
+function Base.convert(::Type{FermionBitstring{T}}, v::AbstractVector) where {T}
+    n = length(v)
+    n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
+    bits = zero(T)
+    for i in 1:n
+        v[i] in (0, 1) || throw(ArgumentError("Occupations must be 0 or 1"))
+        v[i] == 1 && (bits |= one(T) << (n - i))
+    end
+    FermionBitstring{T}(bits, n)
+end
 Base.copy(fb::FermionBitstring) = fb
 allocate_buffer(fb::FermionBitstring) = Ref(fb)
 @inline Base.:(==)(fb1::FermionBitstring, fb2::FermionBitstring) =
@@ -498,13 +508,13 @@ function _distribute_fermions(Nparticles, Nmodes, index, occupations, results)
     if (Nmodes - index) + 1 < Nparticles
         return results
     end
+    if Nparticles == 0
+        push!(results, copy(occupations))
+        return results
+    end
     for new_index in index:Nmodes - Nparticles + 1
         occupations = write_bit(occupations, new_index, true)
-        if Nparticles == 1
-            push!(results, copy(occupations))
-        else
-            _distribute_fermions(Nparticles - 1, Nmodes, new_index + 1, occupations, results)
-        end
+        _distribute_fermions(Nparticles - 1, Nmodes, new_index + 1, occupations, results)
         occupations = write_bit(occupations, new_index, false)
     end
     return results
