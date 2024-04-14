@@ -34,7 +34,7 @@ b = GenericBasis(Nmodes)
 @test ManyBodyBasis(b, bosonstates(b, 1)) == ManyBodyBasis(b, fermionstates(b, 1))
 @test ManyBodyBasis(b, bosonstates(b, 2)) != ManyBodyBasis(b, fermionstates(b, 2))
 
-function _vec2fb(occ::Vector{Int})
+function _vec2fb(occ::AbstractVector{Int})
     n = length(occ)
     n > sizeof(UInt) * 8 && throw(ArgumentError("n must be less than $(sizeof(UInt) * 8)"))
     bits = UInt(0)

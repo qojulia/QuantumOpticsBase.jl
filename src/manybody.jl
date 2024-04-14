@@ -19,14 +19,14 @@ Base.union(sv1::SortedVector{T}, svs::SortedVector{T}...) where {T} =
     SortedVector(union(sv1.sortedvector, (occ.sortedvector for occ in svs)...))
 
 # Special methods for fast operator construction
-allocate_buffer(sv::AbstractVector) = ismutable(first(sv)) ? similar(first(sv)) : Ref(first(sv))
 function state_index(sv::SortedVector{T}, state::T) where {T}
     ret = searchsortedfirst(sv.sortedvector, state, order = sv.ord)
     ret == length(sv) + 1 && return nothing
     return sv.sortedvector[ret] == state ? ret : nothing
 end
 state_index(sv::AbstractVector{T}, state::T) where {T} = findfirst(==(state), sv)
-state_index(occs, state::Base.RefValue) = state_index(occs, state[])
+state_index(occs::AbstractVector{T}, state::Base.RefValue{T}) where {T} = state_index(occs, state[])
+state_index(sv::AbstractVector{T}, state::Any) where {T} = state_index(sv, convert(T, state))
 
 """
     ManyBodyBasis(b, occupations)
@@ -50,6 +50,9 @@ end
 ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(onebodybasis, occupations)
 ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis(onebodybasis, SortedVector(occupations))
 
+allocate_buffer(occ) = similar(occ)
+allocate_buffer(mb::ManyBodyBasis) = allocate_buffer(first(mb.occupations))
+
 """
     fermionstates([T, ]Nmodes, Nparticles)
     fermionstates([T, ]b, Nparticles)
@@ -66,7 +69,7 @@ function fermionstates(T::Type, Nmodes::Int, Nparticles::Int)
 end
 fermionstates(T::Type, Nmodes::Int, Nparticles::Vector{Int}) = union((fermionstates(T, Nmodes, N) for N in Nparticles)...)
 fermionstates(T::Type, onebodybasis::Basis, Nparticles) = fermionstates(T, length(onebodybasis), Nparticles)
-fermionstates(arg1, arg2) = fermionstates(Vector{Int}, arg1, arg2)
+fermionstates(arg1, arg2) = fermionstates(OccupationNumbers{FermionStatistics,Int}, arg1, arg2)
 
 """
     bosonstates(Nmodes, Nparticles)
@@ -76,7 +79,11 @@ Generate all bosonic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
 particle number.
 """
-bosonstates(Nmodes::Int, Nparticles::Int) = SortedVector(_distribute_bosons(Nparticles, Nmodes, 1, zeros(Int, Nmodes), Vector{Int}[]), Base.Reverse)
+bosonstates(Nmodes::Int, Nparticles::Int) = SortedVector(
+    _distribute_bosons(Nparticles, Nmodes, 1,
+    OccupationNumbers(BosonStatistics(), zeros(Int, Nmodes)),
+    OccupationNumbers{BosonStatistics, Int}[]),
+    Base.Reverse)
 bosonstates(Nmodes::Int, Nparticles::Vector{Int}) = union((bosonstates(Nmodes, N) for N in Nparticles)...)
 bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis), Nparticles)
 
@@ -144,7 +151,7 @@ function transition(::Type{T}, b::ManyBodyBasis, to, from) where {T}
     Is = Int[]
     Js = Int[]
     Vs = T[]
-    buffer = allocate_buffer(b.occupations)
+    buffer = allocate_buffer(b)
     # <{m}_j| at_to a_from |{m}_i>
     for (i, occ_i) in enumerate(b.occupations)
         C = state_transition!(buffer, occ_i, to, from)
@@ -200,7 +207,7 @@ end
 function manybodyoperator_1(basis::ManyBodyBasis, op::Operator)
     S = length(basis.onebodybasis)
     result = DenseOperator(basis)
-    buffer = allocate_buffer(basis.occupations)
+    buffer = allocate_buffer(basis)
     @inbounds for j = 1:S, i = 1:S
         value = op.data[i, j]
         iszero(value) && continue
@@ -221,7 +228,7 @@ function manybodyoperator_1(basis::ManyBodyBasis, op::SparseOpPureType)
     Is = Int[]
     Js = Int[]
     Vs = ComplexF64[]
-    buffer = allocate_buffer(basis.occupations)
+    buffer = allocate_buffer(basis)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(basis.occupations)
             C = state_transition!(buffer, occ, column, row)
@@ -241,7 +248,7 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::Operator)
     @assert S^2 == length(op.basis_l)
     result = DenseOperator(basis)
     op_data = reshape(op.data, S, S, S, S)
-    buffer = allocate_buffer(basis.occupations)
+    buffer = allocate_buffer(basis)
     @inbounds for l = 1:S, k = 1:S, j = 1:S, i = 1:S
         value = op_data[i, j, k, l]
         iszero(value) && continue
@@ -262,7 +269,7 @@ function manybodyoperator_2(basis::ManyBodyBasis, op::SparseOpType)
     Is = Int[]
     Js = Int[]
     Vs = ComplexF64[]
-    buffer = allocate_buffer(basis.occupations)
+    buffer = allocate_buffer(basis)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(basis.occupations)
             index = Tuple(CartesianIndices((S, S, S, S))[(column-1)*S^2+row])
@@ -307,7 +314,7 @@ function onebodyexpect_1(op::Operator, state)
     b = basis(state)
     occupations = b.occupations
     S = length(b.onebodybasis)
-    buffer = allocate_buffer(occupations)
+    buffer = allocate_buffer(b)
     result = complex(0.0)
     for i = 1:S, j = 1:S
         value = op.data[i, j]
@@ -326,7 +333,7 @@ end
 function onebodyexpect_1(op::SparseOpPureType, state)
     b = basis(state)
     occupations = b.occupations
-    buffer = allocate_buffer(occupations)
+    buffer = allocate_buffer(b)
     result = complex(0.0)
     @inbounds for (row, column, value) in zip(findnz(op.data)...)
         for (m, occ) in enumerate(occupations)
@@ -341,20 +348,58 @@ function onebodyexpect_1(op::SparseOpPureType, state)
 end
 
 # Occupations as Vector{Int}
-Base.@propagate_inbounds function state_transition!(buffer, occ::Vector{Int}, at_indices, a_indices)
-    any(==(0), (occ[m] for m in a_indices)) && return nothing
-    result = 1
+struct OccupationNumbers{StatisticsT,T} <: AbstractVector{T}
+    statistics::StatisticsT
+    occupations::Vector{T}
+end
+Base.size(on::OccupationNumbers) = size(on.occupations)
+Base.@propagate_inbounds Base.getindex(on::OccupationNumbers, v...) = getindex(on.occupations, v...)
+Base.@propagate_inbounds Base.setindex!(on::OccupationNumbers, value, v...) =
+    setindex!(on.occupations, value, v...)
+Base.IndexStyle(::Type{<:OccupationNumbers}) = Base.IndexLinear()
+Base.similar(occ::OccupationNumbers, ::Type{T}, dims::Dims) where {T} =
+    OccupationNumbers(occ.statistics, similar(occ.occupations, T, dims))
+Base.similar(::Type{OccupationNumbers{StatisticsT,T}}, dims::Dims) where {StatisticsT,T} =
+    OccupationNumbers(StatisticsT(), similar(Vector{T}, dims))
+Base.convert(::Type{OccupationNumbers{StatisticsT,T}}, occ::AbstractVector) where {StatisticsT,T} =
+    OccupationNumbers(StatisticsT(), convert(Vector{T}, occ))
+
+struct FermionStatistics end
+struct BosonStatistics end
+
+Base.@propagate_inbounds function state_transition!(buffer, occ::OccupationNumbers{BosonStatistics},
+        at_indices, a_indices)
+    factor_sq = 1
     copyto!(buffer, occ)
     for i in a_indices
-        result *= buffer[i]
-        result == 0 && return nothing
+        factor_sq *= buffer[i]
+        factor_sq == 0 && return nothing
         buffer[i] -= 1
     end
     for i in at_indices
         buffer[i] += 1
-        result *= buffer[i]
+        factor_sq *= buffer[i]
     end
-    return √result
+    return √factor_sq
+end
+
+Base.@propagate_inbounds function state_transition!(buffer, occ::OccupationNumbers{FermionStatistics},
+        at_indices, a_indices)
+    factor = 1
+    copyto!(buffer, occ)
+    for i in a_indices
+        buffer[i] == 0 && return nothing
+        buffer[i] = 0
+        ncomm = count(==(1), @view buffer[1:i-1])
+        isodd(ncomm) && (factor *= -1)
+    end
+    for i in at_indices
+        buffer[i] == 1 && return nothing
+        buffer[i] = 1
+        ncomm = count(==(1), @view buffer[1:i-1])
+        isodd(ncomm) && (factor *= -1)
+    end
+    return factor
 end
 
 """
@@ -382,7 +427,7 @@ struct FermionBitstring{T<:Unsigned}
     function FermionBitstring(bits::T, n::Int) where T<:Unsigned
         n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
         nrest = sizeof(bits) * 8 - n
-        FermionBitstring{T}(UInt((bits << nrest) >> nrest), n)
+        FermionBitstring{T}(UInt((bits << nrest) >>> nrest), n)
     end
 end
 FermionBitstring(bits::Integer, n::Int) = FermionBitstring(unsigned(bits), n)
@@ -396,6 +441,7 @@ function Base.similar(::Type{FermionBitstring}, n::Int)
     throw(ArgumentError("n must be less than 128"))
 end
 Base.copy(fb::FermionBitstring) = fb
+allocate_buffer(fb::FermionBitstring) = Ref(fb)
 @inline Base.:(==)(fb1::FermionBitstring, fb2::FermionBitstring) =
     fb1.bits == fb2.bits && fb1.n == fb2.n
 @inline Base.isless(fb1::FermionBitstring, fb2::FermionBitstring) =
@@ -405,7 +451,7 @@ Base.show(io::IO, fb::FermionBitstring{T}) where {T} =
 
 Base.@propagate_inbounds function Base.getindex(fb::FermionBitstring, i::Int)
     @boundscheck i in 1:fb.n || throw(BoundsError(fb, i))
-    Bool((fb.bits >> (fb.n - i)) & 1)
+    Bool((fb.bits >>> (fb.n - i)) & 1)
 end
 Base.@propagate_inbounds function write_bit(fb::FermionBitstring, i::Int, value::Bool)
     @boundscheck i in 1:fb.n || throw(BoundsError(fb, i))
@@ -418,16 +464,21 @@ Base.@propagate_inbounds function write_bit(v::AbstractVector, i::Int, value::Bo
     return v
 end
 Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstring, at_indices, a_indices)
+    factor = 1
     for i in a_indices
         occ[i] || return nothing
         occ = write_bit(occ, i, false)
+        ncomm = count_ones(occ.bits >>> (occ.n - i + 1))
+        isodd(ncomm) && (factor *= -1)
     end
     for i in at_indices
         occ[i] && return nothing
         occ = write_bit(occ, i, true)
+        ncomm = count_ones(occ.bits >>> (occ.n - i + 1))
+        isodd(ncomm) && (factor *= -1)
     end
     buffer[] = occ
-    return 1
+    return factor
 end
 
 function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
