@@ -18,7 +18,7 @@ Strided = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
 UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
 [compat]
-Adapt = "1, 2, 3.3"
+Adapt = "1, 2, 3.3, 4"
 FFTW = "1.2"
 FastExpm = "1.1.0"
 FastGaussQuadrature = "0.5, 1"
