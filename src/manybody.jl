@@ -360,6 +360,8 @@ Base.similar(occ::OccupationNumbers, ::Type{T}, dims::Dims) where {T} =
     OccupationNumbers(occ.statistics, similar(occ.occupations, T, dims))
 Base.similar(::Type{OccupationNumbers{StatisticsT,T}}, dims::Dims) where {StatisticsT,T} =
     OccupationNumbers(StatisticsT(), similar(Vector{T}, dims))
+Base.isless(occ1::OccupationNumbers, occ2::OccupationNumbers) = occ1.occupations < occ2.occupations
+Base.copyto!(dest::OccupationNumbers, src::OccupationNumbers) = copyto!(dest.occupations, src.occupations)
 Base.convert(::Type{OccupationNumbers{StatisticsT,T}}, occ::AbstractVector) where {StatisticsT,T} =
     OccupationNumbers(StatisticsT(), convert(Vector{T}, occ))
 
@@ -368,6 +370,7 @@ struct BosonStatistics end
 
 Base.@propagate_inbounds function state_transition!(buffer, occ::OccupationNumbers{BosonStatistics},
         at_indices, a_indices)
+    any(==(0), (occ[m] for m in a_indices)) && return nothing
     factor_sq = 1
     copyto!(buffer, occ)
     for i in a_indices
@@ -384,6 +387,7 @@ end
 
 Base.@propagate_inbounds function state_transition!(buffer, occ::OccupationNumbers{FermionStatistics},
         at_indices, a_indices)
+    any(==(0), (occ[m] for m in a_indices)) && return nothing
     factor = 1
     copyto!(buffer, occ)
     for i in a_indices
