@@ -24,9 +24,9 @@ function state_index(sv::SortedVector{T}, occ::T) where {T}
     ret == length(sv) + 1 && return nothing
     return sv.sortedvector[ret] == occ ? ret : nothing
 end
-state_index(occupations::AbstractVector{T}, state::T) where {T} = findfirst(==(state), occupations)
-state_index(occupations::AbstractVector{T}, state::Base.RefValue{T}) where {T} = state_index(occupations, state[])
-state_index(occupations::AbstractVector{T}, state::Any) where {T} = state_index(occupations, convert(T, state))
+state_index(occupations::AbstractVector{T}, occ::T) where {T} = findfirst(==(occ), occupations)
+state_index(occupations::AbstractVector{T}, occ::Base.RefValue{T}) where {T} = state_index(occupations, occ[])
+state_index(occupations::AbstractVector{T}, occ::Any) where {T} = state_index(occupations, convert(T, occ))
 
 """
     ManyBodyBasis(b, occupations)
@@ -145,7 +145,7 @@ number(mb::ManyBodyBasis) = number(ComplexF64, mb)
 Operator ``|\\mathrm{to}⟩⟨\\mathrm{from}|`` transferring particles between modes.
 
 Note that `to` and `from` can be collections of indices. The resulting operator in this case
-will be equal to ``a^\\dagger_{to_1} a^\\dagger_{to_2} \\ldots a_{from_2} a_{from_1}``.
+will be equal to ``\\ldots a^\\dagger_{to_2} a^\\dagger_{to_1} \\ldots a_{from_2} a_{from_1}``.
 """
 function transition(::Type{T}, mb::ManyBodyBasis, to, from) where {T}
     Is = Int[]
@@ -153,8 +153,8 @@ function transition(::Type{T}, mb::ManyBodyBasis, to, from) where {T}
     Vs = T[]
     buffer = allocate_buffer(mb)
     # <{m}_j| at_to a_from |{m}_i>
-    for (i, occ_i) in enumerate(mb.occupations)
-        C = state_transition!(buffer, occ_i, to, from)
+    for (i, occ) in enumerate(mb.occupations)
+        C = state_transition!(buffer, occ, to, from)
         C === nothing && continue
         j = state_index(mb.occupations, buffer)
         j === nothing && continue
@@ -402,36 +402,30 @@ Base.@propagate_inbounds function state_transition!(buffer, occ::OccupationNumbe
 end
 
 """
-    FermionBitstring(bits, n)
+    FermionBitstring{T}
 
-Fermionic occupation state represented as a bitstring. The bitstring `bits` is represented
-as an unsigned integer with the `n` least significant bits representing the occupation
-state. The bitstring is assumed to be in the canonical form where the bits are ordered
-from left to right with the most significant bit being the first mode.
+Bitstring representation of a fermionic occupation state.
 
 ---
 
     FermionBitstring(bits, n)
-
-Create a `FermionBitstring` from an unsigned integer `bits` with the `n` least significant
-bits representing the occupation state. All remaining bits are set to zero.
 """
-struct FermionBitstring{T<:Unsigned}
+struct FermionBitstring{T}
     bits::T
     n::Int
-    function FermionBitstring{T}(bits, n) where T<:Unsigned
-        n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
-        new{T}(bits, n)
-    end
-    function FermionBitstring(bits::T, n::Int) where T<:Unsigned
-        n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
-        nrest = sizeof(bits) * 8 - n
-        FermionBitstring{T}(UInt((bits << nrest) >>> nrest), n)
+    function FermionBitstring{T}(bits, n::Integer) where {T}
+        T<:Unsigned && n > sizeof(T) * 8 &&
+            throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
+        mask = T(1) << n - 1
+        new{T}(bits & mask, Int(n))
     end
 end
-FermionBitstring(bits::Integer, n::Int) = FermionBitstring(unsigned(bits), n)
+function FermionBitstring(bits::T, n::Integer) where T
+    FermionBitstring{T}(bits, n)
+end
 
 Base.zero(fb::FermionBitstring) = FermionBitstring(zero(fb.bits), fb.n)
+Base.length(fb::FermionBitstring) = fb.n
 Base.similar(::Type{FermionBitstring{T}}, n::Int) where {T} = FermionBitstring(zero(T), n)
 function Base.similar(::Type{FermionBitstring}, n::Int)
     for type in (UInt8, UInt16, UInt32, UInt64, UInt128)
@@ -439,15 +433,12 @@ function Base.similar(::Type{FermionBitstring}, n::Int)
     end
     throw(ArgumentError("n must be less than 128; got $n"))
 end
-function Base.convert(::Type{FermionBitstring{T}}, v::AbstractVector) where {T}
-    n = length(v)
-    n > sizeof(T) * 8 && throw(ArgumentError("n must be less than $(sizeof(T) * 8)"))
-    bits = zero(T)
-    for i in 1:n
-        v[i] in (0, 1) || throw(ArgumentError("Occupations must be 0 or 1"))
-        v[i] == 1 && (bits |= one(T) << (n - i))
+function Base.convert(::Type{T}, v::AbstractVector) where {T<:FermionBitstring}
+    new_v = similar(T, length(v))
+    for i in 1:length(new_v)
+        new_v = Base.setindex(new_v, Bool(v[i]), i)
     end
-    FermionBitstring{T}(bits, n)
+    return new_v
 end
 Base.copy(fb::FermionBitstring) = fb
 allocate_buffer(fb::FermionBitstring) = Ref(fb)
@@ -462,27 +453,23 @@ Base.@propagate_inbounds function Base.getindex(fb::FermionBitstring, i::Int)
     @boundscheck i in 1:fb.n || throw(BoundsError(fb, i))
     Bool((fb.bits >>> (fb.n - i)) & 1)
 end
-Base.@propagate_inbounds function write_bit(fb::FermionBitstring, i::Int, value::Bool)
+Base.@propagate_inbounds function Base.setindex(fb::FermionBitstring, value::Bool, i::Int)
     @boundscheck i in 1:fb.n || throw(BoundsError(fb, i))
     offset = fb.n - i
     value ? FermionBitstring(fb.bits | (one(fb.bits) << offset), fb.n) :
             FermionBitstring(fb.bits & ~(one(fb.bits) << offset), fb.n)
 end
-Base.@propagate_inbounds function write_bit(v::AbstractVector, i::Int, value::Bool)
-    setindex!(v, value, i)
-    return v
-end
 Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstring, at_indices, a_indices)
     factor = 1
     for i in a_indices
         occ[i] || return nothing
-        occ = write_bit(occ, i, false)
+        occ = setocc(occ, i, false)
         ncomm = count_ones(occ.bits >>> (occ.n - i + 1))
         isodd(ncomm) && (factor *= -1)
     end
     for i in at_indices
         occ[i] && return nothing
-        occ = write_bit(occ, i, true)
+        occ = setocc(occ, i, true)
         ncomm = count_ones(occ.bits >>> (occ.n - i + 1))
         isodd(ncomm) && (factor *= -1)
     end
@@ -502,7 +489,11 @@ function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
     end
     return results
 end
-
+Base.@propagate_inbounds setocc(fb::FermionBitstring, i::Int, value::Bool) = Base.setindex(fb, value, i)
+Base.@propagate_inbounds function setocc(v::AbstractVector, i::Int, value::Bool)
+    setindex!(v, value, i)
+    return v
+end
 function _distribute_fermions(Nparticles, Nmodes, index, occupations, results)
     if (Nmodes - index) + 1 < Nparticles
         return results
@@ -512,9 +503,9 @@ function _distribute_fermions(Nparticles, Nmodes, index, occupations, results)
         return results
     end
     for new_index in index:Nmodes - Nparticles + 1
-        occupations = write_bit(occupations, new_index, true)
+        occupations = setocc(occupations, new_index, true)
         _distribute_fermions(Nparticles - 1, Nmodes, new_index + 1, occupations, results)
-        occupations = write_bit(occupations, new_index, false)
+        occupations = setocc(occupations, new_index, false)
     end
     return results
 end
