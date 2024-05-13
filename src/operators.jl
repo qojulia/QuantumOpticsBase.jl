@@ -103,6 +103,20 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
 end
 
 """
+    embed(basis::Basis, indices, ops::AbstractOperator)
+
+Special case of the `embed` to handle embedding an operator `ops` into a single
+basis.
+"""
+function embed(basis::Basis, indices, ops::AbstractOperator)
+    if indices == 1 || indices == (1,) || indices == [1]
+        return ops
+    else
+        throw(ArgumentError("Invalid indices for single basis."))
+    end
+end
+
+"""
     expect(op, state)
 
 Expectation value of the given operator `op` for the specified `state`.
