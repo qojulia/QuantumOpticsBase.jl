@@ -59,8 +59,8 @@ allocate_buffer(mb::ManyBodyBasis) = allocate_buffer(first(mb.occupations))
 
 Generate all fermionic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
-particle number. `T` is the type of the occupation states - default is `Vector{Int}`,
-but can also be `FermionBitstring`.
+particle number. `T` is the type of the occupation states - default is
+`OccupationNumbers{FermionStatistics,Int}`, but can be any occupations type.
 """
 function fermionstates(T::Type, Nmodes::Int, Nparticles::Int)
     occ_buffer = zero(similar(T, Nmodes))
@@ -72,20 +72,22 @@ fermionstates(T::Type, onebodybasis::Basis, Nparticles) = fermionstates(T, lengt
 fermionstates(arg1, arg2) = fermionstates(OccupationNumbers{FermionStatistics,Int}, arg1, arg2)
 
 """
-    bosonstates(Nmodes, Nparticles)
-    bosonstates(b, Nparticles)
+    bosonstates([T, ]Nmodes, Nparticles)
+    bosonstates([T, ]b, Nparticles)
 
 Generate all bosonic occupation states for N-particles in M-modes.
 `Nparticles` can be a vector to define a Hilbert space with variable
-particle number.
+particle number. `T` is the type of the occupation states - default is
+`OccupationNumbers{BosonStatistics,Int}`, but can be any occupations type.
 """
-bosonstates(Nmodes::Int, Nparticles::Int) = SortedVector(
-    _distribute_bosons(Nparticles, Nmodes, 1,
-    OccupationNumbers(BosonStatistics(), zeros(Int, Nmodes)),
-    OccupationNumbers{BosonStatistics, Int}[]),
-    Base.Reverse)
-bosonstates(Nmodes::Int, Nparticles::Vector{Int}) = union((bosonstates(Nmodes, N) for N in Nparticles)...)
-bosonstates(onebodybasis::Basis, Nparticles) = bosonstates(length(onebodybasis), Nparticles)
+function bosonstates(T::Type, Nmodes::Int, Nparticles::Int)
+    occ_buffer = zero(similar(T, Nmodes))
+    OT = typeof(occ_buffer)
+    SortedVector(_distribute_bosons(Nparticles, Nmodes, 1, occ_buffer, OT[]), Base.Reverse)
+end
+bosonstates(T::Type, Nmodes::Int, Nparticles::Vector{Int}) = union((bosonstates(T, Nmodes, N) for N in Nparticles)...)
+bosonstates(T::Type, onebodybasis::Basis, Nparticles) = bosonstates(T, length(onebodybasis), Nparticles)
+bosonstates(arg1, arg2) = bosonstates(OccupationNumbers{BosonStatistics,Int}, arg1, arg2)
 
 ==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash == b2.occupations_hash && b1.onebodybasis == b2.onebodybasis
 
@@ -481,22 +483,22 @@ Base.@propagate_inbounds function state_transition!(buffer, occ::FermionBitstrin
     return factor
 end
 
+Base.@propagate_inbounds setocc(fb::FermionBitstring, i::Int, value) = Base.setindex(fb, value, i)
+Base.@propagate_inbounds function setocc(v::AbstractVector, i::Int, value)
+    setindex!(v, value, i)
+    return v
+end
 function _distribute_bosons(Nparticles, Nmodes, index, occupations, results)
     if index == Nmodes
-        occupations[index] = Nparticles
+        occupations = setocc(occupations, index, Nparticles)
         push!(results, copy(occupations))
     else
         for n = Nparticles:-1:0
-            occupations[index] = n
+            occupations = setocc(occupations, index, n)
             _distribute_bosons(Nparticles - n, Nmodes, index + 1, occupations, results)
         end
     end
     return results
-end
-Base.@propagate_inbounds setocc(fb::FermionBitstring, i::Int, value::Bool) = Base.setindex(fb, value, i)
-Base.@propagate_inbounds function setocc(v::AbstractVector, i::Int, value::Bool)
-    setindex!(v, value, i)
-    return v
 end
 function _distribute_fermions(Nparticles, Nmodes, index, occupations, results)
     if (Nmodes - index) + 1 < Nparticles

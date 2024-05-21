@@ -36,6 +36,8 @@ b = GenericBasis(Nmodes)
 
 @test collect(fermionstates(FermionBitstring, b, 3)) ==
     convert.(FermionBitstring, fermionstates(b, 3))
+@test collect(bosonstates(Vector{Int}, b, 3)) ==
+    convert.(Vector{Int}, bosonstates(b, 3))
 b2 = GenericBasis(130)
 @test collect(fermionstates(FermionBitstring{BigInt}, b2, 2)) ==
     convert.(FermionBitstring{BigInt}, fermionstates(b2, 2))
