@@ -34,6 +34,14 @@ b = GenericBasis(Nmodes)
 @test ManyBodyBasis(b, bosonstates(b, 1)) == ManyBodyBasis(b, fermionstates(b, 1))
 @test ManyBodyBasis(b, bosonstates(b, 2)) != ManyBodyBasis(b, fermionstates(b, 2))
 
+@test collect(fermionstates(FermionBitstring, b, 3)) ==
+    convert.(FermionBitstring, fermionstates(b, 3))
+@test collect(bosonstates(Vector{Int}, b, 3)) ==
+    convert.(Vector{Int}, bosonstates(b, 3))
+b2 = GenericBasis(130)
+@test collect(fermionstates(FermionBitstring{BigInt}, b2, 2)) ==
+    convert.(FermionBitstring{BigInt}, fermionstates(b2, 2))
+
 # Test basisstate
 b_mb = ManyBodyBasis(b, bosonstates(b, 2))
 psi_mb = basisstate(b_mb, [2, 0, 0, 0, 0])
@@ -123,6 +131,30 @@ d3 = destroy(b_mb, 3)
 c2 = create(b_mb, 2)
 @test t22_33 ≈ c2 * c2 * d3 * d3
 
+# Test commutator and anticommutator
+state = basisstate(b_mb, [1, 0, 0, 0])
+a1 = destroy(b_mb, 1)
+at2 = create(b_mb, 2)
+at3 = create(b_mb, 3)
+@test 1e-12 > D(a1 * at2 * state, at2 * a1 * state)
+@test 1e-12 > D(at2 * at3 * state, at3 * at2 * state)
+
+f_mb = ManyBodyBasis(b, fermionstates(b, [0, 1, 2]))
+state = basisstate(f_mb, [1, 0, 0, 0])
+a1 = destroy(f_mb, 1)
+at2 = create(f_mb, 2)
+at3 = create(f_mb, 3)
+@test 1e-12 > D(a1 * at2 * state, -at2 * a1 * state)
+@test 1e-12 > D(at2 * at3 * state, -at3 * at2 * state)
+
+f_mb2 = ManyBodyBasis(b, fermionstates(FermionBitstring, b, [0, 1, 2]))
+state = basisstate(f_mb2, [1, 0, 0, 0])
+a1 = destroy(f_mb2, 1)
+at2 = create(f_mb2, 2)
+at3 = create(f_mb2, 3)
+@test 1e-12 > D(a1 * at2 * state, -at2 * a1 * state)
+@test 1e-12 > D(at2 * at3 * state, -at3 * at2 * state)
+
 # Single particle operator in second quantization
 b_single = GenericBasis(Nmodes)
 b = ManyBodyBasis(b_single, bosonstates(b_single, [1, 2]))
@@ -140,6 +172,15 @@ y_ = sparse(y)
 @test 1e-12 > D(Y, manybodyoperator(b, y_))
 @test 1e-12 > D(X + Y, manybodyoperator(b, x_ + y_))
 
+# Same for fermions
+bf1 = ManyBodyBasis(b_single, fermionstates(b_single, [1, 2]))
+bf2 = ManyBodyBasis(b_single, fermionstates(FermionBitstring, b_single, [1, 2]))
+
+X1 = manybodyoperator(bf1, x)
+X2 = manybodyoperator(bf2, x)
+@test X1.data == X2.data
+@test 1e-12 > D(X2, manybodyoperator(bf2, x_))
+
 # Particle-particle interaction operator in second quantization
 x = randoperator(b_single ⊗ b_single)
 y = randoperator(b_single ⊗ b_single)
@@ -154,6 +195,14 @@ y_ = sparse(y)
 @test 1e-12 > D(X, manybodyoperator(b, x_))
 @test 1e-12 > D(Y, manybodyoperator(b, y_))
 @test 1e-12 > D(X + Y, manybodyoperator(b, x_ + y_))
+
+# Same for fermions
+X1 = manybodyoperator(bf1, x)
+X2 = manybodyoperator(bf2, x)
+Y2 = manybodyoperator(bf2, y)
+@test X1.data == X2.data
+@test 1e-12 > D(X2, manybodyoperator(bf2, x_))
+@test 1e-12 > D(X2 + Y2, manybodyoperator(bf2, x + y))
 
 # Test one-body expect
 x = randoperator(b_single)
