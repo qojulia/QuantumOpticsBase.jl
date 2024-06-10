@@ -101,10 +101,10 @@ end
 identitysuperoperator(b::Basis) =
     SuperOperator((b,b), (b,b), Eye{ComplexF64}(length(b)^2))
 
-identitysuperoperator(op::DenseSuperOpType) = 
+identitysuperoperator(op::DenseSuperOpType) =
     SuperOperator(op.basis_l, op.basis_r, Matrix(one(eltype(op.data))I, size(op.data)))
 
-identitysuperoperator(op::SparseSuperOpType) = 
+identitysuperoperator(op::SparseSuperOpType) =
     SuperOperator(op.basis_l, op.basis_r, sparse(one(eltype(op.data))I, size(op.data)))
 
 dagger(x::DenseSuperOpType) = SuperOperator(x.basis_r, x.basis_l, copy(adjoint(x.data)))
@@ -318,9 +318,14 @@ end
 end
 
 """
-    Base class for the Choi representation of superoperators.
-"""
+    ChoiState <: AbstractSuperOperator
 
+Choi representation of superoperators.
+Currently it simply provides for reordering of the internal linear algebra matrix representation
+from the typical vectorized form we use in [`SuperOperator`](@ref) to the Choi matrix form.
+
+See also: [`SuperOperator`](@ref)
+"""
 mutable struct ChoiState{B1,B2,T} <: AbstractSuperOperator{B1,B2}
     basis_l::B1
     basis_r::B2
@@ -336,7 +341,7 @@ mutable struct ChoiState{B1,B2,T} <: AbstractSuperOperator{B1,B2}
 end
 ChoiState{BL,BR}(b1::BL,b2::BR,data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1,b2,data)
 ChoiState(b1::BL,b2::BR,data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1,b2,data)
-ChoiState(b,data) = SuperOperator(b,b,data)
+ChoiState(b,data) = ChoiState(b,b,data)
 
 # reshape swaps within systems due to colum major ordering
 # https://docs.qojulia.org/quantumobjects/operators/#tensor_order
