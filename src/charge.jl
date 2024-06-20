@@ -1,7 +1,9 @@
 """
     ChargeBasis(ncut) <: Basis
 
-Basis spanning `-ncut, ..., ncut` charge states.
+Basis spanning `-ncut, ..., ncut` charge states, which are the fourier modes
+(irreducible representations) of a continuous U(1) degree of freedom, truncated
+at `ncut`.
 """
 struct ChargeBasis{T} <: Basis
     shape::Vector{T}
@@ -21,7 +23,7 @@ Base.:(==)(b1::ChargeBasis, b2::ChargeBasis) = (b1.ncut == b2.ncut)
 """
     ShiftedChargeBasis(nmin, nmax) <: Basis
 
-Basis spanning `nmin, ..., nmax` charge states.
+Basis spanning `nmin, ..., nmax` charge states. See [`ChargeBasis`](@ref).
 """
 struct ShiftedChargeBasis{T} <: Basis
     shape::Vector{T}
@@ -44,7 +46,7 @@ Base.:(==)(b1::ShiftedChargeBasis, b2::ShiftedChargeBasis) =
     chargestate([T=ComplexF64,] b::ChargeBasis, n)
     chargestate([T=ComplexF64,] b::ShiftedChargeBasis, n)
 
-Charge state ``|n⟩`` for given charge basis.
+Charge state ``|n⟩`` for given [`ChargeBasis`](@ref) or [`ShiftedChargeBasis`](@ref).
 """
 chargestate(::Type{T}, b::ChargeBasis, n::Integer) where {T} =
     basisstate(T, b, n + b.ncut + 1)
@@ -58,7 +60,8 @@ chargestate(b, n) = chargestate(ComplexF64, b, n)
     chargeop([T=ComplexF64,] b::ChargeBasis)
     chargeop([T=ComplexF64,] b::ShiftedChargeBasis)
 
-Return diagonal charge operator ``N`` for given charge basis. 
+Return diagonal charge operator ``N`` for given [`ChargeBasis`](@ref) or
+[`ShiftedChargeBasis`](@ref).
 """
 function chargeop(::Type{T}, b::ChargeBasis) where {T}
     data = spdiagm(T.(-b.ncut:1:b.ncut))
@@ -76,7 +79,10 @@ chargeop(b) = chargeop(ComplexF64, b)
     expiφ([T=ComplexF64,] b::ChargeBasis, k=1)
     expiφ([T=ComplexF64,] b::ShiftedChargeBasis, k=1)
 
-Return operator ``\\exp(i k φ)`` for given charge basis.
+Return operator ``\\exp(i k φ)`` for given [`ChargeBasis`](@ref) or
+[`ShiftedChargeBasis`](@ref), where "φ" refers to the continous U(1) degree of
+freedom that is conjugate to the charge. This is a "shift" operator that shifts
+the charge by `k`.
 """
 function expiφ(::Type{T}, b::ChargeBasis; k=1) where {T}
     if abs(k) > 2 * b.ncut
@@ -104,7 +110,7 @@ expiφ(b; kwargs...) = expiφ(ComplexF64, b; kwargs...)
     cosφ([T=ComplexF64,] b::ChargeBasis; k=1)
     cosφ([T=ComplexF64,] b::ShiftedChargeBasis; k=1)
 
-Return operator ``\\cos(k φ)`` for given charge basis.
+Return operator ``\\cos(k φ)`` for given charge basis. See [`expiφ`](@ref).
 """
 function cosφ(::Type{T}, b::Union{ChargeBasis,ShiftedChargeBasis}; k=1) where {T}
     d = expiφ(b; k=k)
@@ -117,7 +123,7 @@ cosφ(b; kwargs...) = cosφ(ComplexF64, b; kwargs...)
     sinφ([T=ComplexF64,] b::ChargeBasis; k=1)
     sinφ([T=ComplexF64,] b::ShiftedChargeBasis; k=1)
 
-Return operator ``\\sin(k φ)`` for given charge basis.
+Return operator ``\\sin(k φ)`` for given charge basis. See [`expiφ`](@ref).
 """
 function sinφ(::Type{T}, b::Union{ChargeBasis,ShiftedChargeBasis}; k=1) where {T}
     d = expiφ(b; k=k)
