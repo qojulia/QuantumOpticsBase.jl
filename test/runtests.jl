@@ -14,6 +14,7 @@ names = [
     "test_time_dependent_operators.jl",
 
     "test_fock.jl",
+    "test_charge.jl",
     "test_spin.jl",
     "test_particle.jl",
     "test_manybody.jl",
