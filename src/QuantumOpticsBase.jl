@@ -42,6 +42,8 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 fockstate, coherentstate, coherentstate!,
                 displace, displace_analytical, displace_analytical!,
                 squeeze,
+        # charge
+                ChargeBasis, ShiftedChargeBasis, chargestate, chargeop, expiφ, cosφ, sinφ,
         randstate, randoperator, thermalstate, coherentthermalstate, phase_average, passive_state,
         randstate_haar, randunitary_haar,
         #spin
@@ -82,6 +84,7 @@ include("states_lazyket.jl")
 include("superoperators.jl")
 include("spin.jl")
 include("fock.jl")
+include("charge.jl")
 include("state_definitions.jl")
 include("subspace.jl")
 include("particle.jl")
