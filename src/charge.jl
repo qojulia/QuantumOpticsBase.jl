@@ -4,6 +4,14 @@
 Basis spanning `-ncut, ..., ncut` charge states, which are the fourier modes
 (irreducible representations) of a continuous U(1) degree of freedom, truncated
 at `ncut`.
+
+The charge basis is a natural representation for circuit-QED elements such as
+the "transmon", which has a hamiltonian of the form:
+```julia
+b = ChargeBasis(ncut)
+H = 4E_C * chargeop(b)^2 - E_J * cosφ(b)
+```
+See e.g. https://arxiv.org/abs/2005.12667.
 """
 struct ChargeBasis{T} <: Basis
     shape::Vector{T}
@@ -80,8 +88,8 @@ chargeop(b) = chargeop(ComplexF64, b)
     expiφ([T=ComplexF64,] b::ShiftedChargeBasis, k=1)
 
 Return operator ``\\exp(i k φ)`` for given [`ChargeBasis`](@ref) or
-[`ShiftedChargeBasis`](@ref), where "φ" refers to the continous U(1) degree of
-freedom that is conjugate to the charge. This is a "shift" operator that shifts
+[`ShiftedChargeBasis`](@ref), representing the continous U(1) degree of
+freedom conjugate to the charge. This is a "shift" operator that shifts
 the charge by `k`.
 """
 function expiφ(::Type{T}, b::ChargeBasis; k=1) where {T}
