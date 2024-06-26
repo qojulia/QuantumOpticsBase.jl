@@ -22,6 +22,17 @@ this throws an `ArgumentError`.
 """
 current_time(::T) where {T<:AbstractOperator} = 
   throw(ArgumentError("Time not defined for operators of type $T. Consider using a TimeDependentSum or another time-dependence wrapper."))
+
+"""
+    static_operator(op::AbstractOperator)
+
+Returns a static (not time dependent) representation of `op` the current time.
+This strips the time-dependence and can be used to obtain a non-lazy matrix
+representation of the operator.
+
+For example: `sparse(static_operator(op(t))` return a sparse-matrix representation
+of `op` at time `t`.
+"""
 static_operator(o::AbstractOperator) = o
 
 """

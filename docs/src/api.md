@@ -237,6 +237,10 @@ current_time
 ```
 
 ```@docs
+static_operator
+```
+
+```@docs
 set_time!
 ```
 
