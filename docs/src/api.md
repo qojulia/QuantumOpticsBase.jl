@@ -307,6 +307,31 @@ coherentstate
 coherentstate!
 ```
 
+### [Charge](@id API: Charge)
+
+```@docs
+ChargeBasis
+```
+
+```@docs
+ShiftedChargeBasis
+```
+
+```@docs
+chargeop
+```
+
+```@docs
+expiφ
+```
+
+```@docs
+cosφ
+```
+
+```@docs
+sinφ
+```
 
 ### [N-level](@id API: N-level)
 
