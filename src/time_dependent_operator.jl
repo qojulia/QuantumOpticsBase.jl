@@ -160,7 +160,14 @@ function set_time!(o::TimeDependentSum, t::Number)
         o.current_time = t
         update_static_coefficients!(static_operator(o), coefficients(o), t)
     end
-    set_time!.(suboperators(o), t)
+    subops = suboperators(o)
+    if subops isa Tuple
+        set_time!.(subops, t)
+    else
+        for so in subops
+            set_time!(so, t)
+        end
+    end
     o
 end
 
