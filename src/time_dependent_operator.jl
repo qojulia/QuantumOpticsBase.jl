@@ -160,14 +160,8 @@ function set_time!(o::TimeDependentSum, t::Number)
         o.current_time = t
         update_static_coefficients!(static_operator(o), coefficients(o), t)
     end
-    subops = suboperators(o)
-    if subops isa Tuple
-        set_time!.(subops, t)
-    else
-        for so in subops
-            set_time!(so, t)
-        end
-    end
+    # foreach is type-stable for tuples and concrete-typed vectors
+    foreach(o -> set_time!(o, t), suboperators(o))
     o
 end
 
@@ -298,13 +292,15 @@ end
 
 @inline eval_coefficients(coeffs::Tuple, t::Number) = map(c->eval_coefficient(c, t), coeffs)
 
-# This is the performance-critical implementation.
-# To avoid allocations in most cases, we model this on map(f, t::Tuple).
-@inline eval_coefficients(::Type{T}, coeffs::Tuple{Any,}, t::Number) where T          = (T(eval_coefficient(coeffs[1], t)),)
-@inline eval_coefficients(::Type{T}, coeffs::Tuple{Any, Any}, t::Number) where T      = (T(eval_coefficient(coeffs[1], t)), T(eval_coefficient(coeffs[2], t)))
-@inline eval_coefficients(::Type{T}, coeffs::Tuple{Any, Any, Any}, t::Number) where T = (T(eval_coefficient(coeffs[1], t)), T(eval_coefficient(coeffs[2], t)), T(eval_coefficient(coeffs[3], t)))
-@inline eval_coefficients(::Type{T}, coeffs::Tuple, t::Number) where T                = (T(eval_coefficient(coeffs[1], t)), eval_coefficients(T, Base.tail(coeffs), t)...)
+# This is the performance-critical implementation. map(f, ::Tuple) avoids allocs in most cases
+@inline eval_coefficients(::Type{T}, coeffs::Tuple, t::Number) where T = map(c->T(eval_coefficient(c, t)), coeffs)
 
+# Now just using map here instead. Maybe restore this in case of regressions.
+## To avoid allocations in most cases, we model this on map(f, t::Tuple).
+#@inline eval_coefficients(::Type{T}, coeffs::Tuple{Any,}, t::Number) where T          = (T(eval_coefficient(coeffs[1], t)),)
+#@inline eval_coefficients(::Type{T}, coeffs::Tuple{Any, Any}, t::Number) where T      = (T(eval_coefficient(coeffs[1], t)), T(eval_coefficient(coeffs[2], t)))
+#@inline eval_coefficients(::Type{T}, coeffs::Tuple{Any, Any, Any}, t::Number) where T = (T(eval_coefficient(coeffs[1], t)), T(eval_coefficient(coeffs[2], t)), T(eval_coefficient(coeffs[3], t)))
+#@inline eval_coefficients(::Type{T}, coeffs::Tuple, t::Number) where T                = (T(eval_coefficient(coeffs[1], t)), eval_coefficients(T, Base.tail(coeffs), t)...)
 
 _timeshift_coeff(coeff, t0) = (@inline shifted_coeff(t) = coeff(t-t0))
 _timeshift_coeff(coeff::Number, _) = coeff
