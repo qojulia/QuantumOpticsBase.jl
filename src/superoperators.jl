@@ -287,7 +287,7 @@ end
 # end
 find_basis(a::SuperOperator, rest) = (a.basis_l, a.basis_r)
 
-const BasicMathFunc = Union{typeof(+),typeof(-),typeof(*)}
+const BasicMathFunc = Union{typeof(+),typeof(-),typeof(*),typeof(/)}
 function Broadcasted_restrict_f(f::BasicMathFunc, args::Tuple{Vararg{<:SuperOperator}}, axes)
     args_ = Tuple(a.data for a=args)
     return Broadcast.Broadcasted(f, args_, axes)
