@@ -458,7 +458,16 @@ end
 Base.eltype(::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = N # ODE init
 Base.any(f::Function, ρ::Operator; kwargs...) = any(f, ρ.data; kwargs...) # ODE nan checks
 Base.all(f::Function, ρ::Operator; kwargs...) = all(f, ρ.data; kwargs...)
+Base.copy(x::AbstractOperator) = typeof(x)(x.basis_l, x.basis_r, copy(x.data))
 Base.ndims(o::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = ndims(A)
 Broadcast.similar(ρ::Operator, t) = typeof(ρ)(ρ.basis_l, ρ.basis_r, copy(ρ.data))
 using RecursiveArrayTools
 RecursiveArrayTools.recursivecopy!(dst::Operator{Bl,Br,A},src::Operator{Bl,Br,A}) where {Bl,Br,A} = copy!(dst.data,src.data) # ODE in-place equations
+RecursiveArrayTools.recursivecopy(x::AbstractOperator) = copy(x)
+RecursiveArrayTools.recursivecopy(x::AbstractArray{T}) where {T<:AbstractOperator} = copy(x)
+function RecursiveArrayTools.recursivefill!(x::AbstractOperator, a)
+    data = x.data
+    @inbounds for i in eachindex(data)
+        data[i] = copy(a)
+    end
+end
