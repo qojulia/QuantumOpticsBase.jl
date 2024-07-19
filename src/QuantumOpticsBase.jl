@@ -36,7 +36,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #superoperators
                 SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType,
-                ChoiState,
+                ChoiState, KrausOperators, is_trace_preserving, is_valid_channel,
                 spre, spost, sprepost, liouvillian, identitysuperoperator,
         #fock
                 FockBasis, number, destroy, create,
