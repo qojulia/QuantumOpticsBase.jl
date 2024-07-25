@@ -459,12 +459,11 @@ end
 Base.eltype(::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = N # ODE init
 Base.any(f::Function, x::Operator; kwargs...) = any(f, x.data; kwargs...) # ODE nan checks
 Base.all(f::Function, x::Operator; kwargs...) = all(f, x.data; kwargs...)
-Base.copy(x::AbstractOperator) = typeof(x)(x.basis_l, x.basis_r, copy(x.data))
-Base.fill!(x::AbstractOperator, a) = typeof(x)(x.basis_l, x.basis_r, fill!(x.data, a))
+Base.fill!(x::Operator, a) = typeof(x)(x.basis_l, x.basis_r, fill!(x.data, a))
 Base.ndims(x::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = ndims(A)
 Broadcast.similar(x::Operator, t) = typeof(x)(x.basis_l, x.basis_r, copy(x.data))
 using RecursiveArrayTools
 RecursiveArrayTools.recursivecopy!(dst::Operator{Bl,Br,A},src::Operator{Bl,Br,A}) where {Bl,Br,A} = copy!(dst.data,src.data) # ODE in-place equations
-RecursiveArrayTools.recursivecopy(x::AbstractOperator) = copy(x)
-RecursiveArrayTools.recursivecopy(x::AbstractArray{T}) where {T<:AbstractOperator} = copy(x)
-RecursiveArrayTools.recursivefill!(x::AbstractOperator, a) = fill!(x, a)
+RecursiveArrayTools.recursivecopy(x::Operator) = copy(x)
+RecursiveArrayTools.recursivecopy(x::AbstractArray{T}) where {T<:Operator} = copy(x)
+RecursiveArrayTools.recursivefill!(x::Operator, a) = fill!(x, a)
