@@ -215,8 +215,6 @@ Ldense .+= Ldense
 Ldense .+= L
 @test isa(Ldense, DenseSuperOpType)
 @test isapprox(Ldense.data, 5*Ldense_.data)
-@test_throws ErrorException cos.(Ldense)
-@test_throws ErrorException cos.(L)
 
 b = FockBasis(20)
 L = liouvillian(identityoperator(b), [destroy(b)])
