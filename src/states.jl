@@ -214,7 +214,8 @@ end
 
 find_basis(a::StateVector, rest) = a.basis
 find_dType(a::StateVector, rest) = eltype(a)
-Base.getindex(st::StateVector, idx) = getindex(st.data, idx)
+@inline Base.getindex(st::StateVector, idx) = getindex(st.data, idx)
+Base.@propagate_inbounds Base.Broadcast._broadcast_getindex(x::StateVector, i) = x.data[i]
 
 # In-place broadcasting for Kets
 @inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:KetStyle{B},Axes,F,Args}
@@ -250,15 +251,11 @@ Base.eltype(::Type{Bra{B,A}}) where {B,N,A<:AbstractVector{N}} = N
 Base.zero(k::StateVector) = typeof(k)(k.basis, zero(k.data)) # ODE init
 Base.any(f::Function, x::StateVector; kwargs...) = any(f, x.data; kwargs...) # ODE nan checks
 Base.all(f::Function, x::StateVector; kwargs...) = all(f, x.data; kwargs...)
+Base.fill!(k::StateVector, a) = typeof(k)(k.basis, fill!(k.data, a))
 Broadcast.similar(k::StateVector, t) = typeof(k)(k.basis, similar(k.data))
 using RecursiveArrayTools
 RecursiveArrayTools.recursivecopy!(dst::Ket{B,A},src::Ket{B,A}) where {B,A} = copy!(dst.data,src.data) # ODE in-place equations
 RecursiveArrayTools.recursivecopy!(dst::Bra{B,A},src::Bra{B,A}) where {B,A} = copy!(dst.data,src.data)
 RecursiveArrayTools.recursivecopy(x::StateVector) = copy(x)
 RecursiveArrayTools.recursivecopy(x::AbstractArray{T}) where {T<:StateVector} = copy(x)
-function RecursiveArrayTools.recursivefill!(x::StateVector, a)
-    data = x.data
-    @inbounds for i in eachindex(data)
-        data[i] = copy(a)
-    end
-end
+RecursiveArrayTools.recursivefill!(x::StateVector, a) = fill!(x, a)

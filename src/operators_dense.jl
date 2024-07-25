@@ -437,7 +437,8 @@ end
 
 find_basis(a::DataOperator, rest) = (a.basis_l, a.basis_r)
 find_dType(a::DataOperator, rest) = eltype(a)
-Base.getindex(a::DataOperator, idx) = getindex(a.data, idx)
+@inline Base.getindex(a::DataOperator, idx) = getindex(a.data, idx)
+Base.@propagate_inbounds Base.Broadcast._broadcast_getindex(x::DataOperator, i) = x.data[i]
 Base.iterate(a::DataOperator) = iterate(a.data)
 Base.iterate(a::DataOperator, idx) = iterate(a.data, idx)
 
@@ -456,18 +457,14 @@ end
 
 # A few more standard interfaces: These do not necessarily make sense for a StateVector, but enable transparent use of DifferentialEquations.jl
 Base.eltype(::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = N # ODE init
-Base.any(f::Function, ρ::Operator; kwargs...) = any(f, ρ.data; kwargs...) # ODE nan checks
-Base.all(f::Function, ρ::Operator; kwargs...) = all(f, ρ.data; kwargs...)
+Base.any(f::Function, x::Operator; kwargs...) = any(f, x.data; kwargs...) # ODE nan checks
+Base.all(f::Function, x::Operator; kwargs...) = all(f, x.data; kwargs...)
 Base.copy(x::AbstractOperator) = typeof(x)(x.basis_l, x.basis_r, copy(x.data))
-Base.ndims(o::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = ndims(A)
-Broadcast.similar(ρ::Operator, t) = typeof(ρ)(ρ.basis_l, ρ.basis_r, copy(ρ.data))
+Base.fill!(x::AbstractOperator, a) = typeof(x)(x.basis_l, x.basis_r, fill!(x.data, a))
+Base.ndims(x::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = ndims(A)
+Broadcast.similar(x::Operator, t) = typeof(x)(x.basis_l, x.basis_r, copy(x.data))
 using RecursiveArrayTools
 RecursiveArrayTools.recursivecopy!(dst::Operator{Bl,Br,A},src::Operator{Bl,Br,A}) where {Bl,Br,A} = copy!(dst.data,src.data) # ODE in-place equations
 RecursiveArrayTools.recursivecopy(x::AbstractOperator) = copy(x)
 RecursiveArrayTools.recursivecopy(x::AbstractArray{T}) where {T<:AbstractOperator} = copy(x)
-function RecursiveArrayTools.recursivefill!(x::AbstractOperator, a)
-    data = x.data
-    @inbounds for i in eachindex(data)
-        data[i] = copy(a)
-    end
-end
+RecursiveArrayTools.recursivefill!(x::AbstractOperator, a) = fill!(x, a)
