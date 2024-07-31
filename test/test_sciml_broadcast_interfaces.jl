@@ -1,7 +1,6 @@
 using Test
 using QuantumOptics
 using OrdinaryDiffEq
-using BenchmarkTools
 
 @testset "sciml interface" begin
 
