@@ -462,7 +462,6 @@ Base.all(f::Function, x::Operator; kwargs...) = all(f, x.data; kwargs...)
 Base.fill!(x::Operator, a) = typeof(x)(x.basis_l, x.basis_r, fill!(x.data, a))
 Base.ndims(x::Type{Operator{Bl,Br,A}}) where {Bl,Br,N,A<:AbstractMatrix{N}} = ndims(A)
 Base.similar(x::Operator, t) = typeof(x)(x.basis_l, x.basis_r, copy(x.data))
-using RecursiveArrayTools
 RecursiveArrayTools.recursivecopy!(dest::Operator{Bl,Br,A},src::Operator{Bl,Br,A}) where {Bl,Br,A} = copyto!(dest,src) # ODE in-place equations
 RecursiveArrayTools.recursivecopy(x::Operator) = copy(x)
 RecursiveArrayTools.recursivecopy(x::AbstractArray{T}) where {T<:Operator} = copy(x)

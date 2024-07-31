@@ -22,6 +22,8 @@ names = [
     "test_subspace.jl",
     "test_state_definitions.jl",
 
+    "test_sciml_broadcast_interfaces.jl",
+
     "test_transformations.jl",
 
     "test_metrics.jl",
