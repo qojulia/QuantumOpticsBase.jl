@@ -1,6 +1,8 @@
 import Base: ==, +, -, *, /, length, copy, eltype
 import LinearAlgebra: norm, normalize, normalize!
-import QuantumInterface: StateVector, AbstractKet, AbstractBra
+import QuantumInterface: QuantumInterface, StateVector, AbstractKet, AbstractBra
+
+QuantumInterface.traceout!(s::QuantumOpticsBase.StateVector, i) = QuantumInterface.ptrace(s,i)
 
 """
     Bra(b::Basis[, data])
