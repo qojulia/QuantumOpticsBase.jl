@@ -1,3 +1,4 @@
+import QuantumInterface
 import Base: isequal, ==, +, -, *, /, Broadcast
 import Adapt
 using Base.Cartesian
@@ -26,6 +27,8 @@ Operator(basis_l::BL,basis_r::BR,qet1::Ket,qetva::Ket...) where {BL,BR} = Operat
 Operator(qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, GenericBasis(length(qets)), qets)
 Operator(basis_r::Basis,qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, basis_r, qets)
 Operator(basis_l::BL,basis_r::BR,qets::AbstractVector{<:Ket}) where {BL,BR} = Operator{BL,BR}(basis_l, basis_r, reduce(hcat, getfield.(qets, :data)))
+
+QuantumInterface.traceout!(s::QuantumOpticsBase.Operator, i) = QuantumInterface.ptrace(s,i)
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
 Base.eltype(op::Operator) = eltype(op.data)
