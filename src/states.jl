@@ -219,7 +219,7 @@ Base.@propagate_inbounds Base.Broadcast._broadcast_getindex(x::T, i) where {T<:U
 
 # In-place broadcasting for Kets
 @inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:KetStyle{B},Axes,F,Args}
-    axes(dest) == axes(bc) || throwdm(axes(dest), axes(bc))
+    axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
     bc′ = Base.Broadcast.preprocess(dest, bc)
     dest′ = dest.data
     @inbounds @simd for I in eachindex(bc′)
@@ -232,7 +232,7 @@ end
 
 # In-place broadcasting for Bras
 @inline function Base.copyto!(dest::Bra{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:BraStyle{B},Axes,F,Args}
-    axes(dest) == axes(bc) || throwdm(axes(dest), axes(bc))
+    axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
     bc′ = Base.Broadcast.preprocess(dest, bc)
     dest′ = dest.data
     @inbounds @simd for I in eachindex(bc′)

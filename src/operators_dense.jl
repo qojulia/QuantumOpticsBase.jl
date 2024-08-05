@@ -444,6 +444,7 @@ Base.iterate(a::DataOperator, idx) = iterate(a.data, idx)
 
 # In-place broadcasting
 @inline function Base.copyto!(dest::DataOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL,BR,Style<:DataOperatorStyle{BL,BR},Axes,F,Args}
+    axes(dest) == axes(bc) || Base.Broadcast.throwdm(axes(dest), axes(bc))
     bc′ = Base.Broadcast.preprocess(dest, bc)
     dest′ = dest.data
     @inbounds @simd for I in eachindex(bc′)
