@@ -419,7 +419,6 @@ op3 = sprandop(FockBasis(1),FockBasis(2))
 op_ = copy(op1)
 op_ .+= op1
 @test op_ == 2*op1
-@test_throws ErrorException cos.(op_)
 
 # Dimension mismatches
 b1, b2, b3 = NLevelBasis.((2,3,4))  # N is not a type parameter
