@@ -11,8 +11,9 @@ mutable struct SuperOperator{B1,B2,T} <: AbstractSuperOperator{B1,B2}
     basis_r::B2
     data::T
     function SuperOperator{BL,BR,T}(basis_l::BL, basis_r::BR, data::T) where {BL,BR,T}
-        if length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
-           length(basis_r[1])*length(basis_r[2]) != size(data, 2)
+        if (length(basis_l) != 2 || length(basis_r) != 2 ||
+            length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
+            length(basis_r[1])*length(basis_r[2]) != size(data, 2))
             throw(DimensionMismatch("Tried to assign data of size $(size(data)) to Hilbert spaces of sizes $(length.(basis_l)), $(length.(basis_r))"))
         end
         new(basis_l, basis_r, data)
@@ -316,3 +317,62 @@ end
         }
     throw(IncompatibleBases())
 end
+
+"""
+    ChoiState <: AbstractSuperOperator
+
+Superoperator represented as a choi state.
+"""
+mutable struct ChoiState{B1,B2,T} <: AbstractSuperOperator{B1,B2}
+    basis_l::B1
+    basis_r::B2
+    data::T
+    function ChoiState{BL,BR,T}(basis_l::BL, basis_r::BR, data::T) where {BL,BR,T}
+        if (length(basis_l) != 2 || length(basis_r) != 2 ||
+            length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
+            length(basis_r[1])*length(basis_r[2]) != size(data, 2))
+            throw(DimensionMismatch("Tried to assign data of size $(size(data)) to Hilbert spaces of sizes $(length.(basis_l)), $(length.(basis_r))"))
+        end
+        new(basis_l, basis_r, data)
+    end
+end
+ChoiState{BL,BR}(b1::BL, b2::BR, data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1, b2, data)
+ChoiState(b1::BL, b2::BR, data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1, b2, data)
+
+dense(a::ChoiState) = ChoiState(a.basis_l, a.basis_r, Matrix(a.data))
+sparse(a::ChoiState) = ChoiState(a.basis_l, a.basis_r, sparse(a.data))
+dagger(a::ChoiState) = ChoiState(dagger(SuperOperator(a)))
+*(a::ChoiState, b::ChoiState) = ChoiState(SuperOperator(a)*SuperOperator(b))
+*(a::ChoiState, b::Operator) = SuperOperator(a)*b
+==(a::ChoiState, b::ChoiState) = (SuperOperator(a) == SuperOperator(b))
+
+# reshape swaps within systems due to colum major ordering
+# https://docs.qojulia.org/quantumobjects/operators/#tensor_order
+function _super_choi((l1, l2), (r1, r2), data)
+    data = reshape(data, map(length, (l2, l1, r2, r1)))
+    (l1, l2), (r1, r2) = (r2, l2), (r1, l1)
+    data = permutedims(data, (1, 3, 2, 4))
+    data = reshape(data, map(length, (l1⊗l2, r1⊗r2)))
+    return (l1, l2), (r1, r2), data
+end
+
+function _super_choi((r2, l2), (r1, l1), data::SparseMatrixCSC)
+    data = _permutedims(data, map(length, (l2, r2, l1, r1)), (1, 3, 2, 4))
+    data = reshape(data, map(length, (l1⊗l2, r1⊗r2)))
+    # sparse(data) is necessary since reshape of a sparse array returns a
+    # ReshapedSparseArray which is not a subtype of AbstractArray and so
+    # _permutedims fails to acces the ".m" field
+    # https://github.com/qojulia/QuantumOpticsBase.jl/pull/83
+    # https://github.com/JuliaSparse/SparseArrays.jl/issues/24
+    # permutedims in SparseArrays.jl only implements perm (2,1) and so
+    # _permutedims should probably be upstreamed
+    # https://github.com/JuliaLang/julia/issues/26534
+    return (l1, l2), (r1, r2), sparse(data)
+end
+
+ChoiState(op::SuperOperator) = ChoiState(_super_choi(op.basis_l, op.basis_r, op.data)...)
+SuperOperator(op::ChoiState) = SuperOperator(_super_choi(op.basis_l, op.basis_r, op.data)...)
+
+*(a::ChoiState, b::SuperOperator) = SuperOperator(a)*b
+*(a::SuperOperator, b::ChoiState) = a*SuperOperator(b)
+
