@@ -1,3 +1,4 @@
+import Base: isapprox
 import QuantumInterface: AbstractSuperOperator
 import FastExpm: fastExpm
 
@@ -11,8 +12,9 @@ mutable struct SuperOperator{B1,B2,T} <: AbstractSuperOperator{B1,B2}
     basis_r::B2
     data::T
     function SuperOperator{BL,BR,T}(basis_l::BL, basis_r::BR, data::T) where {BL,BR,T}
-        if length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
-           length(basis_r[1])*length(basis_r[2]) != size(data, 2)
+        if (length(basis_l) != 2 || length(basis_r) != 2 ||
+            length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
+            length(basis_r[1])*length(basis_r[2]) != size(data, 2))
             throw(DimensionMismatch("Tried to assign data of size $(size(data)) to Hilbert spaces of sizes $(length.(basis_l)), $(length.(basis_r))"))
         end
         new(basis_l, basis_r, data)
@@ -68,6 +70,9 @@ sparse(a::SuperOperator) = SuperOperator(a.basis_l, a.basis_r, sparse(a.data))
 
 ==(a::SuperOperator{B1,B2}, b::SuperOperator{B1,B2}) where {B1,B2} = (samebases(a,b) && a.data == b.data)
 ==(a::SuperOperator, b::SuperOperator) = false
+isapprox(a::SuperOperator{B1,B2}, b::SuperOperator{B1,B2}; kwargs...) where {B1,B2} =
+    (samebases(a,b) && isapprox(a.data, b.data; kwargs...))
+isapprox(a::SuperOperator, b::SuperOperator; kwargs...) = false
 
 Base.length(a::SuperOperator) = length(a.basis_l[1])*length(a.basis_l[2])*length(a.basis_r[1])*length(a.basis_r[2])
 samebases(a::SuperOperator, b::SuperOperator) = samebases(a.basis_l[1], b.basis_l[1]) && samebases(a.basis_l[2], b.basis_l[2]) &&
@@ -316,3 +321,251 @@ end
         }
     throw(IncompatibleBases())
 end
+
+# TODO should all of PauliTransferMatrix, ChiMatrix, ChoiState, and KrausOperators subclass AbstractSuperOperator?
+"""
+    ChoiState <: AbstractSuperOperator
+
+Superoperator represented as a choi state.
+
+The convention is chosen such that the input operators live in `(basis_l[1], basis_r[1])` while
+the output operators live in `(basis_r[2], basis_r[2])`.
+"""
+mutable struct ChoiState{B1,B2,T} <: AbstractSuperOperator{B1,B2}
+    basis_l::B1
+    basis_r::B2
+    data::T
+    function ChoiState{BL,BR,T}(basis_l::BL, basis_r::BR, data::T) where {BL,BR,T}
+        if (length(basis_l) != 2 || length(basis_r) != 2 ||
+            length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
+            length(basis_r[1])*length(basis_r[2]) != size(data, 2))
+            throw(DimensionMismatch("Tried to assign data of size $(size(data)) to Hilbert spaces of sizes $(length.(basis_l)), $(length.(basis_r))"))
+        end
+        new(basis_l, basis_r, data)
+    end
+end
+ChoiState{BL,BR}(b1::BL, b2::BR, data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1, b2, data)
+ChoiState(b1::BL, b2::BR, data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1, b2, data)
+
+dense(a::ChoiState) = ChoiState(a.basis_l, a.basis_r, Matrix(a.data))
+sparse(a::ChoiState) = ChoiState(a.basis_l, a.basis_r, sparse(a.data))
+dagger(a::ChoiState) = ChoiState(dagger(SuperOperator(a)))
+*(a::ChoiState, b::ChoiState) = ChoiState(SuperOperator(a)*SuperOperator(b))
+*(a::ChoiState, b::Operator) = SuperOperator(a)*b
+==(a::ChoiState, b::ChoiState) = (SuperOperator(a) == SuperOperator(b))
+isapprox(a::ChoiState, b::ChoiState; kwargs...) = isapprox(SuperOperator(a), SuperOperator(b); kwargs...)
+
+# TOOD: decide whether to document and export this
+choi_to_operator(c::ChoiState) = Operator(c.basis_l[2]⊗c.basis_l[1], c.basis_r[2]⊗c.basis_r[1], c.data)
+
+# reshape swaps within systems due to colum major ordering
+# https://docs.qojulia.org/quantumobjects/operators/#tensor_order
+function _super_choi((l1, l2), (r1, r2), data)
+    data = reshape(data, map(length, (l2, l1, r2, r1)))
+    (l1, l2), (r1, r2) = (r2, l2), (r1, l1)
+    data = permutedims(data, (1, 3, 2, 4))
+    data = reshape(data, map(length, (l1⊗l2, r1⊗r2)))
+    return (l1, l2), (r1, r2), data
+end
+
+function _super_choi((r2, l2), (r1, l1), data::SparseMatrixCSC)
+    data = _permutedims(data, map(length, (l2, r2, l1, r1)), (1, 3, 2, 4))
+    data = reshape(data, map(length, (l1⊗l2, r1⊗r2)))
+    # sparse(data) is necessary since reshape of a sparse array returns a
+    # ReshapedSparseArray which is not a subtype of AbstractArray and so
+    # _permutedims fails to acces the ".m" field
+    # https://github.com/qojulia/QuantumOpticsBase.jl/pull/83
+    # https://github.com/JuliaSparse/SparseArrays.jl/issues/24
+    # permutedims in SparseArrays.jl only implements perm (2,1) and so
+    # _permutedims should probably be upstreamed
+    # https://github.com/JuliaLang/julia/issues/26534
+    return (l1, l2), (r1, r2), sparse(data)
+end
+
+ChoiState(op::SuperOperator) = ChoiState(_super_choi(op.basis_l, op.basis_r, op.data)...)
+SuperOperator(op::ChoiState) = SuperOperator(_super_choi(op.basis_l, op.basis_r, op.data)...)
+
+
+"""
+    KrausOperators <: AbstractSuperOperator
+
+Superoperator represented as a list of Kraus operators.
+
+Note that KrausOperators can only represent linear maps taking density operators to other
+(potentially unnormalized) density operators.
+In contrast the `SuperOperator` or `ChoiState` representations can represent arbitrary linear maps
+taking arbitrary operators defined on ``H_A \\to H_B`` to ``H_C \\to H_D``.
+In otherwords, the Kraus representation is only defined for completely positive linear maps of the form
+``(H_A \\to H_A) \\to (H_B \\to H_B)``.
+Thus converting from `SuperOperator` or `ChoiState` to `KrausOperators` will throw an exception if the
+map cannot be faithfully represented up to the specificed tolerance `tol`.
+
+----------------------------
+Old text:
+Note unlike the SuperOperator or ChoiState types where it is possible to have
+`basis_l[1] != basis_l[2]` and `basis_r[1] != basis_r[2]`
+which allows representations of maps between general linear operators defined on ``H_A \\to H_B``,
+a quantum channel can only act on valid density operators which live in ``H_A \\to H_A``.
+Thus the Kraus representation is only defined for quantum channels which map
+``(H_A \\to H_A) \\to (H_B \\to H_B)``.
+"""
+mutable struct KrausOperators{B1,B2,T} <: AbstractSuperOperator{B1,B2}
+    basis_l::B1
+    basis_r::B2
+    data::T
+    function KrausOperators{BL,BR,T}(basis_l::BL, basis_r::BR, data::T) where {BL,BR,T}
+        if (any(!samebases(basis_r, M.basis_r) for M in data) ||
+            any(!samebases(basis_l, M.basis_l) for M in data))
+            throw(DimensionMismatch("Tried to assign data with incompatible bases"))
+        end
+
+        new(basis_l, basis_r, data)
+    end
+end
+KrausOperators{BL,BR}(b1::BL,b2::BR,data::T) where {BL,BR,T} = KrausOperators{BL,BR,T}(b1,b2,data)
+KrausOperators(b1::BL,b2::BR,data::T) where {BL,BR,T} = KrausOperators{BL,BR,T}(b1,b2,data)
+
+tensor(a::KrausOperators, b::KrausOperators) =
+    KrausOperators(a.basis_l ⊗ b.basis_l, a.basis_r ⊗ b.basis_r,
+                   [A ⊗ B for A in a.data for B in b.data])
+dagger(a::KrausOperators) = KrausOperators(a.basis_r, a.basis_l, [dagger(op) for op in a.data])
+*(a::KrausOperators{B1,B2}, b::KrausOperators{B2,B3}) where {B1,B2,B3} =
+    KrausOperators(a.basis_l, b.basis_r, [A*B for A in a.data for B in b.data])
+*(a::KrausOperators, b::KrausOperators) = throw(IncompatibleBases())
+*(a::KrausOperators{BL,BR}, b::Operator{BR,BR}) where {BL,BR} = sum(op*b*dagger(op) for op in a.data)
+==(a::KrausOperators, b::KrausOperators) = (SuperOperator(a) == SuperOperator(b))
+isapprox(a::KrausOperators, b::KrausOperators; kwargs...) = isapprox(SuperOperator(a), SuperOperator(b); kwargs...)
+
+"""
+    canonicalize(kraus::KrausOperators; tol=1e-12)
+
+Canonicalize the set kraus operators by performing a qr decomposition.
+A quantum channel with kraus operators ``{A_k}`` is in cannonical form if and only if
+
+```math
+\\Tr A_i^\\dagger A_j \\sim \\delta_{i,j}
+```
+
+If the input dimension is d and output dimension is d' then the number of kraus
+operators returned is guaranteed to be no greater than dd' and will furthermore
+be equal the Kraus rank of the channel up to numerical imprecision controlled by `tol`.  
+"""
+function canonicalize(kraus::KrausOperators; tol=1e-12)
+    bl, br = kraus.basis_l, kraus.basis_r
+    dim = length(bl)*length(br)
+
+    A = stack(reshape(op.data, dim) for op in kraus.data; dims=1)
+    F = qr(A; tol=tol)
+    # rank(F) for some reason doesn't work but should
+    rank = maximum(findnz(F.R)[1]) 
+    # Sanity checks that help illustrate what qr() returns:
+    # @assert (F.R ≈ (sparse(F.Q') * A[F.prow,F.pcol])[1:dim,:])
+    # @assert (all(iszero(F.R[rank+1:end,:])))
+
+    ops = [Operator(bl, br, copy(reshape( # copy materializes reshaped view
+        F.R[i,invperm(F.pcol)], (length(bl), length(br))))) for i=1:rank]
+    return KrausOperators(bl, br, ops)
+end
+
+# TODO: check if canonicalize and orthogonalize are equivalent
+orthogonalize(kraus::KrausOperators; tol=1e-12) = KrausOperators(ChoiState(kraus); tol=tol)
+
+SuperOperator(kraus::KrausOperators) =
+    SuperOperator((kraus.basis_l, kraus.basis_l), (kraus.basis_r, kraus.basis_r),
+                  (sum(conj(op)⊗op for op in kraus.data)).data)
+
+ChoiState(kraus::KrausOperators) =
+    ChoiState((kraus.basis_r, kraus.basis_l), (kraus.basis_r, kraus.basis_l),
+              (sum((M=op.data; reshape(M, (length(M), 1))*reshape(M, (1, length(M))))
+                   for op in kraus.data)))
+
+_choi_state_maps_density_ops(choi::ChoiState) = (samebases(choi.basis_l[1], choi.basis_r[1]) &&
+                                                samebases(choi.basis_l[2], choi.basis_r[2]))
+
+# TODO: consider using https://github.com/jlapeyre/IsApprox.jl
+_is_hermitian(M; tol=1e-12) = ishermitian(M) || isapprox(M, M', atol=tol)
+_is_identity(M; tol=1e-12) = isapprox(M, I, atol=tol)
+
+# TODO: document
+function _positive_eigen(data; tol=1e-12)
+    # TODO: figure out how to do this with sparse matrices using e.g. Arpack.jl or ArnoldiMethod.jl
+    # I will want to run twice, first asking for smallest eigenvalue to check it is above -tol
+    # Then run a second time with asking for maybe sqrt(N) largest eigenvalues?
+    # If smallest of these is not smaller than tol, bail do dense method? 
+    # LinearAlgebra's eigen returns eigenvals sorted smallest to largest for Hermitian matrices
+    vals, vecs = eigen(Hermitian(Matrix(data)))
+    vals[1] < -tol && return vals[1]
+    return [(val, vecs[:,i]) for (i, val) in enumerate(vals) if val > tol]
+end
+
+function KrausOperators(choi::ChoiState; tol=1e-12)
+    if !_choi_state_maps_density_ops(choi)
+        throw(DimensionMismatch("Tried to convert Choi state of something that isn't a quantum channel mapping density operators to density operators"))
+    end
+    if !_is_hermitian(choi.data; tol=tol)
+        throw(ArgumentError("Tried to convert nonhermitian Choi state"))
+    end
+    bl, br = choi.basis_l[2], choi.basis_l[1]
+    eigs = _positive_eigen(choi.data; tol=tol)
+    if isa(eigs, Number)
+        throw(ArgumentError("Tried to convert a non-positive semidefinite Choi state,"*
+            "failed for smallest eigval $(eigs), consider increasing tol=$(tol)"))
+    end
+
+    ops = [Operator(bl, br, sqrt(val)*reshape(vec, length(bl), length(br))) for (val, vec) in eigs]
+    return KrausOperators(bl, br, ops)
+end
+
+KrausOperators(op::SuperOperator; tol=1e-12) = KrausOperators(ChoiState(op); tol=tol)
+
+# TODO: document superoperator representation precident: everything of mixed type returns SuperOperator
+*(a::ChoiState, b::SuperOperator) = SuperOperator(a)*b
+*(a::SuperOperator, b::ChoiState) = a*SuperOperator(b)
+*(a::KrausOperators, b::SuperOperator) = SuperOperator(a)*b
+*(a::SuperOperator, b::KrausOperators) = a*SuperOperator(b)
+*(a::KrausOperators, b::ChoiState) = SuperOperator(a)*SuperOperator(b)
+*(a::ChoiState, b::KrausOperators) = SuperOperator(a)*SuperOperator(b)
+
+# TODO: document this
+is_completely_positive(choi::KrausOperators; tol=1e-12) = true
+
+function is_completely_positive(choi::ChoiState; tol=1e-12)
+    _choi_state_maps_density_ops(choi) || return false
+    _is_hermitian(choi.data; tol=tol) || return false
+    isa(_positive_eigen(choi.data; tol=tol), Number) && return false
+    return true
+end
+
+is_completely_positive(super::SuperOperator; tol=1e-12) = is_completely_positive(ChoiState(super))
+
+# TODO: document this
+is_trace_preserving(kraus::KrausOperators; tol=1e-12) =
+    _is_identity(sum(dagger(M)*M for M in kraus.data).data, tol=tol)
+
+function is_trace_preserving(choi::ChoiState; tol=1e-12)
+    is_completely_positive(choi; tol=tol) || return false
+    return _is_identity(ptrace(choi_to_operator(choi), 1).data, tol=tol)
+end
+
+is_trace_preserving(super::SuperOperator; tol=1e-12) = is_trace_preserving(ChoiState(super); tol=tol)
+
+# TODO: document this
+function is_trace_nonincreasing(kraus::KrausOperators; tol=1e-12)
+    m = I - sum(dagger(M)*M for M in kraus.data).data
+    return !isa(_positive_eigen(m; tol=tol), Number)
+end
+
+function is_trace_nonincreasing(choi::ChoiState; tol=1e-12)
+    is_completely_positive(choi; tol=tol) || return false
+    m = I - ptrace(choi_to_operator(choi), 1).data
+    return !isa(_positive_eigen(m; tol=tol), Number)
+end
+
+is_trace_nonincreasing(super::SuperOperator; tol=1e-12) = is_trace_nonincreasing(ChoiState(super); tol=tol)
+
+# TODO: document this
+is_cptp(sop; tol=1e-12) = is_completely_positive(sop; tol=tol) && is_trace_preserving(sop; tol=tol)
+
+# TODO: document this
+is_cptni(sop; tol=1e-12) = is_completely_positive(sop; tol=tol) && is_trace_nonincreasing(sop; tol=tol)
+

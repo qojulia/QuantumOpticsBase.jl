@@ -8,6 +8,7 @@ using SparseArrays, LinearAlgebra
 b = GenericBasis(3)
 @test_throws DimensionMismatch DenseSuperOperator((b, b), (b, b), zeros(ComplexF64, 3, 3))
 @test_throws DimensionMismatch SparseSuperOperator((b, b), (b, b), spzeros(ComplexF64, 3, 3))
+@test_throws DimensionMismatch ChoiState((b, b), (b, b), zeros(ComplexF64, 3, 3))
 
 # Test copy, sparse and dense
 b1 = GenericBasis(2)
@@ -153,29 +154,45 @@ J = [Ja, Jc]
 ρ₀ = dm(Ψ₀)
 
 @test identitysuperoperator(spinbasis)*sx == sx
+@test ChoiState(identitysuperoperator(spinbasis))*sx == sx
 @test identitysuperoperator(sparse(spre(sx)))*sx == sparse(sx)
+@test ChoiState(identitysuperoperator(sparse(spre(sx))))*sx == sparse(sx)
+@test sparse(ChoiState(identitysuperoperator(spre(sx))))*sx == sparse(sx)
 @test identitysuperoperator(dense(spre(sx)))*sx == dense(sx)
+@test ChoiState(identitysuperoperator(dense(spre(sx))))*sx == dense(sx)
+@test dense(ChoiState(identitysuperoperator(spre(sx))))*sx == dense(sx)
 
 op1 = DenseOperator(spinbasis, [1.2+0.3im 0.7+1.2im;0.3+0.1im 0.8+3.2im])
 op2 = DenseOperator(spinbasis, [0.2+0.1im 0.1+2.3im; 0.8+4.0im 0.3+1.4im])
 @test tracedistance(spre(op1)*op2, op1*op2) < 1e-12
+@test tracedistance(ChoiState(spre(op1))*op2, op1*op2) < 1e-12
 @test tracedistance(spost(op1)*op2, op2*op1) < 1e-12
+@test tracedistance(ChoiState(spost(op1))*op2, op2*op1) < 1e-12
 
 @test spre(sparse(op1))*op2 == op1*op2
+@test ChoiState(spre(sparse(op1)))*op2 == op1*op2
 @test spost(sparse(op1))*op2 == op2*op1
+@test ChoiState(spost(sparse(op1)))*op2 == op2*op1
 @test spre(sparse(dagger(op1)))*op2 == dagger(op1)*op2
+@test ChoiState(spre(sparse(dagger(op1))))*op2 == dagger(op1)*op2
 @test spre(dense(dagger(op1)))*op2 ≈ dagger(op1)*op2
+@test ChoiState(spre(dense(dagger(op1))))*op2 ≈ dagger(op1)*op2
 @test sprepost(sparse(op1), op1)*op2 ≈ op1*op2*op1
+@test ChoiState(sprepost(sparse(op1), op1))*op2 ≈ op1*op2*op1
 
 @test spre(sparse(op1))*sparse(op2) == sparse(op1*op2)
+@test ChoiState(spre(sparse(op1)))*sparse(op2) == sparse(op1*op2)
 @test spost(sparse(op1))*sparse(op2) == sparse(op2*op1)
+@test ChoiState(spost(sparse(op1)))*sparse(op2) == sparse(op2*op1)
 @test sprepost(sparse(op1), sparse(op1))*sparse(op2) ≈ sparse(op1*op2*op1)
+@test ChoiState(sprepost(sparse(op1), sparse(op1)))*sparse(op2) ≈ sparse(op1*op2*op1)
 
 @test sprepost(op1, op2) ≈ spre(op1)*spost(op2)
 b1 = FockBasis(1)
 b2 = FockBasis(5)
 op = fockstate(b1, 0) ⊗ dagger(fockstate(b2, 0))
 @test sprepost(dagger(op), op)*dm(fockstate(b1, 0)) == dm(fockstate(b2, 0))
+@test ChoiState(sprepost(dagger(op), op))*dm(fockstate(b1, 0)) == dm(fockstate(b2, 0))
 @test_throws ArgumentError spre(op)
 @test_throws ArgumentError spost(op)
 
@@ -185,12 +202,15 @@ for j=J
     ρ .+= j*ρ₀*dagger(j) - 0.5*dagger(j)*j*ρ₀ - 0.5*ρ₀*dagger(j)*j
 end
 @test tracedistance(L*ρ₀, ρ) < 1e-10
+@test tracedistance(ChoiState(L)*ρ₀, ρ) < 1e-10
 
+# TODO: reenable these now that QuantumOptics.jl is a test dependency?
 # tout, ρt = timeevolution.master([0.,1.], ρ₀, H, J; reltol=1e-7)
 # @test tracedistance(exp(dense(L))*ρ₀, ρt[end]) < 1e-6
 # @test tracedistance(exp(sparse(L))*ρ₀, ρt[end]) < 1e-6
 
 @test dense(spre(op1)) == spre(op1)
+@test dense(ChoiState(spre(op1))) == ChoiState(spre(op1))
 
 @test L/2.0 == 0.5*L == L*0.5
 @test -L == SparseSuperOperator(L.basis_l, L.basis_r, -L.data)
@@ -227,5 +247,73 @@ N = exp(log(2) * sparse(L)) # 50% loss channel
 ρ = N * dm(fockstate(b, 1))
 @test (0.5 - real(tr(ρ^2))) < 1e-10 # one photon state becomes maximally mixed
 @test tracedistance(ρ, normalize(dm(fockstate(b, 0)) + dm(fockstate(b, 1)))) < 1e-10
+
+# 0-2-4 binomial code encoder
+b_logical = SpinBasis(1//2)
+b_fock = FockBasis(5)
+z_l = normalize(fockstate(b_fock, 0) + fockstate(b_fock, 4))
+o_l = fockstate(b_fock, 2)
+enc_proj = z_l ⊗ dagger(spinup(b_logical)) + o_l ⊗ dagger(spindown(b_logical))
+dec_proj = dagger(enc_proj)
+enc_sup = sprepost(enc_proj, dec_proj)
+dec_sup = sprepost(dec_proj, enc_proj)
+enc_kraus = KrausOperators(b_fock, b_logical, [enc_proj])
+dec_kraus = KrausOperators(b_logical, b_fock, [dec_proj])
+## testing conversions
+@test dec_sup == dagger(enc_sup)
+@test dec_kraus == dagger(enc_kraus)
+@test ChoiState(enc_sup) == ChoiState(enc_kraus)
+@test ChoiState(dec_sup) == dagger(ChoiState(enc_sup))
+@test ChoiState(dec_kraus) == dagger(ChoiState(enc_kraus))
+@test SuperOperator(ChoiState(enc_sup)) == enc_sup
+@test SuperOperator(KrausOperators(enc_sup)) ≈ enc_sup
+@test KrausOperators(ChoiState(enc_kraus)) ≈ enc_kraus
+@test KrausOperators(SuperOperator(enc_kraus)) ≈ enc_kraus
+## testing multipication
+@test dec_sup*enc_sup ≈ dense(identitysuperoperator(b_logical))
+@test SuperOperator(dec_kraus*enc_kraus) ≈ dense(identitysuperoperator(b_logical))
+@test dec_sup*enc_kraus ≈ dense(identitysuperoperator(b_logical))
+@test dec_kraus*enc_sup ≈ dense(identitysuperoperator(b_logical))
+@test SuperOperator(dec_kraus*enc_kraus) ≈ dense(identitysuperoperator(b_logical))
+@test dec_sup*ChoiState(enc_sup) ≈ dense(identitysuperoperator(b_logical))
+@test ChoiState(dec_sup)*enc_sup ≈ dense(identitysuperoperator(b_logical))
+@test SuperOperator(ChoiState(dec_sup)*ChoiState(enc_sup)) ≈ dense(identitysuperoperator(b_logical))
+## testing channel checks
+@test is_cptp(enc_kraus)
+@test is_cptni(dec_kraus)
+@test is_cptp(enc_sup)
+@test is_cptni(dec_sup)
+@test is_cptp(ChoiState(enc_kraus))
+@test is_cptni(ChoiState(dec_kraus))
+
+# TODO: fix avg_gate_fidelity to work with all superoperator types
+#@test avg_gate_fidelity(dec_sup*enc_sup) ≈ 1
+#@test avg_gate_fidelity(dec_kraus*enc_kraus) ≈ 1
+#@test avg_gate_fidelity(ChoiState(dec_sup)*ChoiState(enc_sup)) ≈ 1
+
+# test amplitude damping channel
+function amplitude_damp_kraus_op(b, κ, l)
+    γ = 1-exp(-κ)
+    op = SparseOperator(b)
+    for n=l:(length(b)-1)
+        op.data[n-l+1, n+1] = sqrt(binomial(n,l) * (1-γ)^(n-l) * γ^l)
+    end
+    return op
+end
+
+function test_amplitude_damp_kraus_channel(N, κ, tol)
+    b = FockBasis(N)
+    super = exp(liouvillian(identityoperator(b), [destroy(b)]; rates=[κ]))
+    kraus = KrausOperators(b, b, [amplitude_damp_kraus_op(b, κ, i) for i=0:(N-1)])
+    @test isapprox(SuperOperator(kraus), super; atol=tol)
+    @test isapprox(ChoiState(kraus), ChoiState(super); atol=tol)
+    @test isapprox(kraus, KrausOperators(super; tol=tol); atol=tol)
+    @test is_cptp(kraus; tol=tol)
+end
+
+test_amplitude_damp_kraus_channel(10, 0.1, 1e-7)
+test_amplitude_damp_kraus_channel(20, 0.1, 1e-7)
+test_amplitude_damp_kraus_channel(10, 0.01, 1e-7)
+test_amplitude_damp_kraus_channel(20, 0.01, 1e-8)
 
 end # testset
