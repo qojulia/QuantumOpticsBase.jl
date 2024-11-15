@@ -336,7 +336,6 @@ mutable struct ChoiState{B1,B2,T} <: AbstractSuperOperator{B1,B2}
         new(basis_l, basis_r, data)
     end
 end
-ChoiState{BL,BR}(b1::BL, b2::BR, data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1, b2, data)
 ChoiState(b1::BL, b2::BR, data::T) where {BL,BR,T} = ChoiState{BL,BR,T}(b1, b2, data)
 
 dense(a::ChoiState) = ChoiState(a.basis_l, a.basis_r, Matrix(a.data))

@@ -1,6 +1,7 @@
 using Test
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
+import QuantumOpticsBase: ChoiState # Remove when ChoiState is publicly exported
 
 @testset "superoperators" begin
 
