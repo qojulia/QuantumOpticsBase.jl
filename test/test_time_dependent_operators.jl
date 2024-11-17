@@ -103,7 +103,11 @@ using LinearAlgebra, Random
     o_t_tup = TimeDependentSum(Tuple, o_t)
     @test QOB.static_operator(o_t_tup(t)).factors == [1.0im, t*3.0 + 0.0im]
     @test all(QOB.static_operator(o_t_tup(t)).operators .== (a, n))
-    @test (@allocated set_time!(o_t_tup, t)) == 0
+    if VERSION.minor == 11 # issue #178 https://github.com/qojulia/QuantumOpticsBase.jl/issues/178
+        @test_broken (@allocated set_time!(o_t_tup, t)) == 0
+    else
+        @test (@allocated set_time!(o_t_tup, t)) == 0
+    end
 
     o_t2 = TimeDependentSum(f1=>a, f2=>n)
     @test o_t(t) == o_t2(t)
