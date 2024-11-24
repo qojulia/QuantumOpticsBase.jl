@@ -1,4 +1,3 @@
-using RandomMatrices
 """
     randstate([T=ComplexF64,] basis)
 
@@ -16,7 +15,14 @@ randstate(b) = randstate(ComplexF64, b)
 
 Returns a Haar random pure state of dimension `length(b)` by applying a Haar random unitary to a fixed pure state.
 """
-randstate_haar(b::Basis) = Ket(b, rand(Haar(2), length(b), 2)[:,1])
+function randstate_haar(b::Basis)
+    dim = length(b)
+    mat = rand(ComplexF64, dim, dim)
+    q, r = qr(mat)
+    d = Diagonal([r[i, i] / abs(r[i, i]) for i in 1:dim])
+    data = q * d
+    return Ket(b, data[:,1])
+end
 
 """
     randoperator([T=ComplexF64,] b1[, b2])
@@ -33,7 +39,14 @@ randoperator(b) = randoperator(ComplexF64, b)
 
 Returns a Haar random unitary matrix of dimension `length(b)`.
 """
-randunitary_haar(b::Basis) = DenseOperator(b, b, rand(Haar(2), length(b), 2))
+function randunitary_haar(b::Basis)
+    dim = length(b)
+    mat = rand(ComplexF64, dim, dim)
+    q, r = qr(mat)
+    d = Diagonal([r[i, i] / abs(r[i, i]) for i in 1:dim])
+    data = q * d
+    DenseOperator(b, b, data)
+end
 
 """
     thermalstate(H,T)
