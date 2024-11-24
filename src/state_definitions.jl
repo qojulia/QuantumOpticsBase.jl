@@ -18,10 +18,8 @@ Returns a Haar random pure state of dimension `length(b)` by applying a Haar ran
 function randstate_haar(b::Basis)
     dim = length(b)
     mat = rand(ComplexF64, dim, dim)
-    q, r = qr(mat)
-    d = Diagonal([r[i, i] / abs(r[i, i]) for i in 1:dim])
-    data = q * d
-    return Ket(b, data[:,1])
+    q, r = qr!(mat)
+    return Ket(b, q[:,1])
 end
 
 """
@@ -42,7 +40,7 @@ Returns a Haar random unitary matrix of dimension `length(b)`.
 function randunitary_haar(b::Basis)
     dim = length(b)
     mat = rand(ComplexF64, dim, dim)
-    q, r = qr(mat)
+    q, r = qr!(mat)
     d = Diagonal([r[i, i] / abs(r[i, i]) for i in 1:dim])
     data = q * d
     DenseOperator(b, b, data)
