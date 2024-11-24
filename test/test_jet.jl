@@ -19,7 +19,7 @@ function (::MayThrowIsOk)(report_type::Type{<:InferenceErrorReport}, @nospeciali
 end
 
 # imported to be declared as modules filtered out from analysis result
-using LinearAlgebra, LRUCache, Strided, StridedViews, Dates, SparseArrays, RandomMatrices
+using LinearAlgebra, LRUCache, Strided, StridedViews, Dates, SparseArrays
 
 @testset "jet" begin
     if get(ENV,"JET_TEST","")=="true"
@@ -31,8 +31,7 @@ using LinearAlgebra, LRUCache, Strided, StridedViews, Dates, SparseArrays, Rando
                 AnyFrameModule(Strided),
                 AnyFrameModule(StridedViews),
                 AnyFrameModule(Dates),
-                AnyFrameModule(SparseArrays),
-                AnyFrameModule(RandomMatrices))
+                AnyFrameModule(SparseArrays))
             )
         @show rep
         @test length(JET.get_reports(rep)) <= 29
