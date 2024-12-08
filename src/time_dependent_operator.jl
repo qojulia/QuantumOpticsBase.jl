@@ -12,7 +12,7 @@ and [`current_time`](@ref). A shorthand `op(t)`, equivalent to
 A time-dependent operator is always concrete-valued according to the current
 time of its internal clock.
 """
-abstract type AbstractTimeDependentOperator{BL,BR} <: AbstractOperator{BL,BR} end
+abstract type AbstractTimeDependentOperator{BL,BR} <: BLROperator{BL,BR} end
 
 """
     current_time(op::AbstractOperator)
@@ -71,9 +71,9 @@ end
 
 for func in (:expect, :variance)
     @eval $func(op::AbstractTimeDependentOperator{B,B}, x::Ket{B}) where B = $func(static_operator(op), x)
-    @eval $func(op::AbstractTimeDependentOperator{B,B}, x::AbstractOperator{B,B}) where B = $func(static_operator(op), x)
-    @eval $func(index::Integer, op::AbstractTimeDependentOperator{B1,B2}, x::AbstractOperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = $func(index, static_operator(op), x)
-    @eval $func(indices, op::AbstractTimeDependentOperator{B1,B2}, x::AbstractOperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = $func(indices, static_operator(op), x)
+    @eval $func(op::AbstractTimeDependentOperator{B,B}, x::BLROperator{B,B}) where B = $func(static_operator(op), x)
+    @eval $func(index::Integer, op::AbstractTimeDependentOperator{B1,B2}, x::BLROperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = $func(index, static_operator(op), x)
+    @eval $func(indices, op::AbstractTimeDependentOperator{B1,B2}, x::BLROperator{B3,B3}) where {B1,B2,B3<:CompositeBasis} = $func(indices, static_operator(op), x)
 end
 
 # TODO: Consider using promotion to define arithmetic between operator types

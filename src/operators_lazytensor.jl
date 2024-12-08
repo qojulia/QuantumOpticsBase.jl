@@ -56,6 +56,9 @@ LazyTensor(op::T, factor) where {T<:LazyTensor} = LazyTensor(op.basis_l, op.basi
 LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, operator::T, factor=one(eltype(operator))) where T<:AbstractOperator = LazyTensor(basis_l, basis_r, [index], (operator,), factor)
 LazyTensor(basis::Basis, index, operators, factor=_default_factor(operators)) = LazyTensor(basis, basis, index, operators, factor)
 
+basis_l(op::LazyTensor) = op.basis_l
+basis_r(op::LazyTensor) = op.basis_r
+
 Base.copy(x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, copy(x.indices), Tuple(copy(op) for op in x.operators), x.factor)
 function Base.eltype(x::LazyTensor)
     F = eltype(x.factor)
@@ -112,14 +115,14 @@ function -(a::T1,b::T2) where {T1 <: single_dataoperator{B1,B2},T2 <: single_dat
     LazySum(a) - LazySum(b)
 end
 
-function tensor(a::LazyTensor{B1,B2},b::AbstractOperator{B3,B4}) where {B1,B2,B3,B4}
+function tensor(a::LazyTensor{B1,B2},b::BLROperator{B3,B4}) where {B1,B2,B3,B4}
     if B3 <: CompositeBasis || B4 <: CompositeBasis
         throw(ArgumentError("tensor(a::LazyTensor{B1,B2},b::AbstractOperator{B3,B4}) is not implemented for B3 or B4 being CompositeBasis unless b is identityoperator "))
     else
         a ⊗ LazyTensor(b.basis_l,b.basis_r,[1],(b,),1)
     end
 end
-function tensor(a::AbstractOperator{B1,B2},b::LazyTensor{B3,B4})  where {B1,B2,B3,B4}
+function tensor(a::BLROperator{B1,B2},b::LazyTensor{B3,B4})  where {B1,B2,B3,B4}
     if B1 <: CompositeBasis || B2 <: CompositeBasis
         throw(ArgumentError("tensor(a::AbstractOperator{B1,B2},b::LazyTensor{B3,B4}) is not implemented for B1 or B2 being CompositeBasis unless b is identityoperator "))
     else

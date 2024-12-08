@@ -28,6 +28,9 @@ Operator(qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, GenericBasis
 Operator(basis_r::Basis,qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, basis_r, qets)
 Operator(basis_l::BL,basis_r::BR,qets::AbstractVector{<:Ket}) where {BL,BR} = Operator{BL,BR}(basis_l, basis_r, reduce(hcat, getfield.(qets, :data)))
 
+basis_l(op::Operator) = op.basis_l
+basis_r(op::Operator) = op.basis_r
+
 QuantumInterface.traceout!(s::QuantumOpticsBase.Operator, i) = QuantumInterface.ptrace(s,i)
 
 Base.zero(op::Operator) = Operator(op.basis_l,op.basis_r,zero(op.data))
@@ -98,22 +101,22 @@ Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = false
 *(a::Operator{B1, B2, T}, b::DataOperator{B2, B3}) where {B1, B2, B3, T} = error("no `*` method defined for DataOperator subtype $(typeof(b))") # defined to avoid method ambiguity
 *(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, b*a.data)
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
-function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1,B2,B3,T}
+function *(op1::BLROperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1,B2,B3,T}
     result = Operator{B1,B3}(op1.basis_l, op2.basis_r, similar(_parent(op2.data),promote_type(eltype(op1),eltype(op2)),length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
-function *(op1::Operator{B1,B2,T}, op2::AbstractOperator{B2,B3}) where {B1,B2,B3,T}
+function *(op1::Operator{B1,B2,T}, op2::BLROperator{B2,B3}) where {B1,B2,B3,T}
     result = Operator{B1,B3}(op1.basis_l, op2.basis_r, similar(_parent(op1.data),promote_type(eltype(op1),eltype(op2)),length(op1.basis_l),length(op2.basis_r)))
     mul!(result,op1,op2)
     return result
 end
-function *(op::AbstractOperator{BL,BR}, psi::Ket{BR,T}) where {BL,BR,T}
+function *(op::BLROperator{BL,BR}, psi::Ket{BR,T}) where {BL,BR,T}
     result = Ket{BL,T}(op.basis_l,similar(psi.data,length(op.basis_l)))
     mul!(result,op,psi)
     return result
 end
-function *(psi::Bra{BL,T}, op::AbstractOperator{BL,BR}) where {BL,BR,T}
+function *(psi::Bra{BL,T}, op::BLROperator{BL,BR}) where {BL,BR,T}
     result = Bra{BR,T}(op.basis_r, similar(psi.data,length(op.basis_r)))
     mul!(result,psi,op)
     return result
@@ -388,7 +391,7 @@ mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1,B2} = (
 rmul!(op::Operator, x) = (rmul!(op.data, x); op)
 
 # Multiplication for Operators in terms of their gemv! implementation
-function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3}
+function mul!(result::Operator{B1,B3},M::BLROperator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3}
     for i=1:size(b.data, 2)
         bket = Ket(b.basis_l, b.data[:,i])
         resultket = Ket(M.basis_l, result.data[:,i])
@@ -398,7 +401,7 @@ function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,
     return result
 end
 
-function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,B3},alpha,beta) where {B1,B2,B3}
+function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::BLROperator{B2,B3},alpha,beta) where {B1,B2,B3}
     for i=1:size(b.data, 1)
         bbra = Bra(b.basis_r, vec(b.data[i,:]))
         resultbra = Bra(M.basis_r, vec(result.data[i,:]))

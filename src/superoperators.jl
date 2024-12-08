@@ -1,12 +1,14 @@
 import QuantumInterface: AbstractSuperOperator
 import FastExpm: fastExpm
 
+abstract type BLRSuperOperator{BL,BR} <: AbstractSuperOperator end
+
 """
     SuperOperator <: AbstractSuperOperator
 
 SuperOperator stored as representation, e.g. as a Matrix.
 """
-mutable struct SuperOperator{B1,B2,T} <: AbstractSuperOperator{B1,B2}
+mutable struct SuperOperator{B1,B2,T} <: BLRSuperOperator{B1,B2}
     basis_l::B1
     basis_r::B2
     data::T
@@ -167,12 +169,12 @@ holds. `A` ond `B` can be dense or a sparse operators.
 """
 sprepost(A::AbstractOperator, B::AbstractOperator) = SuperOperator((A.basis_l, B.basis_r), (A.basis_r, B.basis_l), kron(permutedims(B.data), A.data))
 
-function _check_input(H::AbstractOperator{B1,B2}, J::Vector, Jdagger::Vector, rates) where {B1,B2}
+function _check_input(H::BLROperator{B1,B2}, J::Vector, Jdagger::Vector, rates) where {B1,B2}
     for j=J
-        @assert isa(j, AbstractOperator{B1,B2})
+        @assert isa(j, BLROperator{B1,B2})
     end
     for j=Jdagger
-        @assert isa(j, AbstractOperator{B1,B2})
+        @assert isa(j, BLROperator{B1,B2})
     end
     @assert length(J)==length(Jdagger)
     if isa(rates, Matrix{<:Number})
@@ -323,7 +325,7 @@ end
 
 Superoperator represented as a choi state.
 """
-mutable struct ChoiState{B1,B2,T} <: AbstractSuperOperator{B1,B2}
+mutable struct ChoiState{B1,B2,T} <: BLRSuperOperator{B1,B2}
     basis_l::B1
     basis_r::B2
     data::T

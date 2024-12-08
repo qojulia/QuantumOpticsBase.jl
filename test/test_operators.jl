@@ -1,8 +1,9 @@
 using Test
 using QuantumOpticsBase
+using QuantumOpticsBase: BLROperator
 using LinearAlgebra, SparseArrays, Random
 
-mutable struct test_operators{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
+mutable struct test_operators{BL<:Basis,BR<:Basis} <: BLROperator{BL,BR}
   basis_l::BL
   basis_r::BR
   data::Matrix{ComplexF64}
