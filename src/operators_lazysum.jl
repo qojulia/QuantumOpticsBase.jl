@@ -12,7 +12,7 @@ end
 """
 Abstract class for all Lazy type operators ([`LazySum`](@ref), [`LazyProduct`](@ref), and [`LazyTensor`](@ref))
 """
-abstract type LazyOperator{BL,BR} <: AbstractOperator{BL,BR} end
+abstract type LazyOperator{BL,BR} <: BLROperator{BL,BR} end
 
 """
     LazySum([Tf,] [factors,] operators)
@@ -48,6 +48,9 @@ mutable struct LazySum{BL,BR,F,T} <: LazyOperator{BL,BR}
         new{BL,BR,F,T}(basis_l,basis_r,factors,operators)
     end
 end
+
+basis_l(op::LazySum) = op.basis_l
+basis_r(op::LazySum) = op.basis_r
 
 LazySum(::Type{Tf}, basis_l::Basis, basis_r::Basis) where Tf = LazySum(basis_l,basis_r,Tf[],())
 LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)

@@ -7,7 +7,7 @@ import QuantumInterface: StateVector, AbstractKet, AbstractBra
 
 Bra state defined by coefficients in respect to the basis.
 """
-mutable struct Bra{B,T} <: AbstractBra{B,T}
+mutable struct Bra{B,T} <: AbstractBra
     basis::B
     data::T
     function Bra{B,T}(b::B, data::T) where {B,T}
@@ -21,7 +21,7 @@ end
 
 Ket state defined by coefficients in respect to the given basis.
 """
-mutable struct Ket{B,T} <: AbstractKet{B,T}
+mutable struct Ket{B,T} <: AbstractKet
     basis::B
     data::T
     function Ket{B,T}(b::B, data::T) where {B,T}
@@ -29,6 +29,9 @@ mutable struct Ket{B,T} <: AbstractKet{B,T}
         new(b, data)
     end
 end
+
+basis(x::Bra) = x.basis
+basis(x::Ket) = x.basis
 
 Base.zero(x::Bra) = Bra(x.basis, zero(x.data))
 Base.zero(x::Ket) = Ket(x.basis, zero(x.data))

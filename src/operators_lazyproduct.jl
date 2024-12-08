@@ -34,8 +34,8 @@ function LazyProduct(operators::T, factor::F=1) where {T,F}
     LazyProduct{BL,BR,F,T,KTL,BTR}(operators, ket_l, bra_r, factor)
 end
 
-
-
+basis_l(op::LazyProduct) = op.basis_l
+basis_r(op::LazyProduct) = op.basis_r
 
 LazyProduct(operators::Vector{T}, factor=1) where T<:AbstractOperator = LazyProduct((operators...,), factor)
 LazyProduct(operators::AbstractOperator...) = LazyProduct((operators...,))

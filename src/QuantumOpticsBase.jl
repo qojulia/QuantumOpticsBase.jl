@@ -5,7 +5,7 @@ import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
 
 import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
-        permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, AbstractSuperOperator
+        permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, basis_l, basis_r
 
 # metrics
 import QuantumInterface: entropy_vn, fidelity, logarithmic_negativity
