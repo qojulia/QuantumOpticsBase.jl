@@ -9,7 +9,8 @@ Abstract type for operators with a data field.
 This is an abstract type for operators that have a direct matrix representation
 stored in their `.data` field.
 """
-abstract type DataOperator{BL,BR} <: AbstractOperator{BL,BR} end
+abstract type BLROperator{BL,BR} <: AbstractOperator end
+abstract type DataOperator{BL,BR} <: BLROperator{BL,BR} end
 
 
 # Common error messages
@@ -109,18 +110,18 @@ Expectation value of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-expect(op::AbstractOperator{B,B}, state::Ket{B}) where B = dot(state.data, (op * state).data)
+expect(op::BLROperator{B,B}, state::Ket{B}) where B = dot(state.data, (op * state).data)
 
 # TODO upstream this one
 # expect(op::AbstractOperator{B,B}, state::AbstractKet{B}) where B = norm(op * state) ^ 2
 
-function expect(indices, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis}
+function expect(indices, op::BLROperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis}
     N = length(state.basis.shape)
     indices_ = complement(N, indices)
     expect(op, ptrace(state, indices_))
 end
 
-expect(index::Integer, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis} = expect([index], op, state)
+expect(index::Integer, op::BLROperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis} = expect([index], op, state)
 
 """
     variance(op, state)
@@ -129,18 +130,18 @@ Variance of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-function variance(op::AbstractOperator{B,B}, state::Ket{B}) where B
+function variance(op::BLROperator{B,B}, state::Ket{B}) where B
     x = op*state
     state.data'*(op*x).data - (state.data'*x.data)^2
 end
 
-function variance(indices, op::AbstractOperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis}
+function variance(indices, op::BLROperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis}
     N = length(state.basis.shape)
     indices_ = complement(N, indices)
     variance(op, ptrace(state, indices_))
 end
 
-variance(index::Integer, op::AbstractOperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis} = variance([index], op, state)
+variance(index::Integer, op::BLROperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis} = variance([index], op, state)
 
 # Helper functions to check validity of arguments
 function check_ptrace_arguments(a::AbstractOperator, indices)

@@ -155,11 +155,14 @@ end
 
 Lazy implementation of `directsum`
 """
-mutable struct LazyDirectSum{BL,BR,T} <: AbstractOperator{BL,BR}
+mutable struct LazyDirectSum{BL,BR,T} <: BLROperator{BL,BR}
     basis_l::BL
     basis_r::BR
     operators::T
 end
+
+basis_l(op::LazyDirectSum) = op.basis_l
+basis_r(op::LazyDirectSum) = op.basis_r
 
 # Methods
 LazyDirectSum(op1::AbstractOperator, op2::AbstractOperator) = LazyDirectSum(directsum(op1.basis_l,op2.basis_l),directsum(op1.basis_r,op2.basis_r),(op1,op2))

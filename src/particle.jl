@@ -280,7 +280,7 @@ end
 
 Abstract type for all implementations of FFT operators.
 """
-abstract type FFTOperator{BL, BR, T} <: AbstractOperator{BL,BR} end
+abstract type FFTOperator{BL, BR, T} <: BLROperator{BL,BR} end
 
 Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_after))
 
@@ -309,6 +309,9 @@ struct FFTOperators{BL,BR,T,P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
         new{BL,BR,T,P1,P2,P3,P4}(b1, b2, fft_l!, fft_r!, fft_l2!, fft_r2!, mul_before, mul_after)
     end
 end
+
+basis_l(op::FFTOperators) = op.basis_l
+basis_r(op::FFTOperators) = op.basis_r
 
 """
     FFTKets
