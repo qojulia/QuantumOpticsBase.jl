@@ -8,7 +8,7 @@ import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect,
         permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, AbstractSuperOperator
 
 # metrics
-import QuantumInterface: vn_entropy, fidelity, logarithmic_negativity
+import QuantumInterface: entropy_vn, fidelity, logarithmic_negativity
 
 # index helpers
 import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
