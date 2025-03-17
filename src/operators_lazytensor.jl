@@ -282,11 +282,9 @@ function _tp_matmul_first!(result, a::AbstractMatrix, b, α::Number, β::Number)
     d_rest = length(b)÷d_first
     bp = parent(b)
     rp = parent(result)
-    @uviews bp rp begin  # avoid allocations on reshape
-        br = reshape(bp, (d_first, d_rest))
-        result_r = reshape(rp, (size(a, 1), d_rest))
-        mul!(result_r, a, br, α, β)
-    end
+    @views br = reshape(bp, (d_first, d_rest))
+    @views result_r = reshape(rp, (size(a, 1), d_rest))
+    mul!(result_r, a, br, α, β)
     result
 end
 
@@ -295,11 +293,9 @@ function _tp_matmul_last!(result, a::AbstractMatrix, b, α::Number, β::Number)
     d_rest = length(b)÷d_last
     bp = parent(b)
     rp = parent(result)
-    @uviews a bp rp begin  # avoid allocations on reshape
-        br = reshape(bp, (d_rest, d_last))
-        result_r = reshape(rp, (d_rest, size(a, 1)))
-        mul!(result_r, br, transpose(a), α, β)
-    end
+    @views br = reshape(bp, (d_rest, d_last))
+    @views result_r = reshape(rp, (d_rest, size(a, 1)))
+    mul!(result_r, br, transpose(a), α, β)
     result
 end
 
