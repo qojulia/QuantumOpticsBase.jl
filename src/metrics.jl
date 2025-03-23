@@ -151,7 +151,6 @@ function entropy_vn(rho::DenseOpType{B,B}; tol=1e-15) where B
     end
     return entr
 end
-entropy_vn(psi::StateVector; kwargs...) = entropy_vn(dm(psi); kwargs...)
 
 """
     entropy_renyi(rho, α::Integer=2)
