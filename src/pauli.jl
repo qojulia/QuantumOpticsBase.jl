@@ -163,7 +163,7 @@ end
 Convert a superoperator to its representation as a Pauli transfer matrix.
 """
 function PauliTransferMatrix(sop::DenseSuperOpType)
-    num_qubits = length(sop.basis_l[1].bases)
+    num_qubits = nsubsystems(sop.basis_l[1])
     pbv = pauli_basis_vectors(num_qubits)
     sop_dim = 4 ^ num_qubits
     data = real.(pbv' * sop.data * pbv / √sop_dim)
@@ -179,7 +179,7 @@ SuperOperator(sop::DenseSuperOpType) = sop
 Convert a Pauli transfer matrix to its representation as a superoperator.
 """
 function SuperOperator(ptm::DensePauliTransferMatrix)
-    num_qubits = length(ptm.basis_l[1].bases)
+    num_qubits = nsubsystems(ptm.basis_l[1])
     pbv = pauli_basis_vectors(num_qubits)
     sop_dim = 4 ^ num_qubits
     data = pbv * ptm.data * pbv' / √sop_dim
@@ -200,7 +200,7 @@ PauliTransferMatrix(unitary::DenseOpType) = PauliTransferMatrix(SuperOperator(un
 Convert an operator, presumably a unitary operator, to its representation as a χ matrix.
 """
 function ChiMatrix(unitary::DenseOpType)
-    num_qubits = length(unitary.basis_l.bases)
+    num_qubits = nsubsystems(unitary.basis_l)
     pbv = pauli_basis_vectors(num_qubits)
     aj = pbv' * reshape(unitary.data, 4 ^ num_qubits)
     return DenseChiMatrix((unitary.basis_l, unitary.basis_l), (unitary.basis_r, unitary.basis_r), aj * aj' / (2 ^ num_qubits))

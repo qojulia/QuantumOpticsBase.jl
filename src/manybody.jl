@@ -50,6 +50,10 @@ end
 ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(onebodybasis, occupations)
 ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis(onebodybasis, SortedVector(occupations))
 
+==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash == b2.occupations_hash && b1.onebodybasis == b2.onebodybasis
+Base.length(b::ManyBodyBasis) = length(b.occupations)
+
+
 allocate_buffer(occ) = similar(occ)
 allocate_buffer(mb::ManyBodyBasis) = allocate_buffer(first(mb.occupations))
 
@@ -88,8 +92,6 @@ end
 bosonstates(T::Type, Nmodes::Int, Nparticles::Vector{Int}) = union((bosonstates(T, Nmodes, N) for N in Nparticles)...)
 bosonstates(T::Type, onebodybasis::Basis, Nparticles) = bosonstates(T, length(onebodybasis), Nparticles)
 bosonstates(arg1, arg2) = bosonstates(OccupationNumbers{BosonStatistics,Int}, arg1, arg2)
-
-==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash == b2.occupations_hash && b1.onebodybasis == b2.onebodybasis
 
 """
     basisstate([T=ComplexF64,] mb::ManyBodyBasis, occupation::Vector)

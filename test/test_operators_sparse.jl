@@ -1,11 +1,11 @@
 using Test
 using QuantumOpticsBase
-using QuantumOpticsBase: BLROperator
+import QuantumInterface: IncompatibleBases
 using Random, SparseArrays, LinearAlgebra
 
 
 # Custom operator type for testing error msg
-mutable struct TestOperator{BL<:Basis,BR<:Basis} <: BLROperator{BL,BR}; end
+mutable struct TestOperator{BL<:Basis,BR<:Basis} <: AbstractOperator; end
 
 @testset "operators-sparse" begin
 
@@ -64,13 +64,13 @@ xbra1 = dagger(randstate(b_l))
 xbra2 = dagger(randstate(b_l))
 
 # Addition
-@test_throws DimensionMismatch op1 + dagger(op2)
+@test_throws IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(op1+op2, op1_+op2_)
 @test 1e-14 > D(op1+op2, op1+op2_)
 @test 1e-14 > D(op1+op2, op1_+op2)
 
 # Subtraction
-@test_throws DimensionMismatch op1 - dagger(op2)
+@test_throws IncompatibleBases op1 - dagger(op2)
 @test 1e-14 > D(op1-op2, op1_-op2_)
 @test 1e-14 > D(op1-op2, op1-op2_)
 @test 1e-14 > D(op1-op2, op1_-op2)
@@ -78,7 +78,7 @@ xbra2 = dagger(randstate(b_l))
 @test 1e-14 > D(op1+(-1*op2), op1_ - op2_)
 
 # Test multiplication
-@test_throws DimensionMismatch op1*op2
+@test_throws IncompatibleBases op1*op2
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), (op1_+op2_)*(x1+0.3*x2))
@@ -184,7 +184,7 @@ state = randstate(b_l)
 state = randoperator(b_l)
 @test expect(op123, state) ≈ expect(op123_, state)
 
-@test_throws QuantumOpticsBase.IncompatibleBases expect(op1, op2)
+@test_throws IncompatibleBases expect(op1, op2)
 
 # Tensor product
 # ==============
@@ -415,8 +415,8 @@ op1 .= DenseOperator(op1)
 @test isa(op1, SparseOpType)
 # @test isa(op1 .+ DenseOperator(op1), DenseOpType) # Broadcasting of sparse .+ dense matrix results in sparse
 op3 = sprandop(FockBasis(1),FockBasis(2))
-@test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
-@test_throws QuantumOpticsBase.IncompatibleBases op1 .= op3
+@test_throws IncompatibleBases op1 .+ op3
+@test_throws IncompatibleBases op1 .= op3
 op_ = copy(op1)
 op_ .+= op1
 @test op_ == 2*op1
@@ -432,7 +432,7 @@ end # testset
 
 @testset "State-operator tensor products, sparse" begin
     b = FockBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2)
-    b1, b2, b3 = b.bases
+    b1, b2, b3 = b[1], b[2], b[3]
 
     o1 = sparse(randoperator(b1))
     v1 = sparse(randstate(b1))

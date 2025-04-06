@@ -42,7 +42,7 @@ function show(stream::IO, x::Ket)
     if !_std_order
         Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis.shape, false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis), false, header=false)
     end
 end
 
@@ -52,7 +52,7 @@ function show(stream::IO, x::Bra)
     if !_std_order
         Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis.shape, false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis), false, header=false)
     end
 end
 
@@ -78,7 +78,7 @@ function show(stream::IO, x::DenseOpType)
         end
         Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis_l.shape, x.basis_r.shape, false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis_l), size(x.basis_r), false, header=false)
     end
 end
 
@@ -93,7 +93,7 @@ function show(stream::IO, x::SparseOpPureType)
             end
             show(stream, round.(x.data; digits=machineprecorder))
         else
-            showsparsearray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis_l.shape, x.basis_r.shape)
+            showsparsearray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis_l), size(x.basis_r))
         end
     end
 end

@@ -60,11 +60,11 @@ end
 
 Coherent thermal state ``D(α)exp(-H/T)/Tr[exp(-H/T)]D^†(α)``.
 """
-function coherentthermalstate(::Type{C},basis::B,H::BLROperator{B,B},T,alpha) where {C,B<:FockBasis}
+function coherentthermalstate(::Type{C},basis::B,H::AbstractOperator,T,alpha) where {C,B<:FockBasis}
     D = displace(C,basis,alpha)
     return D*thermalstate(H,T)*dagger(D)
 end
-coherentthermalstate(basis::B,H::BLROperator{B,B},T,alpha) where B<:FockBasis = coherentthermalstate(ComplexF64,basis,H,T,alpha)
+coherentthermalstate(basis::B,H::AbstractOperator,T,alpha) where B<:FockBasis = coherentthermalstate(ComplexF64,basis,H,T,alpha)
 
 """
     phase_average(rho)
