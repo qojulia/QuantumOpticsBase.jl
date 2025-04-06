@@ -13,8 +13,8 @@ import QuantumInterface: entropy_vn, fidelity, logarithmic_negativity
 # index helpers
 import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
 
-export Basis, GenericBasis, CompositeBasis, basis,
-        tensor, ⊗, permutesystems, @samebases,
+export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
+        tensor, ⊗, permutesystems, @compatiblebases,
         #states
                 StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
                 dagger, normalize, normalize!,

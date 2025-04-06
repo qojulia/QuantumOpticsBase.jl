@@ -60,3 +60,5 @@ for name=names
         include(name)
     end
 end
+
+#include("test_apply.jl")

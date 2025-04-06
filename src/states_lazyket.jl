@@ -11,10 +11,10 @@ mutable struct LazyKet{B,T} <: AbstractKet
     basis::B
     kets::T
     function LazyKet(b::B, kets::T) where {B<:CompositeBasis,T<:Tuple}
-        N = length(b.bases)
+        N = nsubsystems(b)
         for n=1:N
             @assert isa(kets[n], Ket)
-            @assert kets[n].basis == b.bases[n]
+            @assert basis(kets[n]) == b[n]
         end
         new{B,T}(b, kets)
     end
@@ -23,7 +23,7 @@ function LazyKet(b::CompositeBasis, kets::Vector)
     return LazyKet(b,Tuple(kets))
 end
 
-basis(ket::LazyKet) = b.basis
+basis(ket::LazyKet) = ket.basis
 
 Base.eltype(ket::LazyKet) = Base.promote_type(eltype.(ket.kets)...)
 
@@ -62,8 +62,8 @@ function normalize(state::LazyKet)
 end
 
 # expect
-function expect(op::LazyTensor{B, B}, state::LazyKet{B}) where B <: Basis
-    check_samebases(op); check_samebases(op.basis_l, state.basis)
+function expect(op::LazyTensor, state::LazyKet)
+    check_multiplicable(op,op); check_multiplicable(op, state)
     ops = op.operators
     inds = op.indices
     kets = state.kets
@@ -86,8 +86,8 @@ function expect(op::LazyTensor{B, B}, state::LazyKet{B}) where B <: Basis
     return exp_val
 end
 
-function expect(op::LazyProduct{B,B}, state::LazyKet{B}) where B <: Basis
-    check_samebases(op); check_samebases(op.basis_l, state.basis)
+function expect(op::LazyProduct, state::LazyKet)
+    check_multiplicable(op,op); check_multiplicable(op, state)
 
     tmp_state1 = deepcopy(state)
     tmp_state2 = deepcopy(state)
@@ -107,8 +107,8 @@ function expect(op::LazyProduct{B,B}, state::LazyKet{B}) where B <: Basis
     return exp_val
 end
 
-function expect(op::LazySum{B,B}, state::LazyKet{B}) where B <: Basis
-    check_samebases(op); check_samebases(op.basis_l, state.basis)
+function expect(op::LazySum, state::LazyKet)
+    check_multiplicable(op,op); check_multiplicable(op, state)
 
     T = promote_type(eltype(op), eltype(state))
     exp_val = zero(T)
@@ -131,8 +131,8 @@ function mul!(y::LazyKet{BL}, op::LazyTensor{BL, BR}, x::LazyKet{BR}, alpha, bet
 
     iszero(alpha) && (_zero_op_mul!(y.kets[1].data, beta); return result)
 
-    missing_index_allowed = samebases(op)
-    (length(y.basis.bases) == length(x.basis.bases)) || throw(IncompatibleBases())
+    missing_index_allowed = samebases(op.basis_l, op.basis_r)
+    (nsubsystems(y.basis) == nsubsystems(x.basis)) || throw(IncompatibleBases())
 
     for i in 1:length(y.kets)
         if i ∈ op.indices

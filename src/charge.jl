@@ -28,6 +28,7 @@ struct ChargeBasis{T} <: Basis
 end
 
 Base.:(==)(b1::ChargeBasis, b2::ChargeBasis) = (b1.ncut == b2.ncut)
+Base.length(b::ChargeBasis) = b.dim
 
 """
     ShiftedChargeBasis(nmin, nmax) <: Basis
@@ -50,6 +51,7 @@ end
 
 Base.:(==)(b1::ShiftedChargeBasis, b2::ShiftedChargeBasis) =
     (b1.nmin == b2.nmin && b1.nmax == b2.nmax)
+Base.length(b::ShiftedChargeBasis) = b.dim
 
 """
     chargestate([T=ComplexF64,] b::ChargeBasis, n)

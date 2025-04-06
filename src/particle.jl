@@ -67,6 +67,8 @@ MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi
 
 ==(b1::PositionBasis, b2::PositionBasis) = b1.xmin==b2.xmin && b1.xmax==b2.xmax && b1.N==b2.N
 ==(b1::MomentumBasis, b2::MomentumBasis) = b1.pmin==b2.pmin && b1.pmax==b2.pmax && b1.N==b2.N
+Base.length(b::PositionBasis) = b.N
+Base.length(b::MomentumBasis) = b.N
 
 
 """
@@ -280,7 +282,7 @@ end
 
 Abstract type for all implementations of FFT operators.
 """
-abstract type FFTOperator{BL, BR, T} <: BLROperator{BL,BR} end
+abstract type FFTOperator{BL, BR, T} <: AbstractOperator end
 
 Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_after))
 
@@ -334,6 +336,9 @@ struct FFTKets{BL,BR,T,P1,P2} <: FFTOperator{BL, BR, T}
         new{BL, BR, T, P1, P2}(b1, b2, fft_l!, fft_r!, mul_before, mul_after)
     end
 end
+
+basis_l(ket::FFTKets) = ket.basis_l
+basis_r(ket::FFTKets) = ket.basis_r
 
 """
     transform(b1::MomentumBasis, b2::PositionBasis)

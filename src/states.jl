@@ -7,7 +7,7 @@ import QuantumInterface: StateVector, AbstractKet, AbstractBra
 
 Bra state defined by coefficients in respect to the basis.
 """
-mutable struct Bra{B,T} <: AbstractBra
+mutable struct Bra{B<:Basis,T} <: AbstractBra
     basis::B
     data::T
     function Bra{B,T}(b::B, data::T) where {B,T}
@@ -21,7 +21,7 @@ end
 
 Ket state defined by coefficients in respect to the given basis.
 """
-mutable struct Ket{B,T} <: AbstractKet
+mutable struct Ket{B<:Basis,T} <: AbstractKet
     basis::B
     data::T
     function Ket{B,T}(b::B, data::T) where {B,T}
@@ -54,29 +54,20 @@ Ket{B}(b::B) where B = Ket{B}(ComplexF64, b)
 Bra(b::Basis) = Bra(ComplexF64, b)
 Ket(b::Basis) = Ket(ComplexF64, b)
 
-==(x::Ket{B}, y::Ket{B}) where {B} = (samebases(x, y) && x.data==y.data)
-==(x::Bra{B}, y::Bra{B}) where {B} = (samebases(x, y) && x.data==y.data)
-==(x::Ket, y::Ket) = false
-==(x::Bra, y::Bra) = false
+==(x::Ket, y::Ket) = (addible(x,y) && x.data==y.data)
+==(x::Bra, y::Bra) = (addible(x,y) && x.data==y.data)
 
-Base.isapprox(x::Ket{B}, y::Ket{B}; kwargs...) where {B} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
-Base.isapprox(x::Bra{B}, y::Bra{B}; kwargs...) where {B} = (samebases(x, y) && isapprox(x.data,y.data;kwargs...))
-Base.isapprox(x::Ket, y::Ket; kwargs...) = false
-Base.isapprox(x::Bra, y::Bra; kwargs...) = false
+Base.isapprox(x::Ket, y::Ket; kwargs...) = (addible(x, y) && isapprox(x.data,y.data;kwargs...))
+Base.isapprox(x::Bra, y::Bra; kwargs...) = (addible(x, y) && isapprox(x.data,y.data;kwargs...))
 
 # Arithmetic operations
-+(a::Ket{B}, b::Ket{B}) where {B} = Ket(a.basis, a.data+b.data)
-+(a::Bra{B}, b::Bra{B}) where {B} = Bra(a.basis, a.data+b.data)
-+(a::Ket, b::Ket) = throw(IncompatibleBases())
-+(a::Bra, b::Bra) = throw(IncompatibleBases())
++(a::Ket, b::Ket) = (check_addible(a,b); Ket(a.basis, a.data+b.data))
++(a::Bra, b::Bra) = (check_addible(a,b); Bra(a.basis, a.data+b.data))
 
--(a::Ket{B}, b::Ket{B}) where {B} = Ket(a.basis, a.data-b.data)
--(a::Bra{B}, b::Bra{B}) where {B} = Bra(a.basis, a.data-b.data)
--(a::Ket, b::Ket) = throw(IncompatibleBases())
--(a::Bra, b::Bra) = throw(IncompatibleBases())
+-(a::Ket, b::Ket) = (check_addible(a,b); Ket(a.basis, a.data-b.data))
+-(a::Bra, b::Bra) = (check_addible(a,b); Bra(a.basis, a.data-b.data))
 
-*(a::Bra{B}, b::Ket{B}) where {B} = transpose(a.data)*b.data
-*(a::Bra, b::Ket) = throw(IncompatibleBases())
+*(a::Bra, b::Ket) = (check_multiplicable(a,b); transpose(a.data)*b.data)
 *(a::Number, b::Ket) = Ket(b.basis, a*b.data)
 *(a::Number, b::Bra) = Bra(b.basis, a*b.data)
 
@@ -103,17 +94,17 @@ tensor(states::Ket...) = reduce(tensor, states)
 tensor(states::Bra...) = reduce(tensor, states)
 
 function permutesystems(state::T, perm) where T<:Ket
-    @assert length(state.basis.bases) == length(perm)
+    @assert nsubsystems(state) == length(perm)
     @assert isperm(perm)
-    data = reshape(state.data, state.basis.shape...)
+    data = reshape(state.data, size(state.basis)...)
     data = permutedims(data, perm)
     data = reshape(data, length(data))
     Ket(permutesystems(state.basis, perm), data)
 end
 function permutesystems(state::T, perm) where T<:Bra
-    @assert length(state.basis.bases) == length(perm)
+    @assert nsubsystems(state) == length(perm)
     @assert isperm(perm)
-    data = reshape(state.data, state.basis.shape...)
+    data = reshape(state.data, size(state.basis)...)
     data = permutedims(data, perm)
     data = reshape(data, length(data))
     Bra(permutesystems(state.basis, perm), data)
@@ -129,9 +120,9 @@ For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
 function basisstate(::Type{T}, b::Basis, indices) where T
-    @assert length(b.shape) == length(indices)
+    @assert nsubsystems(b) == length(indices)
     x = zeros(T, length(b))
-    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
+    x[LinearIndices(size(b))[indices...]] = one(T)
     Ket(b, x)
 end
 function basisstate(::Type{T}, b::Basis, index::Integer) where T
@@ -147,9 +138,9 @@ basisstate(b::Basis, indices) = basisstate(ComplexF64, b, indices)
 Sparse version of [`basisstate`](@ref).
 """
 function sparsebasisstate(::Type{T}, b::Basis, indices) where T
-    @assert length(b.shape) == length(indices)
+    @assert nsubsystems(b) == length(indices)
     x = spzeros(T, length(b))
-    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
+    x[LinearIndices(size(b))[indices...]] = one(T)
     Ket(b, x)
 end
 function sparsebasisstate(::Type{T}, b::Basis, index::Integer) where T
@@ -161,16 +152,6 @@ sparsebasisstate(b::Basis, indices) = sparsebasisstate(ComplexF64, b, indices)
 
 SparseArrays.sparse(x::Ket) = Ket(x.basis,sparse(x.data))
 SparseArrays.sparse(x::Bra) = Bra(x.basis,sparse(x.data))
-
-# Helper functions to check validity of arguments
-function check_multiplicable(a::Bra, b::Ket)
-    if a.basis != b.basis
-        throw(IncompatibleBases())
-    end
-end
-
-samebases(a::Ket{B}, b::Ket{B}) where {B} = samebases(a.basis, b.basis)::Bool
-samebases(a::Bra{B}, b::Bra{B}) where {B} = samebases(a.basis, b.basis)::Bool
 
 # Custom broadcasting style
 abstract type StateVectorStyle{B} <: Broadcast.BroadcastStyle end

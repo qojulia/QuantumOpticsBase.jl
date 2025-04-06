@@ -198,15 +198,15 @@ The `indices` argument can be a single integer or a collection of integers.
 function ptranspose(rho::DenseOpType{B,B}, indices=1) where B<:CompositeBasis
     # adapted from qutip.partial_transpose (https://qutip.org/docs/4.0.2/modules/qutip/partial_transpose.html)
     # works as long as QuantumOptics.jl doesn't change the implementation of `tensor`, i.e. tensor(a,b).data = kron(b.data,a.data)
-    nsys = length(rho.basis_l.shape)
+    nsys = nsubsystems(basis_l(rho))
     mask = ones(Int, nsys)
     mask[collect(indices)] .+= 1
     pt_dims = reshape(1:2*nsys, (nsys,2)) # indices of the operator viewed as a tensor with 2nsys legs
     pt_idx = [[pt_dims[i,mask[i]] for i = 1 : nsys]; [pt_dims[i,3-mask[i]] for i = 1 : nsys] ] # permute the legs on the subsystem of `indices`
     # reshape the operator data into a 2nsys-legged tensor and shape it back with the legs permuted
-    data = reshape(permutedims(reshape(rho.data, Tuple([rho.basis_l.shape; rho.basis_r.shape])), pt_idx), size(rho.data))
+    data = reshape(permutedims(reshape(rho.data, Tuple([size(basis_l(rho)); size(basis_r(rho))])), pt_idx), size(rho.data))
 
-    return DenseOperator(rho.basis_l,data)
+    return DenseOperator(basis_l(rho),data)
     
 end
                         
@@ -275,7 +275,7 @@ function can be provided (for example to compute the entanglement-renyi entropy)
 """
 function entanglement_entropy(psi::Ket{B}, partition, entropy_fun=entropy_vn) where B<:CompositeBasis
     # check that sites are within the range
-    @assert all(partition .<= length(psi.basis.bases))
+    @assert all(partition .<= nsubsystems(psi.basis))
 
     rho = ptrace(psi, partition)
     return entropy_fun(rho)
@@ -284,17 +284,18 @@ end
 function entanglement_entropy(rho::DenseOpType{B,B}, partition, args...) where {B<:CompositeBasis}
     # check that sites is within the range
     hilb = rho.basis_l
-    all(partition .<= length(hilb.bases)) || throw(ArgumentError("Indices in partition must be within the bounds of the composite basis."))
-    length(partition) <= length(hilb.bases) || throw(ArgumentError("Partition cannot include the whole system."))
+    N = nsubsystems(hilb)
+    all(partition .<= N) || throw(ArgumentError("Indices in partition must be within the bounds of the composite basis."))
+    length(partition) <= N || throw(ArgumentError("Partition cannot include the whole system."))
 
     # build the doubled hilbert space for the vectorised dm, normalized like a Ket.
     b_doubled = hilb^2
     rho_vec = normalize!(Ket(b_doubled, vec(rho.data)))
 
     if partition isa Tuple
-        partition_ = tuple(partition..., (partition.+length(hilb.bases))...)
+        partition_ = tuple(partition..., (partition.+N)...)
     else
-        partition_ = vcat(partition, partition.+length(hilb.bases))
+        partition_ = vcat(partition, partition.+N)
     end
 
     return entanglement_entropy(rho_vec,partition_,args...)

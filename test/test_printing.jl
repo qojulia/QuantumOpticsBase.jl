@@ -3,7 +3,7 @@ using QuantumOpticsBase
 
 @testset "printing" begin
 
-@test sprint(show, GenericBasis([2, 3])) == "Basis(shape=[2,3])"
+@test sprint(show, GenericBasis(3)) == "Basis(dim=3)"
 @test sprint(show, GenericBasis(2)) == "Basis(dim=2)"
 @test sprint(show, SpinBasis(1//1)) == "Spin(1)"
 @test sprint(show, SpinBasis(3//2)) == "Spin(3/2)"

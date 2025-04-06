@@ -1,14 +1,17 @@
 using Test
 using QuantumOpticsBase
-using QuantumOpticsBase: BLROperator
+import QuantumInterface: basis_l, basis_r
 using LinearAlgebra, SparseArrays, Random
 
-mutable struct test_operators{BL<:Basis,BR<:Basis} <: BLROperator{BL,BR}
+mutable struct test_operators{BL<:Basis,BR<:Basis} <: AbstractOperator
   basis_l::BL
   basis_r::BR
   data::Matrix{ComplexF64}
   test_operators(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
 end
+
+basis_l(op::test_operators) = op.basis_l
+basis_r(op::test_operators) = op.basis_r
 
 @testset "operators" begin
 
@@ -121,8 +124,8 @@ H = alpha * create(b) - conj(alpha) * destroy(b)
 @test exp(sparse(H); threshold=1e-10) ≈ displace(b, alpha)
 @test exp(sparse(zero(identityoperator(b)))) ≈ identityoperator(b)
 
-@test one(b1).data == Diagonal(ones(b1.shape[1]))
-@test one(op1).data == Diagonal(ones(b1.shape[1]))
+@test one(b1).data == Diagonal(ones(length(b1)))
+@test one(op1).data == Diagonal(ones(length(b1)))
 
 @test_throws ArgumentError conj!(op_test)
 
