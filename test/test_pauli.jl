@@ -5,11 +5,10 @@ using QuantumOpticsBase
 
 @testset "pauli" begin
 
-@test_throws MethodError PauliBasis(1.4)
-
+b = SpinBasis(1//2)
 # Test conversion of unitary matrices to superoperators.
-q2 = PauliBasis(2)
-q3 = PauliBasis(3)
+q2 = b^2
+q3 = b^3
 CZ = DenseOperator(q2, q2, diagm(0 => [1,1,1,-1]))
 CZ_sop = SuperOperator(CZ)
 

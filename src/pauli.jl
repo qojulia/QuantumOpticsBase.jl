@@ -1,5 +1,4 @@
 import Base: isapprox
-import QuantumInterface: PauliBasis
 
 """
     Base class for Pauli transfer matrix classes.
