@@ -599,10 +599,6 @@ passive_state
 ## [Pauli](@id API: Pauli)
 
 ```@docs
-PauliBasis
-```
-
-```@docs
 PauliTransferMatrix
 ```
 
