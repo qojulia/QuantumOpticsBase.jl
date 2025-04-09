@@ -23,11 +23,11 @@ Embed operator acting on a joint Hilbert space where missing indices are filled 
 """
 function embed(bl::CompositeBasis, br::CompositeBasis,
                indices, op::T) where T<:DataOperator
-    (nsubsystems(basis_l) == nsubsystems(basis_r)) || throw(ArgumentError("Must have nsubsystems(bl) == nsubsystems(br) in embed"))
-    N = nsubsystems(basis_l)
+    (nsubsystems(bl) == nsubsystems(br)) || throw(ArgumentError("Must have nsubsystems(bl) == nsubsystems(br) in embed"))
+    N = nsubsystems(bl)
 
-    reduce(tensor, bl[indices]) == op.basis_l || throw(IncompatibleBases())
-    reduce(tensor, br[indices]) == op.basis_r || throw(IncompatibleBases())
+    reduce(tensor, bl[indices]) == basis_l(op) || throw(IncompatibleBases())
+    reduce(tensor, br[indices]) == basis_r(op) || throw(IncompatibleBases())
 
     index_order = [idx for idx in 1:N if idx ∉ indices]
     all_operators = AbstractOperator[identityoperator(T, eltype(op), bl[i], br[i]) for i in index_order]
@@ -44,8 +44,8 @@ function embed(bl::CompositeBasis, br::CompositeBasis,
 
     # Reorient the matrix to act in the correctly ordered basis.
     # Get the dimensions necessary for index permuting.
-    dims_l = size(basis_l)
-    dims_r = size(basis_r)
+    dims_l = size(bl)
+    dims_r = size(br)
 
     # Get the order of indices to use in the first reshape. Julia indices go in
     # reverse order.
@@ -65,7 +65,7 @@ function embed(bl::CompositeBasis, br::CompositeBasis,
 
     # Create operator with proper data and bases
     constructor = Base.typename(T)
-    unpermuted_op = constructor.wrapper(basis_l, basis_r, M)
+    unpermuted_op = constructor.wrapper(bl, br, M)
 
     return unpermuted_op
 end

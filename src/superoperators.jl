@@ -1,7 +1,7 @@
-import LinearAlgebra: vec
+import QuantumInterface: KetBraBasis, ChoiBasis
 
 const SuperOperatorType = Operator{<:KetBraBasis,<:KetBraBasis}
-const ChoiStateType = Operator{CompositeBasis{<:Integer,<:Choi},CompositeBasis{<:Integer,<:Choi}}
+const ChoiStateType = Operator{CompositeBasis{<:Integer,<:ChoiBasis},CompositeBasis{<:Integer,<:ChoiBasis}}
 
 vec(op::Operator) = Ket(KetBraBasis(basis_l(op), basis_r(op)), reshape(op.data, length(op.data)))
 
