@@ -23,11 +23,11 @@ function apply!(state::Operator, indices, operation::Operator)
     state
 end
 
-function apply!(state::Ket, indices, operation::T) where {T<:AbstractSuperOperator}
+function apply!(state::Ket, indices, operation::T) where {T<:SuperOperatorType}
     apply!(dm(state), indices, operation)
 end
 
-function apply!(state::Operator, indices, operation::T) where {T<:AbstractSuperOperator}
+function apply!(state::Operator, indices, operation::T) where {T<:SuperOperatorType}
     if is_apply_shortcircuit(state, indices, operation)
         state.data = (operation*state).data
         return state

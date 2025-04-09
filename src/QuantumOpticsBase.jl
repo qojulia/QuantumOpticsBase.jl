@@ -4,8 +4,12 @@ using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
 
-import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
-        permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, basis_l, basis_r
+import QuantumInterface: Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
+    IncompatibleBases, @compatiblebases, samebases, check_samebases,
+    addible, check_addible, multiplicable, check_multiplicable, reduced, ptrace, permutesystems,
+    dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
+    permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!,
+    super, choi, kraus, vec, spre, spost, sprepost, liouvillian
 
 # index helpers
 import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
@@ -35,9 +39,8 @@ export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
                 AbstractTimeDependentOperator, TimeDependentSum, set_time!,
                 current_time, time_shift, time_stretch, time_restrict, static_operator,
         #superoperators
-                SuperOperator, DenseSuperOperator, DenseSuperOpType,
-                SparseSuperOperator, SparseSuperOpType, spre, spost, sprepost, liouvillian,
-                identitysuperoperator,
+                KetBraBasis, ChoiBasis, super, choi, kraus, vec,
+                spre, spost, sprepost, liouvillian, identitysuperoperator,
         #fock
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
@@ -71,7 +74,6 @@ export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
         #apply
                 apply!
 
-include("bases.jl")
 include("states.jl")
 include("operators.jl")
 include("operators_dense.jl")
@@ -92,7 +94,7 @@ include("particle.jl")
 include("nlevel.jl")
 include("manybody.jl")
 include("transformations.jl")
-include("pauli.jl")
+#include("pauli.jl")
 include("metrics.jl")
 include("spinors.jl")
 include("phasespace.jl")
