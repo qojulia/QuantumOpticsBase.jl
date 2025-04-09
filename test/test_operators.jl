@@ -112,7 +112,7 @@ op_cnot = DenseOperator(b2⊗b2, cnot)
 OP_cnot = embed(b8, [1,3], op_cnot)
 @test ptrace(OP_cnot, [2])/2. == op_cnot
 @test reduced(OP_cnot, [1,3])/2. == op_cnot
-@test_throws AssertionError embed(b2⊗b2, [1,1], op_cnot)
+@test_throws ArgumentError embed(b2⊗b2, [1,1], op_cnot)
 
 b = FockBasis(40)
 alpha = 1+5im
