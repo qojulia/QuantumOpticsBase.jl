@@ -7,9 +7,9 @@ using LinearAlgebra
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 
 # Test creation
-@test_throws AssertionError SpinBasis(1//3)
-@test_throws AssertionError SpinBasis(-1//2)
-@test_throws AssertionError SpinBasis(-1)
+@test_throws ArgumentError SpinBasis(1//3)
+@test_throws ArgumentError SpinBasis(-1//2)
+@test_throws ArgumentError SpinBasis(-1)
 
 
 for spinnumber=[1//2, 1, 3//2, 4//2]
