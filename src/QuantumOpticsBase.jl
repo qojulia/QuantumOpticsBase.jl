@@ -41,6 +41,7 @@ export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
         #superoperators
                 KetBraBasis, ChoiBasis, super, choi, kraus, vec,
                 spre, spost, sprepost, liouvillian, identitysuperoperator,
+                SuperOperatorType, DenseSuperOpType, SparseSuperOpType,
         #fock
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
