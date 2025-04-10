@@ -3,7 +3,13 @@ import QuantumInterface: SpinBasis
 """
     sigmax([T=ComplexF64,] b::SpinBasis)
 
-Pauli ``σ_x`` operator for the given Spin basis.
+Angular momentum ``σ_x`` operator for the given `SpinBasis`. For
+`SpinBasis(1//2)` this is the Pauli ``X`` operator while for higher spins this
+is the Hermitian operator that gives the quantized angular momentum observable
+along the ``x`` direction.
+
+See [`paulix`](@ref) for the generalization of the qubit pauli operators to
+qudits while preserving them being unitary instead of Hermitian.
 """
 function sigmax(::Type{T}, b::SpinBasis) where T
     N = length(b)
@@ -16,7 +22,13 @@ sigmax(b::SpinBasis) = sigmax(ComplexF64,b)
 """
     sigmay([T=ComplexF64,] b::SpinBasis)
 
-Pauli ``σ_y`` operator for the given Spin basis.
+Angular momentum ``σ_y`` operator for the given `SpinBasis`. For
+`SpinBasis(1//2)` this is the Pauli ``Y`` operator while for higher spins this
+is the Hermitian operator that gives the quantized angular momentum observable
+along the ``y`` direction.
+
+See [`pauliy`](@ref) for the generalization of the qubit pauli operators to
+qudits while preserving them being unitary instead of Hermitian.
 """
 function sigmay(::Type{T}, b::SpinBasis) where T
     N = length(b)
@@ -29,7 +41,13 @@ sigmay(b::SpinBasis) = sigmay(ComplexF64,b)
 """
     sigmaz([T=ComplexF64,] b::SpinBasis)
 
-Pauli ``σ_z`` operator for the given Spin basis.
+Angular momentum ``σ_z`` operator for the given `SpinBasis`. For
+`SpinBasis(1//2)` this is the Pauli ``Z`` operator while for higher spins this
+is the Hermitian operator that gives the quantized angular momentum observable
+along the ``z`` direction.
+
+See [`pauliz`](@ref) for the generalization of the qubit pauli operators to
+qudits while preserving them being unitary instead of Hermitian.
 """
 function sigmaz(::Type{T}, b::SpinBasis) where T
     N = length(b)
