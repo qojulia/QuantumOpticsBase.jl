@@ -55,7 +55,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 PositionBasis, MomentumBasis, samplepoints, spacing, gaussianstate,
                 position, momentum, potentialoperator, transform,
         #nlevel
-                NLevelBasis, transition, nlevelstate,
+                NLevelBasis, transition, nlevelstate, paulix, pauliz, pauliy,
         #manybody
                 ManyBodyBasis, FermionBitstring, fermionstates, bosonstates,
                 manybodyoperator, onebodyexpect,

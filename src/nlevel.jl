@@ -31,3 +31,40 @@ function nlevelstate(::Type{T}, b::NLevelBasis, n::Integer) where T
     basisstate(T, b, n)
 end
 nlevelstate(b::NLevelBasis, n::Integer) = nlevelstate(ComplexF64, b, n)
+
+"""
+    paulix([T=ComplexF64,] b::NLevelBasis, pow=1)
+
+Generalized Pauli X operator for the given N level system.
+Returns `X^pow`.
+"""
+function paulix(::Type{T}, b::NLevelBasis, pow=1) where T
+    N = length(b)
+    SparseOperator(b, spdiagm(pow => fill(one(T), N-pow),
+                              pow-N => fill(one(T), pow)))
+end
+paulix(b::NLevelBasis, pow=1) = paulix(ComplexF64, b, pow)
+
+"""
+    pauliz([T=ComplexF64,] b::NLevelBasis, pow=1)
+
+Generalized Pauli Z operator for the given N level system.
+Returns `Z^pow`.
+"""
+function pauliz(::Type{T}, b::NLevelBasis, pow=1) where T
+    N = length(b)
+    ω = exp(2π*1im*pow/N)
+    SparseOperator(b, spdiagm(0 => T[ω^n for n=1:N]))
+end
+pauliz(b::NLevelBasis, pow=1) = pauliz(ComplexF64, b, pow)
+
+"""
+    pauliy([T=ComplexF64,] b::NLevelBasis)
+
+Pauli Y operator. Only defined for a two level system.
+"""
+function pauliy(::Type{T}, b::NLevelBasis) where T
+    length(b) == 2 || throw(ArgumentError("pauliy only defined for two level system"))
+    SparseOperator(b, spdiagm(-1 => T[-1im], 1 => T[1im]))
+end
+pauliy(b::NLevelBasis) = pauliy(ComplexF64,b)
