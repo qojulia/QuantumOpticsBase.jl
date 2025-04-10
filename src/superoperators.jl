@@ -74,3 +74,21 @@ identitysuperoperator(op::DenseSuperOpType) =
 
 identitysuperoperator(op::SparseSuperOpType) = 
     Operator(op.basis_l, op.basis_r, sparse(one(eltype(op.data))I, size(op.data)))
+
+function pauli_to_ket_bra(N)
+    b = SpinBasis(1//2)
+    paulis = Iterators.repeated([identityoperator(b), sigmax(b), sigmaz(b), sigmay(b)], N)
+    reduce(hcat, [vec(tensor(p)) for p in Iterators.product(paulis...)])
+end
+
+function pauli(op::SuperOperatorType; tol=1e-9)
+    bl, br = basis_l(op), basis_r(op)
+    ((basis_l(bl) == basis_r(bl)) && (basis_l(br) == basis_r(br))) || throw(ArgumentError("Superoperator must map between square operators in order to be converted to pauli represenation"))
+    ((basis_l(bl) == basis_r(bl)) && (basis_l(br) == basis_r(br))) || throw(ArgumentError("Superoperator must map between square operators in order to be converted to pauli represenation"))
+    Nl, Nr = length(basis_l(bl)), length(basis_l(br))
+    Ul = ket_bra_to_pauli(Nl)
+    Ur = Nl == Nr ? Ul : ket_bra_to_pauli(Nr)
+    data = Ul*op.data*dagger(Ur) #  # TODO figure out normalization
+    @assert isapprox(imag.(data), zero(data), atol=tol)
+    Operator(PauliBasis()^Nl, PauliBasis()^Nr, real.(data))
+end

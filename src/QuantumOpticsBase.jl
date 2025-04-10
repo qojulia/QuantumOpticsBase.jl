@@ -9,7 +9,7 @@ import QuantumInterface: Basis, GenericBasis, CompositeBasis, basis, basis_l, ba
     addible, check_addible, multiplicable, check_multiplicable, reduced, ptrace, permutesystems,
     dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
     permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!,
-    super, choi, kraus, vec, spre, spost, sprepost, liouvillian
+    vec, unvec, super, choi, kraus, stinespring, pauli, chi, spre, spost, sprepost, liouvillian
 
 # metrics
 import QuantumInterface: entropy_vn, fidelity, logarithmic_negativity
@@ -42,7 +42,8 @@ export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
                 AbstractTimeDependentOperator, TimeDependentSum, set_time!,
                 current_time, time_shift, time_stretch, time_restrict, static_operator,
         #superoperators
-                KetBraBasis, ChoiBasis, super, choi, kraus, vec,
+                KetBraBasis, ChoiBasis, PauliBasis,
+                vec, unvec, super, choi, kraus, stinespring, pauli, chi,
                 spre, spost, sprepost, liouvillian, identitysuperoperator,
                 SuperOperatorType, DenseSuperOpType, SparseSuperOpType,
         #fock
@@ -71,8 +72,7 @@ export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
                 tracedistance, tracedistance_h, tracedistance_nh,
                 entropy_vn, entropy_renyi, fidelity, ptranspose, PPT,
                 negativity, logarithmic_negativity, entanglement_entropy,
-        PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
-                ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
+                avg_gate_fidelity,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
         qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
         #apply
