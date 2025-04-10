@@ -141,7 +141,7 @@ QuantumOpticsBase.check_samebases
 ```
 
 ```@docs
-@samebases
+@compatiblebases
 ```
 
 ```@docs
@@ -597,10 +597,6 @@ passive_state
 ```
 
 ## [Pauli](@id API: Pauli)
-
-```@docs
-PauliBasis
-```
 
 ```@docs
 PauliTransferMatrix

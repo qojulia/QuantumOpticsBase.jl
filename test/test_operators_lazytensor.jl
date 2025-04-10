@@ -1,14 +1,17 @@
 using Test
 using QuantumOpticsBase
+import QuantumInterface: IncompatibleBases
 using LinearAlgebra, SparseArrays, Random
 
-mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
+mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator
     basis_l::BL
     basis_r::BR
     data::Matrix{ComplexF64}
     test_lazytensor(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
 end
 Base.eltype(::test_lazytensor) = ComplexF64
+basis_l(op::test_lazytensor) = op.basis_l
+basis_r(op::test_lazytensor) = op.basis_r
 
 @testset "operators-lazytensor" begin
 
@@ -120,14 +123,14 @@ fac = randn()
 @test dense(op3 - fac * op4) ≈ dense(op3_ - fac*op4_)
 
 #Test addition
-@test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op2)
+@test_throws IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(-op1_, -op1)
 @test 1e-14 > D(op1+op2, op1_+op2_)
 @test 1e-14 > D(op1+op2_, op1_+op2_)
 @test 1e-14 > D(op1_+op2, op1_+op2_)
 
 #Test substraction
-@test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op2)
+@test_throws IncompatibleBases op1 - dagger(op2)
 @test 1e-14 > D(op1 - op2, op1_ - op2_)
 @test 1e-14 > D(op1 - op2_, op1_ - op2_)
 @test 1e-14 > D(op1_ - op2, op1_ - op2_)
@@ -150,7 +153,7 @@ op2_tensor_ =   op1_ ⊗ subop1
 
 
 # Test multiplication
-@test_throws DimensionMismatch op1*op2
+@test_throws IncompatibleBases op1*op2
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test 1e-11 > D((xbra1 + 0.3*xbra2)*op1, (xbra1 + 0.3*xbra2)*op1_)
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
@@ -434,11 +437,11 @@ dop = randoperator(b3a⊗b3b, b2a⊗b2b)
 # Dimension mismatches for LazyTensor with sparse
 b1, b2 = NLevelBasis.((2, 3))
 Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
-@test_throws DimensionMismatch Lop1*Lop1
-@test_throws DimensionMismatch dense(Lop1)*Lop1
-@test_throws DimensionMismatch sparse(Lop1)*Lop1
-@test_throws DimensionMismatch Lop1*dense(Lop1)
-@test_throws DimensionMismatch Lop1*sparse(Lop1)
+@test_throws IncompatibleBases Lop1*Lop1
+@test_throws IncompatibleBases dense(Lop1)*Lop1
+@test_throws IncompatibleBases sparse(Lop1)*Lop1
+@test_throws IncompatibleBases Lop1*dense(Lop1)
+@test_throws IncompatibleBases Lop1*sparse(Lop1)
 
 end # testset
 
@@ -451,11 +454,11 @@ D(x1::StateVector, x2::StateVector) = norm(x2-x1)
 bl = FockBasis(2) ⊗ GenericBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(1) ⊗ GenericBasis(2)
 br = FockBasis(2) ⊗ GenericBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2) ⊗ GenericBasis(1)
 
-iso = identityoperator(bl.bases[5], br.bases[5])
+iso = identityoperator(bl[5], br[5])
 
-n1 = LazyTensor(bl, br, (1,3), (number(bl.bases[1]), sigmax(bl.bases[3])))
-n1_sp = LazyTensor(bl, br, (1,2,3,5), (number(bl.bases[1]), identityoperator(bl.bases[2]), sigmax(bl.bases[3]), iso))
-n1_de = LazyTensor(bl, br, (1,2,3,5), (dense(number(bl.bases[1])), identityoperator(bl.bases[2]), sigmax(bl.bases[3]), iso))
+n1 = LazyTensor(bl, br, (1,3), (number(bl[1]), sigmax(bl[3])))
+n1_sp = LazyTensor(bl, br, (1,2,3,5), (number(bl[1]), identityoperator(bl[2]), sigmax(bl[3]), iso))
+n1_de = LazyTensor(bl, br, (1,2,3,5), (dense(number(bl[1])), identityoperator(bl[2]), sigmax(bl[3]), iso))
 
 @test dense(n1) == dense(n1_sp)
 @test dense(n1) == dense(n1_de)
@@ -501,7 +504,7 @@ bM = reduce(tensor, (GenericBasis(i) for i in 2:4))
 bL = GenericBasis(2)
 bR = GenericBasis(3)
 
-ltM = LazyTensor(bM, 2, randoperator(bM.bases[2]))
+ltM = LazyTensor(bM, 2, randoperator(bM[2]))
 
 V_ML = dense(identityoperator(bM, bL))
 V_LM = copy(V_ML')

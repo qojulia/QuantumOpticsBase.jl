@@ -1,3 +1,4 @@
+import QuantumInterface: IncompatibleBases
 using QuantumOpticsBase
 using Test
 using LinearAlgebra
@@ -82,20 +83,20 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Addition
-@test_throws DimensionMismatch op1 + dagger(op2)
+@test_throws IncompatibleBases op1 + dagger(op2)
 @test D(op1 + op_zero, op1)
 @test D(op1 + op2, op2 + op1)
 @test D(op1 + (op2 + op3), (op1 + op2) + op3)
 
 # Subtraction
-@test_throws DimensionMismatch op1 - dagger(op2)
+@test_throws IncompatibleBases op1 - dagger(op2)
 @test D(op1-op_zero, op1)
 @test D(op1-op2, op1 + (-op2))
 @test D(op1-op2, op1 + (-1*op2))
 @test D(op1-op2-op3, op1-(op2+op3))
 
 # Test multiplication
-@test_throws DimensionMismatch op1*op2
+@test_throws IncompatibleBases op1*op2
 @test D(op1*(x1 + 0.3*x2), op1*x1 + 0.3*op1*x2, 1e-12)
 @test D((op1+op2)*(x1+0.3*x2), op1*x1 + 0.3*op1*x2 + op2*x1 + 0.3*op2*x2, 1e-12)
 
@@ -163,7 +164,7 @@ ab = a ⊗ dagger(b)
 @test ab.data[2,3] == a.data[2]*conj(b.data[3])
 @test ab.data[2,1] == a.data[2]*conj(b.data[1])
 
-shape = tuple(op123.basis_l.shape..., op123.basis_r.shape...)
+shape = tuple(size(op123.basis_l)..., size(op123.basis_r)...)
 idx = LinearIndices(shape)[2, 1, 1, 3, 4, 5]
 @test op123.data[idx] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
 @test reshape(op123.data, shape...)[2, 1, 1, 3, 4, 5] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
@@ -339,7 +340,7 @@ op1 .= op1_ .+ 3 * op1_
 @test_throws DimensionMismatch op1 .= op2
 bf = FockBasis(3)
 op3 = randtestoperator(bf)
-@test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
+@test_throws IncompatibleBases op1 .+ op3 # TODO: Why is this different than the test above?
 
 ####################
 # Test lazy tensor #
@@ -415,7 +416,7 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test D(-op1_, -op1, 1e-12)
 
 # Test multiplication
-@test_throws DimensionMismatch op1*op2
+@test_throws IncompatibleBases op1*op2
 @test D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test D((xbra1 + 0.3*xbra2)*op1, (xbra1 + 0.3*xbra2)*op1_)
 @test D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
@@ -449,7 +450,7 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test D(-op1_, -op1)
 
 # Test multiplication
-@test_throws DimensionMismatch op1a*op1a
+@test_throws IncompatibleBases op1a*op1a
 @test D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2), 1e-11)
 @test D((xbra1 + 0.3*xbra2)*op1, (xbra1 + 0.3*xbra2)*op1_, 1e-11)
 @test D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2, 1e-11)

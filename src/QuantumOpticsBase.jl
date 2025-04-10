@@ -4,14 +4,18 @@ using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
 
-import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
-        permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, AbstractSuperOperator
+import QuantumInterface: Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
+    IncompatibleBases, @compatiblebases, samebases, check_samebases,
+    addible, check_addible, multiplicable, check_multiplicable, reduced, ptrace, permutesystems,
+    dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
+    permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!,
+    vec, unvec, super, choi, kraus, stinespring, pauli, chi, spre, spost, sprepost, liouvillian
 
 # index helpers
 import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
 
-export Basis, GenericBasis, CompositeBasis, basis,
-        tensor, ⊗, permutesystems, @samebases,
+export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
+        tensor, ⊗, permutesystems, @compatiblebases,
         #states
                 StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
                 dagger, normalize, normalize!,
@@ -35,9 +39,10 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 AbstractTimeDependentOperator, TimeDependentSum, set_time!,
                 current_time, time_shift, time_stretch, time_restrict, static_operator,
         #superoperators
-                SuperOperator, DenseSuperOperator, DenseSuperOpType,
-                SparseSuperOperator, SparseSuperOpType, spre, spost, sprepost, liouvillian,
-                identitysuperoperator,
+                KetBraBasis, ChoiBasis, PauliBasis,
+                vec, unvec, super, choi, kraus, stinespring, pauli, chi,
+                spre, spost, sprepost, liouvillian, identitysuperoperator,
+                SuperOperatorType, DenseSuperOpType, SparseSuperOpType,
         #fock
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
@@ -55,7 +60,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 PositionBasis, MomentumBasis, samplepoints, spacing, gaussianstate,
                 position, momentum, potentialoperator, transform,
         #nlevel
-                NLevelBasis, transition, nlevelstate,
+                NLevelBasis, transition, nlevelstate, paulix, pauliz, pauliy,
         #manybody
                 ManyBodyBasis, FermionBitstring, fermionstates, bosonstates,
                 manybodyoperator, onebodyexpect,
@@ -64,14 +69,12 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 tracedistance, tracedistance_h, tracedistance_nh,
                 entropy_vn, entropy_renyi, fidelity, ptranspose, PPT,
                 negativity, logarithmic_negativity, entanglement_entropy,
-        PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
-                ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
+                avg_gate_fidelity,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
         qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
         #apply
                 apply!
 
-include("bases.jl")
 include("states.jl")
 include("operators.jl")
 include("operators_dense.jl")
@@ -92,7 +95,7 @@ include("particle.jl")
 include("nlevel.jl")
 include("manybody.jl")
 include("transformations.jl")
-include("pauli.jl")
+#include("pauli.jl")
 include("metrics.jl")
 include("spinors.jl")
 include("phasespace.jl")

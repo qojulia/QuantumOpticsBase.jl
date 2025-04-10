@@ -15,7 +15,7 @@ basis = FockBasis(2)
 
 # Test creation
 @test basis.N == 2
-@test basis.shape[1] == 3
+@test length(basis) == 3
 @test_throws DimensionMismatch FockBasis(-1)
 
 # Test equality

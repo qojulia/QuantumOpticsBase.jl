@@ -34,8 +34,8 @@ function LazyProduct(operators::T, factor::F=1) where {T,F}
     LazyProduct{BL,BR,F,T,KTL,BTR}(operators, ket_l, bra_r, factor)
 end
 
-
-
+basis_l(op::LazyProduct) = op.basis_l
+basis_r(op::LazyProduct) = op.basis_r
 
 LazyProduct(operators::Vector{T}, factor=1) where T<:AbstractOperator = LazyProduct((operators...,), factor)
 LazyProduct(operators::AbstractOperator...) = LazyProduct((operators...,))
@@ -49,13 +49,13 @@ dense(op::LazyProduct{B1,B2,F,T}) where {B1,B2,F,T<:Tuple{AbstractOperator}} = o
 SparseArrays.sparse(op::LazyProduct) = op.factor*prod(sparse.(op.operators))
 SparseArrays.sparse(op::LazyProduct{B1,B2,F,T}) where {B1,B2,F,T<:Tuple{AbstractOperator}} = op.factor*sparse(op.operators[1])
 
-isequal(x::LazyProduct{B1,B2}, y::LazyProduct{B1,B2}) where {B1,B2} = (samebases(x,y) && isequal(x.operators, y.operators) && isequal(x.factor, y.factor))
-==(x::LazyProduct{B1,B2}, y::LazyProduct{B1,B2}) where {B1,B2} = (samebases(x,y) && x.operators==y.operators && x.factor == y.factor)
+isequal(x::LazyProduct, y::LazyProduct) = (addible(x,y) && isequal(x.operators, y.operators) && isequal(x.factor, y.factor))
+==(x::LazyProduct, y::LazyProduct) = (addible(x,y) && x.operators==y.operators && x.factor == y.factor)
 
 # Arithmetic operations
 -(a::T) where T<:LazyProduct = T(a.operators,a.ket_l,a.bra_r, -a.factor)
 
-*(a::LazyProduct{B1,B2}, b::LazyProduct{B2,B3}) where {B1,B2,B3} = LazyProduct((a.operators..., b.operators...), a.factor*b.factor)
+*(a::LazyProduct, b::LazyProduct) = (check_multiplicable(a,b;); LazyProduct((a.operators..., b.operators...), a.factor*b.factor))
 *(a::LazyProduct, b::Number) = LazyProduct(a.operators, a.factor*b)
 *(a::Number, b::LazyProduct) = LazyProduct(b.operators, a*b.factor)
 

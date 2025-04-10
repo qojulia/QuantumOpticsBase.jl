@@ -25,6 +25,7 @@ end
 SubspaceBasis(basisstates::Vector{T}) where T = SubspaceBasis(basisstates[1].basis, basisstates)
 
 ==(b1::SubspaceBasis, b2::SubspaceBasis) = b1.superbasis==b2.superbasis && b1.basisstates_hash==b2.basisstates_hash
+Base.length(b::SubspaceBasis) = length(b.basisstates)
 
 
 proj(u::Ket, v::Ket) = dagger(v)*u/(dagger(u)*u)*u

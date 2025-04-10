@@ -1,5 +1,6 @@
 using Test
 using QuantumOpticsBase
+import QuantumInterface: IncompatibleBases
 using LinearAlgebra, Random
 
 
@@ -23,8 +24,8 @@ b_r = b1b⊗b2b⊗b3b
 # Test creation
 @test_throws ArgumentError LazySum()
 @test_throws ArgumentError LazySum([1., 2.], [randoperator(b_l)])
-@test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_l)))
-@test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_r, b_r)))
+@test_throws IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_l)))
+@test_throws IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_r, b_r)))
 
 # Test copy
 op1 = 2*LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_r)))
@@ -85,13 +86,13 @@ x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
 xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Addition
-@test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op2)
+@test_throws IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(op1+op2, op1_+op2_)
 @test 1e-14 > D(op1+op2_, op1_+op2_)
 @test 1e-14 > D(op1_+op2, op1_+op2_)
 
 # Subtraction
-@test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op2)
+@test_throws IncompatibleBases op1 - dagger(op2)
 @test 1e-14 > D(op1 - op2, op1_ - op2_)
 @test 1e-14 > D(op1 - op2_, op1_ - op2_)
 @test 1e-14 > D(op1_ - op2, op1_ - op2_)
@@ -99,7 +100,7 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 
 # Test multiplication
-@test_throws QuantumOpticsBase.IncompatibleBases op1*op2
+@test_throws IncompatibleBases op1*op2
 @test 1e-11 > D(dense(op1*op2'), op1_ * op2_')
 @test LazySum([0.1, 0.1], (op1a, op2a)) == LazySum(op1a, op2a)*0.1
 @test LazySum([0.1, 0.1], (op1a, op2a)) == 0.1*LazySum(op1a, op2a)
@@ -114,10 +115,10 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test iszero( op1a * LazySum(b_r, b_l) )
 @test iszero( LazySum(b_l, b_r) * x1 )
 @test iszero( xbra1 * LazySum(b_l, b_r) )
-@test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randoperator(NLevelBasis(4), GenericBasis(2)) # save Basis with different size
-@test_throws DimensionMismatch randoperator(GenericBasis(1), FockBasis(3)) * LazySum(FockBasis(1), NLevelBasis(2))
-@test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randstate(NLevelBasis(7))
-@test_throws DimensionMismatch randstate(FockBasis(3))' * LazySum(FockBasis(1), NLevelBasis(2))
+@test_throws IncompatibleBases LazySum(FockBasis(2), NLevelBasis(2)) * randoperator(NLevelBasis(4), GenericBasis(2)) # save Basis with different size
+@test_throws IncompatibleBases randoperator(GenericBasis(1), FockBasis(3)) * LazySum(FockBasis(1), NLevelBasis(2))
+@test_throws IncompatibleBases LazySum(FockBasis(2), NLevelBasis(2)) * randstate(NLevelBasis(7))
+@test_throws IncompatibleBases randstate(FockBasis(3))' * LazySum(FockBasis(1), NLevelBasis(2))
 
 ## multiplication with Operator of AbstractMatrix
 LSop = LazySum(randoperator(b1a^2)) # AbstractOperator

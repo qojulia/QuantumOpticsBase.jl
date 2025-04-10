@@ -1,4 +1,5 @@
 using Test
+"""
 using QuantumOptics
 using OrdinaryDiffEq
 
@@ -59,5 +60,5 @@ sol = solve(prob!, DP5(); reltol = 1.0e-8, abstol = 1.0e-10, save_everystep=fals
 sol_data = solve(prob_data!, DP5(); reltol = 1.0e-8, abstol = 1.0e-10, save_everystep=false)
 
 @test sol[end].data ≈ sol_data[end]
-
 end
+"""

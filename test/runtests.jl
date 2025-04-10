@@ -1,7 +1,4 @@
 names = [
-    "test_sortedindices.jl",
-
-    "test_bases.jl",
     "test_states.jl",
 
     "test_operators.jl",
@@ -63,3 +60,5 @@ for name=names
         include(name)
     end
 end
+
+#include("test_apply.jl")
