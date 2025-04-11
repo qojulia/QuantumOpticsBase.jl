@@ -18,8 +18,8 @@ mutable struct LazyTensor{BL,BR,F,I,T} <: LazyOperator{BL,BR}
     indices::I
     operators::T
     function LazyTensor(bl::BL, br::BR, indices::I, ops::T, factor::F=_default_factor(ops)) where {BL<:CompositeBasis,BR<:CompositeBasis,F,I,T<:Tuple}
-        N = nsubsystems(bl)
-        @assert N==nsubsystems(br)
+        N = length(bl)
+        @assert N==length(br)
         check_indices(N, indices)
         @assert length(indices) == length(ops)
         @assert issorted(indices)
@@ -168,12 +168,12 @@ end
 
 dagger(op::LazyTensor) = LazyTensor(op.basis_r, op.basis_l, op.indices, Tuple(dagger(x) for x in op.operators), conj(op.factor))
 
-tensor(a::LazyTensor, b::LazyTensor) = LazyTensor(a.basis_l ⊗ b.basis_l, a.basis_r ⊗ b.basis_r, [a.indices; b.indices .+ nsubsystems(a.basis_l)], (a.operators..., b.operators...), a.factor*b.factor)
+tensor(a::LazyTensor, b::LazyTensor) = LazyTensor(a.basis_l ⊗ b.basis_l, a.basis_r ⊗ b.basis_r, [a.indices; b.indices .+ length(a.basis_l)], (a.operators..., b.operators...), a.factor*b.factor)
 
 function tr(op::LazyTensor)
     b = basis(op)
     result = op.factor
-    for i in 1:nsubsystems(b)
+    for i in 1:length(b)
         if i in op.indices
             result *= tr(suboperator(op, i))
         else
@@ -185,7 +185,7 @@ end
 
 function ptrace(op::LazyTensor, indices)
     check_ptrace_arguments(op, indices)
-    N = nsubsystems(op.basis_l)
+    N = length(op.basis_l)
     rank = N - length(indices)
     factor = op.factor
     for i in indices
@@ -601,7 +601,7 @@ function mul!(result::DenseOpType{B1,B3}, a::DenseOpType{B1,B2}, b::LazyTensor{B
     a_data = Base.ReshapedArray(a.data, (_comp_size(a.basis_l)..., _comp_size(a.basis_r)...), ())
     result_data = Base.ReshapedArray(result.data, (_comp_size(result.basis_l)..., _comp_size(result.basis_r)...), ())
 
-    shft = nsubsystems(a.basis_l)  # b must be applied to the "B2" side of a
+    shft = length(a.basis_l)  # b must be applied to the "B2" side of a
     tp_ops = _tpops_tuple(b; shift=shft, op_transform=transpose)
     iso_ops = _explicit_isometries(eltype(b), ((i + shft for i in b.indices)...,), b.basis_r, b.basis_l, shft)
     _tp_sum_matmul!(result_data, tp_ops, iso_ops, a_data, alpha * b.factor, beta)
@@ -722,7 +722,7 @@ function _gemm_puresparse(alpha, op::AbstractArray, h::LazyTensor{B1,B2,F,I,T}, 
     elseif !isone(beta)
         rmul!(result, beta)
     end
-    N_k = nsubsystems(h.basis_r)
+    N_k = length(h.basis_r)
     shape, strides_j, strides_k = _get_shape_and_strides(h)
     _gemm_recursive_dense_lazy(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end
@@ -734,7 +734,7 @@ function _gemm_puresparse(alpha, h::LazyTensor{B1,B2,F,I,T}, op::AbstractArray, 
     elseif !isone(beta)
         rmul!(result, beta)
     end
-    N_k = nsubsystems(h.basis_l)
+    N_k = length(h.basis_l)
     shape, strides_j, strides_k = _get_shape_and_strides(h)
     _gemm_recursive_lazy_dense(1, N_k, 1, 1, alpha*h.factor, shape, strides_k, strides_j, h.indices, h, op, result)
 end

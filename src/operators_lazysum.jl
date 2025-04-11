@@ -153,7 +153,7 @@ tr(op::LazySum) = sum(op.factors .* tr.(op.operators))
 
 function ptrace(op::LazySum, indices)
     check_ptrace_arguments(op, indices)
-    #rank = nsubsystems(op.basis_l) - length(indices) #????
+    #rank = length(op.basis_l) - length(indices) #????
     LazySum(op.factors, map(o->ptrace(o, indices), op.operators))
 end
 

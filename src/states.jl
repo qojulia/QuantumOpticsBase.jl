@@ -94,7 +94,7 @@ tensor(states::Ket...) = reduce(tensor, states)
 tensor(states::Bra...) = reduce(tensor, states)
 
 function permutesystems(state::T, perm) where T<:Ket
-    @assert nsubsystems(state) == length(perm)
+    @assert length(basis(state)) == length(perm)
     @assert isperm(perm)
     data = reshape(state.data, size(state.basis)...)
     data = permutedims(data, perm)
@@ -102,7 +102,7 @@ function permutesystems(state::T, perm) where T<:Ket
     Ket(permutesystems(state.basis, perm), data)
 end
 function permutesystems(state::T, perm) where T<:Bra
-    @assert nsubsystems(state) == length(perm)
+    @assert length(basis(state)) == length(perm)
     @assert isperm(perm)
     data = reshape(state.data, size(state.basis)...)
     data = permutedims(data, perm)
@@ -120,7 +120,7 @@ For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
 function basisstate(::Type{T}, b::Basis, indices) where T
-    @assert nsubsystems(b) == length(indices)
+    @assert length(b) == length(indices)
     x = zeros(T, length(b))
     x[LinearIndices(size(b))[indices...]] = one(T)
     Ket(b, x)
@@ -138,7 +138,7 @@ basisstate(b::Basis, indices) = basisstate(ComplexF64, b, indices)
 Sparse version of [`basisstate`](@ref).
 """
 function sparsebasisstate(::Type{T}, b::Basis, indices) where T
-    @assert nsubsystems(b) == length(indices)
+    @assert length(b) == length(indices)
     x = spzeros(T, length(b))
     x[LinearIndices(size(b))[indices...]] = one(T)
     Ket(b, x)

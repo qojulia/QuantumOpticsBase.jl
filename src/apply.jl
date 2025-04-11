@@ -1,5 +1,5 @@
 function is_apply_shortcircuit(state, indices, operation)
-    if nsubsystems(state) == 1
+    if length(basis(state)) == 1
         basis(state)==basis(operation) || throw(ArgumentError("`apply!` failed due to incompatible bases of the state and the operation attempted to be applied on it"))
     end
     basis(state)==basis(operation) || return false

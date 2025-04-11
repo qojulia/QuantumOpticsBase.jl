@@ -91,7 +91,7 @@ Embed an operator defined on a single subspace specified by the `index` into
 a [`SumBasis`](@ref).
 """
 function embed(bl::SumBasis, br::SumBasis, index::Integer, op::T) where T<:DataOperator
-    @assert nsubsystems(br) == nsubsystems(bl)
+    @assert length(br) == length(bl)
 
     check_samebases(bl[index], op.basis_l)
     check_samebases(br[index], op.basis_r)
@@ -128,7 +128,7 @@ Embed a list of operators on subspaces specified by the `indices` into a
 """
 function embed(bl::SumBasis, br::SumBasis,
                indices, ops::Union{Tuple{Vararg{<:DataOperator}},Vector{<:DataOperator}})
-    @assert nsubsystems(br.bases) == length(bl.bases)
+    @assert length(br.bases) == length(bl.bases)
 
     T = mapreduce(eltype, promote_type, ops)
     embedded_op = SparseOperator(T, basis_l, basis_r)
@@ -196,8 +196,8 @@ directsum(op1::FFTOperator, op2::FFTOperator) = LazyDirectSum(op1,op2)
 
 # Lazy embed
 function embed(bl::SumBasis, br::SumBasis, indices, op::LazyDirectSum)
-    N = nsubsystems(br)
-    @assert nsubsystems(bl)==N
+    N = length(br)
+    @assert length(bl)==N
 
     T = eltype(op)
 

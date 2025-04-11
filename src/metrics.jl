@@ -198,7 +198,7 @@ The `indices` argument can be a single integer or a collection of integers.
 function ptranspose(rho::DenseOpType{B,B}, indices=1) where B<:CompositeBasis
     # adapted from qutip.partial_transpose (https://qutip.org/docs/4.0.2/modules/qutip/partial_transpose.html)
     # works as long as QuantumOptics.jl doesn't change the implementation of `tensor`, i.e. tensor(a,b).data = kron(b.data,a.data)
-    nsys = nsubsystems(basis_l(rho))
+    nsys = length(basis_l(rho))
     mask = ones(Int, nsys)
     mask[collect(indices)] .+= 1
     pt_dims = reshape(1:2*nsys, (nsys,2)) # indices of the operator viewed as a tensor with 2nsys legs
@@ -278,7 +278,7 @@ function can be provided (for example to compute the entanglement-renyi entropy)
 """
 function entanglement_entropy(psi::Ket{B}, partition, entropy_fun=entropy_vn) where B<:CompositeBasis
     # check that sites are within the range
-    @assert all(partition .<= nsubsystems(psi.basis))
+    @assert all(partition .<= length(psi.basis))
 
     rho = ptrace(psi, partition)
     return entropy_fun(rho)
@@ -287,7 +287,7 @@ end
 function entanglement_entropy(rho::DenseOpType{B,B}, partition, args...) where {B<:CompositeBasis}
     # check that sites is within the range
     hilb = rho.basis_l
-    N = nsubsystems(hilb)
+    N = length(hilb)
     all(partition .<= N) || throw(ArgumentError("Indices in partition must be within the bounds of the composite basis."))
     length(partition) <= N || throw(ArgumentError("Partition cannot include the whole system."))
 

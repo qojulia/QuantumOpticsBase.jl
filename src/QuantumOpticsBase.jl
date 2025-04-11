@@ -7,7 +7,7 @@ import RecursiveArrayTools
 import QuantumInterface: Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
     IncompatibleBases, @compatiblebases, samebases, check_samebases,
     addible, check_addible, multiplicable, check_multiplicable, reduced, ptrace, permutesystems,
-    dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
+    dagger, directsum, ⊕, dm, embed, expect, identityoperator, identitysuperoperator,
     permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!,
     vec, unvec, super, choi, kraus, stinespring, pauli, chi, spre, spost, sprepost, liouvillian
 

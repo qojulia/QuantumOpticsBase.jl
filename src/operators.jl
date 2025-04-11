@@ -23,8 +23,8 @@ Embed operator acting on a joint Hilbert space where missing indices are filled 
 """
 function embed(bl::CompositeBasis, br::CompositeBasis,
                indices, op::T) where T<:DataOperator
-    (nsubsystems(bl) == nsubsystems(br)) || throw(ArgumentError("Must have nsubsystems(bl) == nsubsystems(br) in embed"))
-    N = nsubsystems(bl)
+    (length(bl) == length(br)) || throw(ArgumentError("Must have length(bl) == length(br) in embed"))
+    N = length(bl)
 
     reduce(tensor, bl[indices]) == basis_l(op) || throw(IncompatibleBases())
     reduce(tensor, br[indices]) == basis_r(op) || throw(IncompatibleBases())
@@ -73,10 +73,10 @@ end
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
                 index::Integer, op::T) where T<:DataOperator
 
-    N = nsubsystems(basis_l)
+    N = length(basis_l)
 
     # Check stuff
-    @assert nsubsystems(basis_r) == N
+    @assert length(basis_r) == N
     basis_l[index] == op.basis_l || throw(IncompatibleBases())
     basis_r[index] == op.basis_r || throw(IncompatibleBases())
     check_indices(N, index)
@@ -118,7 +118,7 @@ end
 # expect(op::AbstractOperator{B,B}, state::AbstractKet{B}) where B = norm(op * state) ^ 2
 
 function expect(indices, op::AbstractOperator, state::Ket{B}) where {B<:CompositeBasis}
-    N = nsubsystems(basis(state))
+    N = length(basis(state))
     indices_ = complement(N, indices)
     expect(op, ptrace(state, indices_))
 end
@@ -139,7 +139,7 @@ function variance(op::AbstractOperator, state::Ket)
 end
 
 function variance(indices, op::AbstractOperator, state::Ket{B}) where {B<:CompositeBasis}
-    N = nsubsystems(basis(state))
+    N = length(basis(state))
     indices_ = complement(N, indices)
     variance(op, ptrace(state, indices_))
 end
@@ -151,14 +151,14 @@ function check_ptrace_arguments(a::AbstractOperator, indices)
     if !isa(a.basis_l, CompositeBasis) || !isa(a.basis_r, CompositeBasis)
         throw(ArgumentError("Partial trace can only be applied onto operators with composite bases."))
     end
-    rank = nsubsystems(basis_l(a))
-    if rank != nsubsystems(basis_r(a))
+    rank = length(basis_l(a))
+    if rank != length(basis_r(a))
         throw(ArgumentError("Partial trace can only be applied onto operators wich have the same number of subsystems in the left basis and right basis."))
     end
     if rank == length(indices)
         throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))
     end
-    check_indices(nsubsystems(basis_l(a)), indices)
+    check_indices(length(basis_l(a)), indices)
     for i=indices
         if size(basis_l(a))[i] != size(basis_r(a))[i]
             throw(ArgumentError("Partial trace can only be applied onto subsystems that have the same left and right dimension."))
@@ -166,8 +166,8 @@ function check_ptrace_arguments(a::AbstractOperator, indices)
     end
 end
 function check_ptrace_arguments(a::StateVector, indices)
-    if nsubsystems(basis(a)) == length(indices)
+    if length(basis(a)) == length(indices)
         throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))
     end
-    check_indices(nsubsystems(basis(a)), indices)
+    check_indices(length(basis(a)), indices)
 end

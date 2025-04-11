@@ -11,7 +11,7 @@ mutable struct LazyKet{B,T} <: AbstractKet
     basis::B
     kets::T
     function LazyKet(b::B, kets::T) where {B<:CompositeBasis,T<:Tuple}
-        N = nsubsystems(b)
+        N = length(b)
         for n=1:N
             @assert isa(kets[n], Ket)
             @assert basis(kets[n]) == b[n]
@@ -132,7 +132,7 @@ function mul!(y::LazyKet{BL}, op::LazyTensor{BL, BR}, x::LazyKet{BR}, alpha, bet
     iszero(alpha) && (_zero_op_mul!(y.kets[1].data, beta); return result)
 
     missing_index_allowed = samebases(op.basis_l, op.basis_r)
-    (nsubsystems(y.basis) == nsubsystems(x.basis)) || throw(IncompatibleBases())
+    (length(y.basis) == length(x.basis)) || throw(IncompatibleBases())
 
     for i in 1:length(y.kets)
         if i ∈ op.indices
