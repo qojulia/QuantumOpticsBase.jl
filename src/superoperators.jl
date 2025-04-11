@@ -16,10 +16,10 @@ const ChoiStateType = Operator{<:ChoiBasis,<:ChoiBasis}
 #const ChoiStateType = Operator{ChoiBasisType,ChoiBasisType}
 #const ChoiStateType = Union{Operator{CompositeBasis{ChoiBasis,S},CompositeBasis{ChoiBasis,T}} where {S,T}, Operator{CompositeBasis{ChoiBasis{BL},S},CompositeBasis{ChoiBasis{BR},T}} where {BL,BR,S,T}}
 
-vec(op::Operator) = Ket(KetBraBasis(basis_l(op), basis_r(op)), reshape(op.data, length(op.data)))
+vec(op::Operator) = Ket(KetBraBasis(basis_l(op), basis_r(op)), reshape(op.data, dimension(op.data)))
 function unvec(k::SuperKetType)
     bl, br = basis_l(basis(k)), basis_r(basis(k))
-    return Operator(bl, br, reshape(k.data, length(bl), length(br)))
+    return Operator(bl, br, reshape(k.data, dimension(bl), dimension(br)))
 end
 
 function spre(op::Operator)
@@ -67,7 +67,7 @@ dagger(a::ChoiStateType) = choi(dagger(super(a)))
 *(a::ChoiStateType, b::ChoiStateType) = choi(super(a)*super(b))
 *(a::ChoiStateType, b::Operator) = super(a)*b
 
-identitysuperoperator(b::Basis) = Operator(KetBraBasis(b,b), KetBraBasis(b,b), Eye{ComplexF64}(length(b)^2))
+identitysuperoperator(b::Basis) = Operator(KetBraBasis(b,b), KetBraBasis(b,b), Eye{ComplexF64}(dimension(b)^2))
 
 identitysuperoperator(op::DenseSuperOpType) = 
     Operator(op.basis_l, op.basis_r, Matrix(one(eltype(op.data))I, size(op.data)))
@@ -87,7 +87,7 @@ function pauli(op::SuperOperatorType; tol=1e-9)
 
     for b in (basis_l(bl), basis_l(br))
         for i=1:length(b)
-            (b[i] isa SpinBasis && length(b[i]) == 2) || throw(ArgumentError("Superoperator must be over systems composed of SpinBasis(1//2) to be converted to pauli representation"))
+            (b[i] isa SpinBasis && dimension(b[i]) == 2) || throw(ArgumentError("Superoperator must be over systems composed of SpinBasis(1//2) to be converted to pauli representation"))
         end
     end
 

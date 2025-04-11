@@ -4,7 +4,7 @@ using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
 
-import QuantumInterface: Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
+import QuantumInterface: Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r, dimension, shape,
     IncompatibleBases, @compatiblebases, samebases, check_samebases,
     addible, check_addible, multiplicable, check_multiplicable, reduced, ptrace, permutesystems,
     dagger, directsum, ⊕, dm, embed, expect, identityoperator, identitysuperoperator,
@@ -17,7 +17,7 @@ import QuantumInterface: entropy_vn, fidelity, logarithmic_negativity
 # index helpers
 import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
 
-export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r,
+export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r, dimension, shape,
         tensor, ⊗, permutesystems, @compatiblebases,
         #states
                 StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,

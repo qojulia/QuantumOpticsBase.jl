@@ -18,10 +18,10 @@ a harmonic trap potential at position ``x``, i.e.:
 ```
 """
 function transform(::Type{S}, bp::PositionBasis, bf::FockBasis; x0=1) where S
-    T = Matrix{S}(undef, length(bp), length(bf))
+    T = Matrix{S}(undef, dimension(bp), dimension(bf))
     xvec = samplepoints(bp)
     C = pi^(-1/4)*sqrt(spacing(bp)/x0)
-    for i in 1:length(bp)
+    for i in 1:dimension(bp)
         T[i,:] = C*hermpoly_rec(bf.offset:bf.N, sqrt(2)*xvec[i]/x0)
     end
     DenseOperator(bp, bf, T)

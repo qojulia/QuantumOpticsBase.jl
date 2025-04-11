@@ -7,7 +7,7 @@ mutable struct test_operators{BL<:Basis,BR<:Basis} <: AbstractOperator
   basis_l::BL
   basis_r::BR
   data::Matrix{ComplexF64}
-  test_operators(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
+  test_operators(b1::Basis, b2::Basis, data) = dimension(b1) == size(data, 1) && dimension(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
 end
 
 basis_l(op::test_operators) = op.basis_l
@@ -30,7 +30,7 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 ρ = randoperator(b)
 
 @test basis(op1) == b1
-@test length(op1) == length(op1.data) == length(b1)^2
+@test length(op1) == length(op1.data) == dimension(b1)^2
 
 @test isequal(+op_test, op_test)
 
@@ -124,8 +124,8 @@ H = alpha * create(b) - conj(alpha) * destroy(b)
 @test exp(sparse(H); threshold=1e-10) ≈ displace(b, alpha)
 @test exp(sparse(zero(identityoperator(b)))) ≈ identityoperator(b)
 
-@test one(b1).data == Diagonal(ones(length(b1)))
-@test one(op1).data == Diagonal(ones(length(b1)))
+@test one(b1).data == Diagonal(ones(dimension(b1)))
+@test one(op1).data == Diagonal(ones(dimension(b1)))
 
 @test_throws ArgumentError conj!(op_test)
 

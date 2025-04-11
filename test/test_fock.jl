@@ -7,15 +7,15 @@ using Random, SparseArrays, LinearAlgebra
 Random.seed!(0)
 
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
-randstate(b) = normalize(Ket(b, rand(ComplexF64, length(b))))
-randop(bl, br) = DenseOperator(bl, br, rand(ComplexF64, length(bl), length(br)))
+randstate(b) = normalize(Ket(b, rand(ComplexF64, dimension(b))))
+randop(bl, br) = DenseOperator(bl, br, rand(ComplexF64, dimension(bl), dimension(br)))
 randop(b) = randop(b, b)
 
 basis = FockBasis(2)
 
 # Test creation
 @test basis.N == 2
-@test length(basis) == 3
+@test dimension(basis) == 3
 @test_throws ArgumentError FockBasis(-1)
 
 # Test equality

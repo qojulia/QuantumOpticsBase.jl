@@ -14,7 +14,7 @@ mutable struct Operator{BL,BR,T} <: DataOperator{BL,BR}
     basis_r::BR
     data::T
     function Operator{BL,BR,T}(basis_l::BL,basis_r::BR,data::T) where {BL,BR,T}
-        (length.((basis_l,basis_r))==size(data)) || throw(DimensionMismatch("Tried to assign data of size $(size(data)) to bases of length $(length(basis_l)) and $(length(basis_r))!"))
+        (dimension.((basis_l,basis_r))==size(data)) || throw(DimensionMismatch("Tried to assign data of size $(size(data)) to bases of length $(dimension(basis_l)) and $(dimension(basis_r))!"))
         new(basis_l,basis_r,data)
     end
 end
@@ -62,8 +62,8 @@ Dense array implementation of Operator. Converts any given data to a dense `Matr
 DenseOperator(basis_l::Basis,basis_r::Basis,data::T) where T = Operator(basis_l,basis_r,Matrix(data))
 DenseOperator(basis_l::Basis,basis_r::Basis,data::Matrix) = Operator(basis_l,basis_r,data)
 DenseOperator(b::Basis, data) = DenseOperator(b, b, data)
-DenseOperator(::Type{T},b1::Basis,b2::Basis) where T = Operator(b1,b2,zeros(T,length(b1),length(b2)))
-DenseOperator(::Type{T},b::Basis) where T = Operator(b,b,zeros(T,length(b),length(b)))
+DenseOperator(::Type{T},b1::Basis,b2::Basis) where T = Operator(b1,b2,zeros(T,dimension(b1),dimension(b2)))
+DenseOperator(::Type{T},b::Basis) where T = Operator(b,b,zeros(T,dimension(b),dimension(b)))
 DenseOperator(b1::Basis, b2::Basis) = DenseOperator(ComplexF64, b1, b2)
 DenseOperator(b::Basis) = DenseOperator(ComplexF64, b)
 DenseOperator(op::DataOperator) = DenseOperator(op.basis_l,op.basis_r,Matrix(op.data))
@@ -96,25 +96,25 @@ Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = (addible(x,y) && is
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
 function *(op1::AbstractOperator, op2::Operator)
     check_multiplicable(op1,op2)
-    result = Operator(basis_l(op1), basis_r(op2), similar(_parent(op2.data), promote_type(eltype(op1), eltype(op2)), length(basis_l(op1)),length(basis_r(op2))))
+    result = Operator(basis_l(op1), basis_r(op2), similar(_parent(op2.data), promote_type(eltype(op1), eltype(op2)), dimension(basis_l(op1)),dimension(basis_r(op2))))
     mul!(result,op1,op2)
     return result
 end
 function *(op1::Operator, op2::AbstractOperator)
     check_multiplicable(op1,op2)
-    result = Operator(basis_l(op1), basis_r(op2), similar(_parent(op1.data), promote_type(eltype(op1), eltype(op2)), length(basis_l(op1)), length(basis_r(op2))))
+    result = Operator(basis_l(op1), basis_r(op2), similar(_parent(op1.data), promote_type(eltype(op1), eltype(op2)), dimension(basis_l(op1)), dimension(basis_r(op2))))
     mul!(result,op1,op2)
     return result
 end
 function *(op::AbstractOperator, psi::Ket)
     check_multiplicable(op,psi)
-    result = Ket(basis_l(op), similar(psi.data, length(basis_l(op))))
+    result = Ket(basis_l(op), similar(psi.data, dimension(basis_l(op))))
     mul!(result,op,psi)
     return result
 end
 function *(psi::Bra, op::AbstractOperator)
     check_multiplicable(psi,op)
-    result = Bra(basis_r(op), similar(psi.data, length(basis_r(op))))
+    result = Bra(basis_r(op), similar(psi.data, dimension(basis_r(op))))
     mul!(result,psi,op)
     return result
 end
@@ -142,7 +142,7 @@ conj!(a::Operator) = (conj!(a.data); a)
 
 Outer product ``|x⟩⟨y|`` of the given states.
 """
-tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), length(a.basis), length(b.basis)))
+tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), dimension(a.basis), dimension(b.basis)))
 
 """
     tensor(a::AbstractOperator, b::Bra)
@@ -191,7 +191,7 @@ tr(op::Operator{B,B}) where B = tr(op.data)
 function ptrace(a::DataOperator, indices)
     check_ptrace_arguments(a, indices)
     rank = length(a.basis_l)
-    result = _ptrace(Val{rank}, a.data, size(a.basis_l), size(a.basis_r), indices)
+    result = _ptrace(Val{rank}, a.data, shape(a.basis_l), shape(a.basis_r), indices)
     return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
 ptrace(op::AdjointOperator, indices) = dagger(ptrace(op, indices))
@@ -201,7 +201,7 @@ function ptrace(psi::Ket, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
     rank = length(b)
-    result = _ptrace_ket(Val{rank}, psi.data, size(b), indices)::Matrix{eltype(psi)}
+    result = _ptrace_ket(Val{rank}, psi.data, shape(b), indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
 
@@ -210,7 +210,7 @@ function ptrace(psi::Bra, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
     rank = length(b)
-    result = _ptrace_bra(Val{rank}, psi.data, size(b), indices)::Matrix{eltype(psi)}
+    result = _ptrace_bra(Val{rank}, psi.data, shape(b), indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
 
@@ -248,13 +248,13 @@ function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:
     @assert isperm(perm)
     data = Base.ReshapedArray(a.data, (a.basis_l.shape..., a.basis_r.shape...), ())
     data = PermutedDimsArray(data, [perm; perm .+ length(perm)])
-    data = Base.ReshapedArray(data, (length(a.basis_l), length(a.basis_r)), ())
+    data = Base.ReshapedArray(data, (dimension(a.basis_l), dimension(a.basis_r)), ())
     return Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), copy(data))
 end
 permutesystems(a::AdjointOperator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
 
 identityoperator(::Type{S}, ::Type{T}, b1::Basis, b2::Basis) where {S<:DenseOpType,T<:Number} =
-    Operator(b1, b2, Matrix{T}(I, length(b1), length(b2)))
+    Operator(b1, b2, Matrix{T}(I, dimension(b1), dimension(b2)))
 
 """
     projector(a::Ket, b::Bra)
@@ -432,7 +432,7 @@ Broadcast.BroadcastStyle(::T, ::Broadcast.DefaultArrayStyle{0}) where {Bl<:Basis
     bcf = Broadcast.flatten(bc)
     bl,br = find_basis(bcf.args)
     T = find_dType(bcf)
-    data = zeros(T, length(bl), length(br))
+    data = zeros(T, dimension(bl), dimension(br))
     @inbounds @simd for I in eachindex(bcf)
         data[I] = bcf[I]
     end

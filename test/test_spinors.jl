@@ -102,7 +102,7 @@ H = (H_up ⊕ H_down)
 
 # Off-diagonal blocks - assign by hand
 Ω_R = randoperator(bcomp_x)
-nn = length(H_up.basis_l)
+nn = dimension(H_up.basis_l)
 H.data[1:nn,nn+1:end] = Ω_R.data
 H.data[nn+1:end,1:nn] = Ω_R.data'
 

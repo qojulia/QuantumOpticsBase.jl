@@ -11,7 +11,7 @@ mutable struct Bra{B<:Basis,T} <: AbstractBra
     basis::B
     data::T
     function Bra{B,T}(b::B, data::T) where {B,T}
-        (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
+        (dimension(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(dimension(b))"))
         new(b, data)
     end
 end
@@ -25,7 +25,7 @@ mutable struct Ket{B<:Basis,T} <: AbstractKet
     basis::B
     data::T
     function Ket{B,T}(b::B, data::T) where {B,T}
-        (length(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(length(b))"))
+        (dimension(b)==length(data)) || throw(DimensionMismatch("Tried to assign data of length $(length(data)) to Hilbert space of size $(dimension(b))"))
         new(b, data)
     end
 end
@@ -44,10 +44,10 @@ Ket{B}(b::B, data::T) where {B,T} = Ket{B,T}(b, data)
 Bra(b::B, data::T) where {B,T} = Bra{B,T}(b, data)
 Ket(b::B, data::T) where {B,T} = Ket{B,T}(b, data)
 
-Bra{B}(::Type{T}, b::B) where {T,B} = Bra{B}(b, zeros(T, length(b)))
-Ket{B}(::Type{T}, b::B) where {T,B} = Ket{B}(b, zeros(T, length(b)))
-Bra(::Type{T}, b::Basis) where T = Bra(b, zeros(T, length(b)))
-Ket(::Type{T}, b::Basis) where T = Ket(b, zeros(T, length(b)))
+Bra{B}(::Type{T}, b::B) where {T,B} = Bra{B}(b, zeros(T, dimension(b)))
+Ket{B}(::Type{T}, b::B) where {T,B} = Ket{B}(b, zeros(T, dimension(b)))
+Bra(::Type{T}, b::Basis) where T = Bra(b, zeros(T, dimension(b)))
+Ket(::Type{T}, b::Basis) where T = Ket(b, zeros(T, dimension(b)))
 
 Bra{B}(b::B) where B = Bra{B}(ComplexF64, b)
 Ket{B}(b::B) where B = Ket{B}(ComplexF64, b)
@@ -96,7 +96,7 @@ tensor(states::Bra...) = reduce(tensor, states)
 function permutesystems(state::T, perm) where T<:Ket
     @assert length(basis(state)) == length(perm)
     @assert isperm(perm)
-    data = reshape(state.data, size(state.basis)...)
+    data = reshape(state.data, shape(state.basis)...)
     data = permutedims(data, perm)
     data = reshape(data, length(data))
     Ket(permutesystems(state.basis, perm), data)
@@ -104,7 +104,7 @@ end
 function permutesystems(state::T, perm) where T<:Bra
     @assert length(basis(state)) == length(perm)
     @assert isperm(perm)
-    data = reshape(state.data, size(state.basis)...)
+    data = reshape(state.data, shape(state.basis)...)
     data = permutedims(data, perm)
     data = reshape(data, length(data))
     Bra(permutesystems(state.basis, perm), data)
@@ -121,12 +121,12 @@ product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis s
 """
 function basisstate(::Type{T}, b::Basis, indices) where T
     @assert length(b) == length(indices)
-    x = zeros(T, length(b))
-    x[LinearIndices(size(b))[indices...]] = one(T)
+    x = zeros(T, dimension(b))
+    x[LinearIndices(shape(b))[indices...]] = one(T)
     Ket(b, x)
 end
 function basisstate(::Type{T}, b::Basis, index::Integer) where T
-    data = zeros(T, length(b))
+    data = zeros(T, dimension(b))
     data[index] = one(T)
     Ket(b, data)
 end
@@ -139,12 +139,12 @@ Sparse version of [`basisstate`](@ref).
 """
 function sparsebasisstate(::Type{T}, b::Basis, indices) where T
     @assert length(b) == length(indices)
-    x = spzeros(T, length(b))
-    x[LinearIndices(size(b))[indices...]] = one(T)
+    x = spzeros(T, dimension(b))
+    x[LinearIndices(shape(b))[indices...]] = one(T)
     Ket(b, x)
 end
 function sparsebasisstate(::Type{T}, b::Basis, index::Integer) where T
-    data = spzeros(T, length(b))
+    data = spzeros(T, dimension(b))
     data[index] = one(T)
     Ket(b, data)
 end
@@ -173,7 +173,7 @@ Broadcast.BroadcastStyle(::T, ::Broadcast.DefaultArrayStyle{0}) where {B<:Basis,
     bcf = Broadcast.flatten(bc)
     b = find_basis(bcf)
     T = find_dType(bcf)
-    data = zeros(T, length(b))
+    data = zeros(T, dimension(b))
     @inbounds @simd for I in eachindex(bcf)
         data[I] = bcf[I]
     end
@@ -183,7 +183,7 @@ end
     bcf = Broadcast.flatten(bc)
     b = find_basis(bcf)
     T = find_dType(bcf)
-    data = zeros(T, length(b))
+    data = zeros(T, dimension(b))
     @inbounds @simd for I in eachindex(bcf)
         data[I] = bcf[I]
     end

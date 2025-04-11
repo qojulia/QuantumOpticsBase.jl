@@ -7,7 +7,7 @@ mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator
     basis_l::BL
     basis_r::BR
     data::Matrix{ComplexF64}
-    test_lazytensor(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
+    test_lazytensor(b1::Basis, b2::Basis, data) = dimension(b1) == size(data, 1) && dimension(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
 end
 Base.eltype(::test_lazytensor) = ComplexF64
 basis_l(op::test_lazytensor) = op.basis_l
@@ -109,10 +109,10 @@ op3_ = 0.3*I1 ⊗ I2 ⊗ subop3
 op4 = 0.4*LazyTensor(b_l, b_r, 2, subop2)
 op4_ = 0.4*I1 ⊗ subop2 ⊗ I3
 
-x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
-x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+x2 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Addition one operator at same index
 fac = randn()
@@ -216,10 +216,10 @@ op_ = 0.1*subop1 ⊗ I2 ⊗ subop3
 @test_throws ArgumentError ptrace(op, [1,2,3])
 
 # Test expect
-state = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
-state = DenseOperator(b_l, b_l, rand(ComplexF64, length(b_l), length(b_l)))
+state = DenseOperator(b_l, b_l, rand(ComplexF64, dimension(b_l), dimension(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
 # Permute systems
@@ -245,8 +245,8 @@ for _mod_state in (identity, sparse)  # sparse state for testing no-cache, no-st
     op_sp = LazyTensor(b_l, b_r, [1, 2, 3], sparse.((subop1, subop2, subop3)))*0.1
     op_ = 0.1*subop1 ⊗ subop2 ⊗ subop3
 
-    state = _mod_state(Ket(b_r, rand(ComplexF32, length(b_r))))
-    result_ = _mod_state(Ket(b_l, rand(ComplexF64, length(b_l))))
+    state = _mod_state(Ket(b_r, rand(ComplexF32, dimension(b_r))))
+    result_ = _mod_state(Ket(b_l, rand(ComplexF64, dimension(b_l))))
     result = deepcopy(result_)
     QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
     @test 1e-6 > D(result, op_*state)
@@ -281,8 +281,8 @@ for _mod_state in (identity, sparse)  # sparse state for testing no-cache, no-st
     lazytensor_enable_cache(; maxsize=2^30, maxrelsize=2^30 / Sys.total_memory())
     lazytensor_enable_cache()
 
-    state = _mod_state(Bra(b_l, rand(ComplexF64, length(b_l))))
-    result_ = _mod_state(Bra(b_r, rand(ComplexF64, length(b_r))))
+    state = _mod_state(Bra(b_l, rand(ComplexF64, dimension(b_l))))
+    result_ = _mod_state(Bra(b_r, rand(ComplexF64, dimension(b_r))))
     result = deepcopy(result_)
     QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
     @test 1e-13 > D(result, state*op_)
@@ -352,8 +352,8 @@ for _mod_state in (identity, sparse)  # sparse state for testing no-cache, no-st
     @test 1e-12 > D(result, alpha*state*op_ + beta*result_)
 
     # Test calling gemv with non-complex factors
-    state = _mod_state(Ket(b_r, rand(ComplexF64, length(b_r))))
-    result_ = _mod_state(Ket(b_l, rand(ComplexF64, length(b_l))))
+    state = _mod_state(Ket(b_r, rand(ComplexF64, dimension(b_r))))
+    result_ = _mod_state(Ket(b_l, rand(ComplexF64, dimension(b_l))))
     result = deepcopy(result_)
     QuantumOpticsBase.mul!(result,op,state)
     @test 1e-13 > D(result, op_*state)
@@ -362,8 +362,8 @@ for _mod_state in (identity, sparse)  # sparse state for testing no-cache, no-st
     QuantumOpticsBase.mul!(result,op_sp,state)
     @test 1e-13 > D(result, op_*state)
 
-    state = _mod_state(Bra(b_l, rand(ComplexF64, length(b_l))))
-    result_ = _mod_state(Bra(b_r, rand(ComplexF64, length(b_r))))
+    state = _mod_state(Bra(b_l, rand(ComplexF64, dimension(b_l))))
+    result_ = _mod_state(Bra(b_r, rand(ComplexF64, dimension(b_r))))
     result = deepcopy(result_)
     QuantumOpticsBase.mul!(result,state,op)
     @test 1e-13 > D(result, state*op_)

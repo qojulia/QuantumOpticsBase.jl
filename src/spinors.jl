@@ -1,4 +1,4 @@
-using QuantumInterface: SumBasis
+using QuantumInterface: SumBasis, nsubspaces, subspace
 
 """
     directsum(x::Ket, y::Ket)
@@ -17,8 +17,8 @@ For a [`Ket`](@ref) defined on a [`SumBasis`](@ref), get the state as it is defi
 on the ith sub-basis.
 """
 function getblock(x::Ket{B}, i) where B<:SumBasis
-    b_i = x.basis[i]
-    inds = cumsum([0;length.(x.basis[1:i])...])
+    b_i = subspace(basis(x),i)
+    inds = cumsum([0;dimension.(subspace(basis(x), 1:i))...])
     return Ket(b_i, x.data[inds[i]+1:inds[i+1]])
 end
 
@@ -28,8 +28,8 @@ end
 Set the data of `x` on the ith sub-basis equal to the data of `val`.
 """
 function setblock!(x::Ket{B}, val::Ket, i) where B<:SumBasis
-    check_samebases(basis(x)[i], basis(val))
-    inds = cumsum([0;length.(x.basis[1:i])...])
+    check_samebases(subspace(basis(x),i), basis(val))
+    inds = cumsum([0;dimension.(subspace(basis(x),1:i))...])
     x.data[inds[i]+1:inds[i+1]].data .= val.data
     return x
 end
@@ -61,11 +61,11 @@ end
 Set the data of `op` corresponding to the block `(i,j)` equal to the data of `val`.
 """
 function setblock!(op::DataOperator{<:SumBasis,<:SumBasis}, val::DataOperator, i, j)
-    (bl,br) = op.basis_l, op.basis_r
-    check_samebases(bl[i], val.basis_l)
-    check_samebases(br[j], val.basis_r)
-    inds_i = cumsum([0;length.(bl[1:i])...])
-    inds_j = cumsum([0;length.(br[1:j])...])
+    (bl,br) = basis_l(op), basis_r(op)
+    check_samebases(subspace(bl,i), val.basis_l)
+    check_samebases(subspace(br,j), val.basis_r)
+    inds_i = cumsum([0;dimension.(subspace(bl,1:i))...])
+    inds_j = cumsum([0;dimension.(subspace(br,1:j))...])
     op.data[inds_i[i]+1:inds_i[i+1],inds_j[j]+1:inds_j[j+1]] = val.data
     return op
 end
@@ -76,11 +76,11 @@ end
 Get the sub-basis operator corresponding to the block `(i,j)` of `op`.
 """
 function getblock(op::DataOperator{BL,BR}, i, j) where {BL<:SumBasis,BR<:SumBasis}
-    (bl,br) = op.basis_l, op.basis_r
-    inds_i = cumsum([0;length.(bl[1:i])...])
-    inds_j = cumsum([0;length.(br[1:j])...])
+    (bl,br) = basis_l(op), basis_r(op)
+    inds_i = cumsum([0;dimension.(subspace(bl,1:i))...])
+    inds_j = cumsum([0;dimension.(subspace(br,1:j))...])
     data = op.data[inds_i[i]+1:inds_i[i+1],inds_j[j]+1:inds_j[j+1]]
-    return Operator(bl[i],br[j], data)
+    return Operator(subspace(bl,i),subspace(br,j), data)
 end
 
 """
@@ -91,10 +91,10 @@ Embed an operator defined on a single subspace specified by the `index` into
 a [`SumBasis`](@ref).
 """
 function embed(bl::SumBasis, br::SumBasis, index::Integer, op::T) where T<:DataOperator
-    @assert length(br) == length(bl)
+    @assert nsubspaces(br) == nsubspaces(bl)
 
-    check_samebases(bl[index], op.basis_l)
-    check_samebases(br[index], op.basis_r)
+    check_samebases(subspace(bl,index), basis_l(op))
+    check_samebases(subspace(br,index), basis_r(op))
 
     embedded_op = SparseOperator(eltype(op), bl, br)
     setblock!(embedded_op, op, index, index)
@@ -109,7 +109,7 @@ Embed an operator defined on multiple subspaces specified by the `indices` into
 a [`SumBasis`](@ref).
 """
 function embed(bl::SumBasis, br::SumBasis, indices, op::T) where T<:DataOperator
-    @assert length(br.bases) == length(bl.bases)
+    @assert nsubspaces(br) == nsubspaces(bl)
 
     embedded_op = SparseOperator(eltype(op), bl, br)
     for i=1:length(indices), j=1:length(indices)
@@ -128,10 +128,10 @@ Embed a list of operators on subspaces specified by the `indices` into a
 """
 function embed(bl::SumBasis, br::SumBasis,
                indices, ops::Union{Tuple{Vararg{<:DataOperator}},Vector{<:DataOperator}})
-    @assert length(br.bases) == length(bl.bases)
+    @assert nsubspaces(br) == nsubspaces(bl)
 
     T = mapreduce(eltype, promote_type, ops)
-    embedded_op = SparseOperator(T, basis_l, basis_r)
+    embedded_op = SparseOperator(T, bl, br)
     for k=1:length(ops)
         op = ops[k]
         idx = indices[k]
@@ -196,22 +196,22 @@ directsum(op1::FFTOperator, op2::FFTOperator) = LazyDirectSum(op1,op2)
 
 # Lazy embed
 function embed(bl::SumBasis, br::SumBasis, indices, op::LazyDirectSum)
-    N = length(br)
-    @assert length(bl)==N
+    N = nsubspaces(br)
+    @assert nsubspaces(bl)==N
 
     T = eltype(op)
 
     function _get_op(i)
         idx = findfirst(isequal(i), indices)
         if idx === nothing
-            return SparseOperator(T, bl[i], br[i])
+            return SparseOperator(T, subspace(bl,i), subspace(br,i))
         else
             return op.operators[idx]
         end
     end
 
     ops = Tuple(_get_op(i) for i=1:N)
-    return LazyDirectSum(basis_l,basis_r,ops)
+    return LazyDirectSum(bl,br,ops)
 end
 # TODO: embed for multiple LazyDirectums?
 
@@ -221,10 +221,10 @@ function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) w
     beta = convert(ComplexF64, beta_)
     br = b.basis
     bl = M.basis_l
-    index = cumsum([0;length.(bases_r)...])
+    index = cumsum([0;dimension.(br.bases)...])
     for i=1:length(index)-1
-        tmpket = Ket(bases_r[i], b.data[index[i]+1:index[i+1]])
-        tmpresult = Ket(bases_l[i], result.data[index[i]+1:index[i+1]])
+        tmpket = Ket(subspace(br,i), b.data[index[i]+1:index[i+1]])
+        tmpresult = Ket(subspace(bl,i), result.data[index[i]+1:index[i+1]])
         mul!(tmpresult,M.operators[i],tmpket,alpha,beta)
         result.data[index[i]+1:index[i+1]] = tmpresult.data
     end
@@ -233,12 +233,12 @@ end
 function mul!(result::Bra{B2},b::Bra{B1},M::LazyDirectSum{B1,B2},alpha_,beta_) where {B1,B2}
     alpha = convert(ComplexF64, alpha_)
     beta = convert(ComplexF64, beta_)
-    bases_l = b.basis.bases
-    bases_r = M.basis_r.bases
-    index = cumsum([0;length.(bases_r)...])
+    bl = b.basis
+    br = M.basis_r
+    index = cumsum([0;dimension.(br.bases)...])
     for i=1:length(index)-1
-        tmpbra = Bra(bases_l[i], b.data[index[i]+1:index[i+1]])
-        tmpresult = Bra(bases_r[i], result.data[index[i]+1:index[i+1]])
+        tmpbra = Bra(subspace(bl,i), b.data[index[i]+1:index[i+1]])
+        tmpresult = Bra(subspace(br,i), result.data[index[i]+1:index[i+1]])
         mul!(tmpresult,tmpbra,M.operators[i],alpha,beta)
         result.data[index[i]+1:index[i+1]] = tmpresult.data
     end

@@ -204,7 +204,7 @@ function ptranspose(rho::DenseOpType{B,B}, indices=1) where B<:CompositeBasis
     pt_dims = reshape(1:2*nsys, (nsys,2)) # indices of the operator viewed as a tensor with 2nsys legs
     pt_idx = [[pt_dims[i,mask[i]] for i = 1 : nsys]; [pt_dims[i,3-mask[i]] for i = 1 : nsys] ] # permute the legs on the subsystem of `indices`
     # reshape the operator data into a 2nsys-legged tensor and shape it back with the legs permuted
-    data = reshape(permutedims(reshape(rho.data, Tuple([size(basis_l(rho)); size(basis_r(rho))])), pt_idx), size(rho.data))
+    data = reshape(permutedims(reshape(rho.data, Tuple([shape(basis_l(rho)); shape(basis_r(rho))])), pt_idx), size(rho.data))
 
     return DenseOperator(basis_l(rho),data)
     

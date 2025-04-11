@@ -51,7 +51,7 @@ ManyBodyBasis(onebodybasis::B, occupations::O) where {B,O} = ManyBodyBasis{B,O}(
 ManyBodyBasis(onebodybasis::B, occupations::Vector{T}) where {B,T} = ManyBodyBasis(onebodybasis, SortedVector(occupations))
 
 ==(b1::ManyBodyBasis, b2::ManyBodyBasis) = b1.occupations_hash == b2.occupations_hash && b1.onebodybasis == b2.onebodybasis
-Base.length(b::ManyBodyBasis) = length(b.occupations)
+dimension(b::ManyBodyBasis) = length(b.occupations)
 
 
 allocate_buffer(occ) = similar(occ)
@@ -72,7 +72,7 @@ function fermionstates(T::Type, Nmodes::Int, Nparticles::Int)
     SortedVector(_distribute_fermions(Nparticles, Nmodes, 1, occ_buffer, OT[]), Base.Reverse)
 end
 fermionstates(T::Type, Nmodes::Int, Nparticles::Vector{Int}) = union((fermionstates(T, Nmodes, N) for N in Nparticles)...)
-fermionstates(T::Type, onebodybasis::Basis, Nparticles) = fermionstates(T, length(onebodybasis), Nparticles)
+fermionstates(T::Type, onebodybasis::Basis, Nparticles) = fermionstates(T, dimension(onebodybasis), Nparticles)
 fermionstates(arg1, arg2) = fermionstates(OccupationNumbers{FermionStatistics,Int}, arg1, arg2)
 
 """
@@ -90,7 +90,7 @@ function bosonstates(T::Type, Nmodes::Int, Nparticles::Int)
     SortedVector(_distribute_bosons(Nparticles, Nmodes, 1, occ_buffer, OT[]), Base.Reverse)
 end
 bosonstates(T::Type, Nmodes::Int, Nparticles::Vector{Int}) = union((bosonstates(T, Nmodes, N) for N in Nparticles)...)
-bosonstates(T::Type, onebodybasis::Basis, Nparticles) = bosonstates(T, length(onebodybasis), Nparticles)
+bosonstates(T::Type, onebodybasis::Basis, Nparticles) = bosonstates(T, dimension(onebodybasis), Nparticles)
 bosonstates(arg1, arg2) = bosonstates(OccupationNumbers{BosonStatistics,Int}, arg1, arg2)
 
 """
@@ -166,7 +166,7 @@ function transition(::Type{T}, mb::ManyBodyBasis, to, from) where {T}
         push!(Js, i)
         push!(Vs, C)
     end
-    return SparseOperator(mb, sparse(Is, Js, Vs, length(mb), length(mb)))
+    return SparseOperator(mb, sparse(Is, Js, Vs, dimension(mb), dimension(mb)))
 end
 transition(mb::ManyBodyBasis, to, from) = transition(ComplexF64, mb, to, from)
 
@@ -209,7 +209,7 @@ function manybodyoperator(mb::ManyBodyBasis, op)
 end
 
 function manybodyoperator_1(mb::ManyBodyBasis, op::Operator)
-    S = length(mb.onebodybasis)
+    S = dimension(mb.onebodybasis)
     result = DenseOperator(mb)
     buffer = allocate_buffer(mb)
     @inbounds for j = 1:S, i = 1:S
@@ -228,7 +228,7 @@ end
 manybodyoperator_1(mb::ManyBodyBasis, op::AdjointOperator) = dagger(manybodyoperator_1(mb, dagger(op)))
 
 function manybodyoperator_1(mb::ManyBodyBasis, op::SparseOpPureType)
-    N = length(mb)
+    N = dimension(mb)
     Is = Int[]
     Js = Int[]
     Vs = ComplexF64[]
@@ -248,7 +248,7 @@ function manybodyoperator_1(mb::ManyBodyBasis, op::SparseOpPureType)
 end
 
 function manybodyoperator_2(mb::ManyBodyBasis, op::Operator)
-    S = length(mb.onebodybasis)
+    S = dimension(mb.onebodybasis)
     result = DenseOperator(mb)
     op_data = reshape(op.data, S, S, S, S)
     buffer = allocate_buffer(mb)
@@ -267,8 +267,8 @@ function manybodyoperator_2(mb::ManyBodyBasis, op::Operator)
 end
 
 function manybodyoperator_2(mb::ManyBodyBasis, op::SparseOpType)
-    N = length(mb)
-    S = length(mb.onebodybasis)
+    N = dimension(mb)
+    S = dimension(mb.onebodybasis)
     Is = Int[]
     Js = Int[]
     Vs = ComplexF64[]
@@ -316,7 +316,7 @@ matrix_element(state::Operator, m, n) = state.data[n, m]
 function onebodyexpect_1(op::Operator, state)
     mb = basis(state)
     occupations = mb.occupations
-    S = length(mb.onebodybasis)
+    S = dimension(mb.onebodybasis)
     buffer = allocate_buffer(mb)
     result = complex(0.0)
     for i = 1:S, j = 1:S

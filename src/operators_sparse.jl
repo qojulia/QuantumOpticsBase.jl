@@ -17,8 +17,8 @@ SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, SparseMatrixCSC(da
 SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC) = Operator(b1, b2, data)
 SparseOperator(b::Basis, data) = SparseOperator(b, b, data)
 SparseOperator(op::DataOperator) = SparseOperator(op.basis_l, op.basis_r, op.data)
-SparseOperator(::Type{T},b1::Basis,b2::Basis) where T = SparseOperator(b1,b2,spzeros(T,length(b1),length(b2)))
-SparseOperator(::Type{T},b::Basis) where T = SparseOperator(b,b,spzeros(T,length(b),length(b)))
+SparseOperator(::Type{T},b1::Basis,b2::Basis) where T = SparseOperator(b1,b2,spzeros(T,dimension(b1),dimension(b2)))
+SparseOperator(::Type{T},b::Basis) where T = SparseOperator(b,b,spzeros(T,dimension(b),dimension(b)))
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(ComplexF64, b1, b2)
 SparseOperator(b::Basis) = SparseOperator(ComplexF64, b, b)
 
@@ -26,8 +26,8 @@ sparse(a::DataOperator) = Operator(a.basis_l, a.basis_r, sparse(a.data))
 
 function ptrace(op::SparseOpPureType, indices)
     check_ptrace_arguments(op, indices)
-    shape = [size(op.basis_l); size(op.basis_r)]
-    data = ptrace(op.data, shape, indices)
+    shape_ = [shape(op.basis_l); shape(op.basis_r)]
+    data = ptrace(op.data, shape_, indices)
     b_l = ptrace(op.basis_l, indices)
     b_r = ptrace(op.basis_r, indices)
     Operator(b_l, b_r, data)
@@ -64,18 +64,18 @@ function exp(op::T; opts...) where {B,T<:SparseOpType{B,B}}
 end
 
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:SparseOpType,S<:Number} =
-    SparseOperator(b1, b2, sparse(one(S)*I, length(b1), length(b2)))
+    SparseOperator(b1, b2, sparse(one(S)*I, dimension(b1), dimension(b2)))
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:SparseOpType,S<:Number} =
-    SparseOperator(b, b, sparse(one(S)*I, length(b), length(b)))
+    SparseOperator(b, b, sparse(one(S)*I, dimension(b), dimension(b)))
 
 const EyeOpPureType{BL,BR} = Operator{BL,BR,<:Eye}
 const EyeOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:Eye}}
 const EyeOpType{BL,BR} = Union{EyeOpPureType{BL,BR},EyeOpAdjType{BL,BR}}
 
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
-    Operator(b1, b2, Eye{S}(length(b1), length(b2)))
+    Operator(b1, b2, Eye{S}(dimension(b1), dimension(b2)))
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:DataOperator,S<:Number} =
-    Operator(b, b, Eye{S}(length(b)))
+    Operator(b, b, Eye{S}(dimension(b)))
 
 identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2) # XXX This is purposeful type piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.DataOperator in identityoperator. Also necessary for backward compatibility.
 identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOperator, T, b)
@@ -86,7 +86,7 @@ identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOpe
 Create a diagonal operator of type [`SparseOperator`](@ref).
 """
 function diagonaloperator(b::Basis, diag)
-  @assert 1 <= length(diag) <= length(b)
+  @assert 1 <= length(diag) <= dimension(b)
   SparseOperator(b, spdiagm(0=>diag))
 end
 

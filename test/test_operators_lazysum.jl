@@ -81,9 +81,9 @@ op2_ = 0.7*op2a + 0.9*op2b
 op3 = LazySum(op3a)
 op3_ = op3a
 
-x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
-x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+x2 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Addition
 @test_throws IncompatibleBases op1 + dagger(op2)
@@ -123,8 +123,8 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 ## multiplication with Operator of AbstractMatrix
 LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
 LSop_s = LazySum(sparse(randoperator(b1a^2)))
-hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Hermitian
-symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Symmetric
+hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,dimension(basis(LSop)),dimension(basis(LSop))))) # Hermitian
+symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,dimension(basis(LSop)),dimension(basis(LSop))))) # Symmetric
 adjoint_op = randoperator(basis(LSop))' # Adjoint
 real_op = Operator(basis(LSop), real(adjoint_op.data)) # real
 ops_tuple = (symmetric_op,hermitian_op,adjoint_op)
@@ -223,10 +223,10 @@ op123_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 @test_throws ArgumentError ptrace(op123, [1,2,3])
 
 # Test expect
-state = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 @test expect(op123, state) ≈ expect(op123_, state)
 
-state = DenseOperator(b_l, b_l, rand(ComplexF64, length(b_l), length(b_l)))
+state = DenseOperator(b_l, b_l, rand(ComplexF64, dimension(b_l), dimension(b_l)))
 @test expect(op123, state) ≈ expect(op123_, state)
 
 # Permute systems
@@ -263,8 +263,8 @@ zero_op = LazySum(b_l, b_r)
 zero_op_ = sparse(zero_op)
 @test dense(zero_op) == zero_op_
 
-state = Ket(b_r, rand(ComplexF64, length(b_r)))
-result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+result_ = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-13 > D(result, op_*state)
@@ -283,8 +283,8 @@ result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,zero_op,state,alpha,beta)
 @test 1e-13 > D(result, beta*result_)
 
-state = Bra(b_l, rand(ComplexF64, length(b_l)))
-result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
+state = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+result_ = Bra(b_r, rand(ComplexF64, dimension(b_r)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-13 > D(result, state*op_)

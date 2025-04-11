@@ -44,8 +44,8 @@ function embed(bl::CompositeBasis, br::CompositeBasis,
 
     # Reorient the matrix to act in the correctly ordered basis.
     # Get the dimensions necessary for index permuting.
-    dims_l = size(bl)
-    dims_r = size(br)
+    dims_l = shape(bl)
+    dims_r = shape(br)
 
     # Get the order of indices to use in the first reshape. Julia indices go in
     # reverse order.
@@ -93,7 +93,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
         else
             bl = basis_l[i]
             br = basis_r[i]
-            id = SparseMatrixCSC{Tnum}(I, length(bl), length(br))
+            id = SparseMatrixCSC{Tnum}(I, dimension(bl), dimension(br))
             data = kron(data, id)
             i -= 1
         end
@@ -160,7 +160,7 @@ function check_ptrace_arguments(a::AbstractOperator, indices)
     end
     check_indices(length(basis_l(a)), indices)
     for i=indices
-        if size(basis_l(a))[i] != size(basis_r(a))[i]
+        if shape(basis_l(a))[i] != shape(basis_r(a))[i]
             throw(ArgumentError("Partial trace can only be applied onto subsystems that have the same left and right dimension."))
         end
     end

@@ -63,10 +63,10 @@ op3_ = op3a
 op4 = LazyProduct(op3b)
 op4_ = op3b
 
-x1 = Ket(b_l, rand(ComplexF64, length(b_l)))
-x2 = Ket(b_l, rand(ComplexF64, length(b_l)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_l, rand(ComplexF64, dimension(b_l)))
+x2 = Ket(b_l, rand(ComplexF64, dimension(b_l)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Test Addition
 @test_throws IncompatibleBases op1 + dagger(op4)
@@ -131,10 +131,10 @@ op2 = randoperator(b_l)
 op = 0.3*LazyProduct(op1, sparse(op2))
 op_ = 0.3*op1*op2
 
-state = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
-state = DenseOperator(b_l, b_l, rand(ComplexF64, length(b_l), length(b_l)))
+state = DenseOperator(b_l, b_l, rand(ComplexF64, dimension(b_l), dimension(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
 # Permute systems
@@ -176,7 +176,7 @@ for N=1:3
     QuantumOpticsBase.mul!(result,op,state,0,beta)
     @test 1e-11 > D(result, beta*result_)
 
-    state = Bra(b_l, rand(ComplexF64, length(b_l)))
+    state = Bra(b_l, rand(ComplexF64, dimension(b_l)))
     result_ = randstate(iseven(N) ? b_l : b_r)'
     result = copy(result_)
     QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))

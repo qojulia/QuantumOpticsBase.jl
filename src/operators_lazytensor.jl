@@ -177,7 +177,7 @@ function tr(op::LazyTensor)
         if i in op.indices
             result *= tr(suboperator(op, i))
         else
-            result *= length(b[i])
+            result *= dimension(b[i])
         end
     end
     result
@@ -192,7 +192,7 @@ function ptrace(op::LazyTensor, indices)
         if i in op.indices
             factor *= tr(suboperator(op, i))
         else
-            factor *= length(op.basis_l[i])
+            factor *= dimension(op.basis_l[i])
         end
     end
     remaining_indices = remove(op.indices, indices)
@@ -515,8 +515,8 @@ function _explicit_isometries(::Type{T}, used_indices, bl::Basis, br::Basis, shi
 end
 
 # To get the shape of a CompositeBasis with number of dims inferrable at compile-time
-_comp_size(b::CompositeBasis) = tuple((length(b_) for b_ in b.bases)...)
-_comp_size(b::Basis) = (length(b),)
+_comp_size(b::CompositeBasis) = tuple((dimension(b_) for b_ in b.bases)...)
+_comp_size(b::Basis) = (dimension(b),)
 
 _is_pure_sparse(operators) = all(o isa Union{SparseOpPureType,EyeOpType} for o in operators)
 

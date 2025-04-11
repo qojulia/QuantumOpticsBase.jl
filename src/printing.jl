@@ -36,23 +36,23 @@ function show(stream::IO, x::ManyBodyBasis)
     write(stream, "ManyBody(onebodybasis=$(x.onebodybasis), states:$(length(x.occupations)))")
 end
 
-summary(io::IO, x::Ket) = print(io, "Ket(dim=$(length(x.basis)))\n  basis: $(x.basis)\n")
+summary(io::IO, x::Ket) = print(io, "Ket(dim=$(dimension(x.basis)))\n  basis: $(x.basis)\n")
 function show(stream::IO, x::Ket)
     summary(stream, x)
     if !_std_order
         Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis), false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), shape(x.basis), false, header=false)
     end
 end
 
-summary(io::IO, x::Bra) = print(io, "Bra(dim=$(length(x.basis)))\n  basis: $(x.basis)\n")
+summary(io::IO, x::Bra) = print(io, "Bra(dim=$(dimension(x.basis)))\n  basis: $(x.basis)\n")
 function show(stream::IO, x::Bra)
     summary(stream, x)
     if !_std_order
         Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis), false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), shape(x.basis), false, header=false)
     end
 end
 
@@ -78,7 +78,7 @@ function show(stream::IO, x::DenseOpType)
         end
         Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis_l), size(x.basis_r), false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), shape(x.basis_l), shape(x.basis_r), false, header=false)
     end
 end
 
@@ -94,7 +94,7 @@ function show(stream::IO, x::SparseOpPureType)
             print(stream, "\n")
             Base.print_array(stream, round.(x.data; digits=machineprecorder))
         else
-            showsparsearray_stdord(stream, round.(x.data; digits=machineprecorder), size(x.basis_l), size(x.basis_r))
+            showsparsearray_stdord(stream, round.(x.data; digits=machineprecorder), shape(x.basis_l), shape(x.basis_r))
         end
     end
 end

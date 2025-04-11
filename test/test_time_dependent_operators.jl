@@ -175,7 +175,7 @@ using LinearAlgebra, Random
     @test [QOB.eval_coefficients(o_res, t)...] ≈ [(c1*c2 for (c1,c2) in Iterators.product(QOB.eval_coefficients(o_t, t), QOB.eval_coefficients(o2_t, t)))...] rtol=1e-10
     @test dense(QOB.static_operator(o_res(t))).data ≈ (dense(QOB.static_operator(o_t(t))) * dense(QOB.static_operator(o2_t(t)))).data rtol=1e-10
 
-    V = identityoperator(basis(o_t), GenericBasis(length(basis(o_t))))
+    V = identityoperator(basis(o_t), GenericBasis(dimension(basis(o_t))))
     o_res = o_t * V
     @test isa(o_res, TimeDependentSum)
     @test [QOB.eval_coefficients(o_res, t)...] ≈ [QOB.eval_coefficients(o_t, t)...] rtol=1e-10
