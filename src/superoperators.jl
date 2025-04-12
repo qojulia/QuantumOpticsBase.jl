@@ -1,4 +1,5 @@
 import QuantumInterface: KetBraBasis, ChoiBasis
+using TensorCast
 
 const SuperKetType = Ket{<:KetBraBasis}
 
@@ -17,23 +18,29 @@ const PauliTransferType = Operator{<:ChoiBasis,<:ChoiBasis}
 #const ChoiStateType = Operator{ChoiBasisType,ChoiBasisType}
 #const ChoiStateType = Union{Operator{CompositeBasis{ChoiBasis,S},CompositeBasis{ChoiBasis,T}} where {S,T}, Operator{CompositeBasis{ChoiBasis{BL},S},CompositeBasis{ChoiBasis{BR},T}} where {BL,BR,S,T}}
 
-vec(op::Operator) = Ket(KetBraBasis(basis_l(op), basis_r(op)), reshape(op.data, dimension(op.data)))
+vec(op::Operator) = Ket(KetBraBasis(basis_l(op), basis_r(op)), vec(op.data))
 function unvec(k::SuperKetType)
     bl, br = basis_l(basis(k)), basis_r(basis(k))
-    return Operator(bl, br, reshape(k.data, dimension(bl), dimension(br)))
+    @cast A[n,m] |= k.data[(n,m)] (n ∈ 1:dimension(bl), m ∈ 1:dimension(br))
+    return Operator(bl, br, A)
 end
 
 function spre(op::Operator)
     multiplicable(op, op) || throw(ArgumentError("It's not clear what spre of a non-square operator should be. See issue #113"))
-    Operator(KetBraBasis(basis_l(op)), KetBraBasis(basis_r(op)), tensor(op, identityoperator(op)).data)
+    sprepost(op, identityoperator(op))
 end
 
 function spost(op::Operator)
     multiplicable(op, op) || throw(ArgumentError("It's not clear what spost of a non-square operator should be. See issue #113"))
-    Operator(KetBraBasis(basis_r(op)), KetBraBasis(basis_l(op)), kron(permutedims(op.data), identityoperator(op).data))
+    sprepost(identityoperator(op), op)
 end
 
-sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(A.basis_l, B.basis_r), KetBraBasis(A.basis_r, B.basis_l), kron(permutedims(B.data), A.data))
+#sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(A.basis_l, B.basis_r), KetBraBasis(A.basis_r, B.basis_l), kron(permutedims(B.data), A.data))
+
+function sprepost(A::Operator, B::Operator)
+    @cast C[(ν,μ), (n,m)] |= A.data[ν,n] * B.data[m,μ]
+    Operator(KetBraBasis(basis_l(A), basis_r(B)), KetBraBasis(basis_r(A), basis_l(B)), C)
+end
 
 function _super_choi((l1, l2), (r1, r2), data)
     data = Base.ReshapedArray(data, map(length, (l2, l1, r2, r1)), ())
@@ -43,19 +50,17 @@ function _super_choi((l1, l2), (r1, r2), data)
     return (l1, l2), (r1, r2), copy(data)
 end
 
-function choi(op::SuperOperatorType)
-    bl, br = basis_l(op), basis_r(op)
-    (l1, l2), (r1, r2) = (basis_l(bl), basis_r(bl)), (basis_l(br), basis_r(br))
-    (l1, l2), (r1, r2), data = _super_choi((l1, l2), (r1, r2), op.data)
-    return Operator(ChoiBasis(l1,l2), ChoiBasis(r1,r2), data)
+# Sec IV.A. of  https://arxiv.org/abs/1111.6950
+function _super_choi(basis_fn, op)
+    l1, l2 = basis_l(basis_l(op)), basis_r(basis_l(op))
+    r1, r2 = basis_l(basis_r(op)), basis_r(basis_r(op))
+    d1, d2, d3, d4 = map(dimension, (l1, l2, r1, r2))
+    @cast A[(ν,μ), (n,m)] |= op.data[(m,μ), (n,ν)] (m ∈ 1:d1, μ ∈ 1:d2, n ∈ 1:d3, ν ∈ 1:d4)
+    return Operator(basis_fn(r2, l2), basis_fn(r1, l1), A)
 end
 
-function super(op::ChoiStateType)
-    bl, br = basis_l(op), basis_r(op)
-    (l1, l2), (r1, r2) = (basis_l(bl), basis_r(bl)), (basis_l(br), basis_r(br))
-    (l1, l2), (r1, r2), data = _super_choi((l1, l2), (r1, r2), op.data)
-    return Operator(KetBraBasis(l1,l2), KetBraBasis(r1,r2), data)
-end
+choi(op::SuperOperatorType) = _super_choi(ChoiBasis, op)
+super(op::ChoiStateType) =  _super_choi(KetBraBasis, op)
 
 dagger(a::ChoiStateType) = choi(dagger(super(a)))
 
