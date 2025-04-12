@@ -1,95 +1,62 @@
-import Base: isapprox
-import QuantumInterface: PauliBasis
+
+const PauliTransferType = Operator{<:ChoiBasis,<:ChoiBasis}
 
 
-function PauliTransferMatrix(sop::DenseSuperOpType)
-    num_qubits = nsubsystems(sop.basis_l[1])
-    pbv = pauli_basis_vectors(num_qubits)
-    sop_dim = 4 ^ num_qubits
-    data = real.(pbv' * sop.data * pbv / √sop_dim)
-    return DensePauliTransferMatrix(sop.basis_l, sop.basis_r, data)
+# TODO this should maybe be exported?
+# TODO also maybe more efficient to super-tensor product vec'd single qubit transformation
+function _ketbra_to_pauli()
+    b = SpinBasis(1//2)
+    pvec(fn) = vec(fn(b)).data
+    kb2p = sparse(hcat(map(pvec, [identityoperator, sigmax, sigmay, sigmaz])...)')
 end
 
-SuperOperator(unitary::DenseOpType) = spre(unitary) * spost(unitary')
-SuperOperator(sop::DenseSuperOpType) = sop
+_Ukb2p = _ketbra_to_pauli()
 
-"""
-    SuperOperator(ptm::DensePauliTransferMatrix)
+function pauli(op::SuperOperatorType; tol=1e-9)
+    bl, br = basis_l(op), basis_r(op)
+    ((basis_l(bl) == basis_r(bl)) && (basis_l(br) == basis_r(br))) || throw(ArgumentError("Superoperator must map between square operators in order to be converted to pauli represenation"))
 
-Convert a Pauli transfer matrix to its representation as a superoperator.
-"""
-function SuperOperator(ptm::DensePauliTransferMatrix)
-    num_qubits = nsubsystems(ptm.basis_l[1])
-    pbv = pauli_basis_vectors(num_qubits)
-    sop_dim = 4 ^ num_qubits
-    data = pbv * ptm.data * pbv' / √sop_dim
-    return DenseSuperOperator(ptm.basis_l, ptm.basis_r, data)
-end
-
-"""
-    PauliTransferMatrix(unitary::DenseOpType)
-
-Convert an operator, presumably a unitary operator, to its representation as a
-Pauli transfer matrix.
-"""
-PauliTransferMatrix(unitary::DenseOpType) = PauliTransferMatrix(SuperOperator(unitary))
-
-"""
-    ChiMatrix(unitary::DenseOpType)
-
-Convert an operator, presumably a unitary operator, to its representation as a χ matrix.
-"""
-function ChiMatrix(unitary::DenseOpType)
-    num_qubits = nsubsystems(unitary.basis_l)
-    pbv = pauli_basis_vectors(num_qubits)
-    aj = pbv' * reshape(unitary.data, 4 ^ num_qubits)
-    return DenseChiMatrix((unitary.basis_l, unitary.basis_l), (unitary.basis_r, unitary.basis_r), aj * aj' / (2 ^ num_qubits))
-end
-
-"""
-    ChiMatrix(sop::DenseSuperOpType)
-
-Convert a superoperator to its representation as a Chi matrix.
-"""
-function ChiMatrix(sop::DenseSuperOpType{B, B, T}) where {B, T}
-    num_qubits = length(sop.basis_l)
-    sop_dim = 4 ^ num_qubits
-    po = pauli_operators(num_qubits)
-    data = Matrix{eltype(T)}(undef, (sop_dim, sop_dim))
-    for (idx, jdx) in Iterators.product(1:sop_dim, 1:sop_dim)
-        data[idx, jdx] = tr((spre(po[idx]) * spost(po[jdx])).data' * sop.data) / √sop_dim
+    for b in (basis_l(bl), basis_l(br))
+        for i=1:length(b)
+            (b[i] isa SpinBasis && dimension(b[i]) == 2) || throw(ArgumentError("Superoperator must be over systems composed of SpinBasis(1//2) to be converted to pauli representation"))
+        end
     end
-    return DenseChiMatrix(sop.basis_l, sop.basis_r, data)
+
+    Nl, Nr = length(basis_l(bl)), length(basis_l(br))
+    Ul = ket_bra_to_pauli(Nl)
+    Ur = Nl == Nr ? Ul : ket_bra_to_pauli(Nr)
+    data = dagger(Ul)*op.data*Ur # TODO figure out normalization
+    @assert isapprox(imag.(data), zero(data), atol=tol)
+    Operator(PauliBasis()^Nl, PauliBasis()^Nr, real.(data))
 end
 
-"""
-    PauliTransferMatrix(chi_matrix::DenseChiMatrix)
+function chi(op::ChoiStateType; tol=1e-9)
+    (basis_l(op) == basis_r(op)) || throw(ArgumentError("Choi state must map between square operators in order to be converted to chi represenation"))
 
-Convert a χ matrix to its representation as a Pauli transfer matrix.
-"""
-function PauliTransferMatrix(chi_matrix::DenseChiMatrix{B, B, T}) where {B, T}
-    num_qubits = length(chi_matrix.basis_l)
-    sop_dim = 4 ^ num_qubits
-    po = pauli_operators(num_qubits)
-    data = Matrix{real(eltype(T))}(undef, (sop_dim, sop_dim))
-    for (idx, jdx) in Iterators.product(1:sop_dim, 1:sop_dim)
-        data[idx, jdx] = tr(mapreduce(x -> po[idx] * po[x[1]] * po[jdx] * po[x[2]] * chi_matrix.data[x[1], x[2]],
-                                      +,
-                                      Iterators.product(1:16, 1:16)).data) / sop_dim |> real
+    bl, br = basis_l(basis_l(op)), basis_r(basis_l(op))
+    for b in (bl, br)
+        for i=1:length(b)
+            (b[i] isa NLevelBasis) || throw(ArgumentError("Choi state must be over systems composed of SpinBasis(1//2) to be converted to chi representation"))
+        end
     end
-    return DensePauliTransferMatrix(chi_matrix.basis_l, chi_matrix.basis_r, data)
+
+    Nl, Nr = length(bl), length(br)
+    Ul = ket_bra_to_pauli(Nl)
+    Ur = Nl == Nr ? Ul : ket_bra_to_pauli(Nr)
+    data = dagger(Ul)*op.data*Ur # TODO figure out normalization
+    @assert isapprox(imag.(data), zero(data), atol=tol)
+    Operator(PauliBasis()^Nl, PauliBasis()^Nr, real.(data))
 end
 
 """
-    SuperOperator(chi_matrix::DenseChiMatrix)
+function pauli(op::SuperOperatorType; tol=1e-9)
+    bl, br = basis_l(op), basis_r(op)
+    ((basis_l(bl) == basis_r(bl)) && (basis_l(br) == basis_r(br))) || throw(ArgumentError("Superoperator must map between square operators in order to be converted to pauli represenation"))
 
-Convert a χ matrix to its representation as a superoperator.
+    for b in (basis_l(bl), basis_l(br))
+        for i=1:length(b)
+            (b[i] isa NLevelBasis) || throw(ArgumentError("Superoperator must be defined only systems composed of NLevelBasis to be converted to pauli representation"))
+        end
+    end
+end
 """
-SuperOperator(chi_matrix::DenseChiMatrix) = SuperOperator(PauliTransferMatrix(chi_matrix))
-
-"""
-    ChiMatrix(ptm::DensePauliTransferMatrix)
-
-Convert a Pauli transfer matrix to its representation as a χ matrix.
-"""
-ChiMatrix(ptm::DensePauliTransferMatrix) = ChiMatrix(SuperOperator(ptm))
