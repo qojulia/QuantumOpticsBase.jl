@@ -1,16 +1,42 @@
+using TransmuteDims
 
-const PauliTransferType = Operator{<:ChoiBasis,<:ChoiBasis}
+const PauliTransferType = Operator{<:PauliBasis,<:PauliBasis}
 
-
-# TODO this should maybe be exported?
-# TODO also maybe more efficient to super-tensor product vec'd single qubit transformation
-function _ketbra_to_pauli()
+# TODO should either of these functions be cached?
+function _pauli_to_ketbra1()
     b = SpinBasis(1//2)
-    pvec(fn) = vec(fn(b)).data
-    kb2p = sparse(hcat(map(pvec, [identityoperator, sigmax, sigmay, sigmaz])...)')
+    vec_it(fn) = vec(fn(b).data)
+    p2kb = hcat(map(vec_it, [identityoperator, sigmax, sigmay, sigmaz])...)
 end
 
-_Ukb2p = _ketbra_to_pauli()
+function _ketbra_to_pauli(N)
+    T = kron((_pauli_to_ketbra1 for _=1:N)...)
+    T = reshape(T, Tuple(4 for _=1:2N))
+    T = PermutedDimsArray(T, ((2i-1 for i=1:N)..., (2i for i=1:N)...))
+    reshape(T, (4^N, 4^N))
+end
+
+function _op_to_pauli(Nl, Nr, data)
+    Ul = ket_bra_to_pauli(Nl)
+    Ur = Nl == Nr ? Ul : _ketbra_to_pauli(Nr)
+    data = dagger(Ul) * data * Ur # TODO figure out normalization
+    @assert isapprox(imag.(data), zero(data), atol=tol)
+    Operator(PauliBasis()^Nl, PauliBasis()^Nr, real.(data))
+end
+
+"""
+    comp_to_pauli(N)
+
+Creates a superoperator which changes from the computational `SpinBasis(1//2)`
+to the `PauliBasis()` over `N` qubits.
+"""
+function comp_to_pauli(N)
+    T = kron((_pauli_to_ketbra1 for _=1:N)...)
+    T = reshape(T, Tuple(4 for _=1:2N))
+    T = PermutedDimsArray(T, ((2i-1 for i=1:N)..., (2i for i=1:N)...))
+    sb = SpinBasis(1//2)^N
+    Operator(PauliBasis()^N, KetBraBasis(sb, sb), reshape(T, (4^N, 4^N))
+end
 
 function pauli(op::SuperOperatorType; tol=1e-9)
     bl, br = basis_l(op), basis_r(op)
@@ -24,7 +50,7 @@ function pauli(op::SuperOperatorType; tol=1e-9)
 
     Nl, Nr = length(basis_l(bl)), length(basis_l(br))
     Ul = ket_bra_to_pauli(Nl)
-    Ur = Nl == Nr ? Ul : ket_bra_to_pauli(Nr)
+    Ur = Nl == Nr ? Ul : _ketbra_to_pauli(Nr)
     data = dagger(Ul)*op.data*Ur # TODO figure out normalization
     @assert isapprox(imag.(data), zero(data), atol=tol)
     Operator(PauliBasis()^Nl, PauliBasis()^Nr, real.(data))
@@ -36,7 +62,7 @@ function chi(op::ChoiStateType; tol=1e-9)
     bl, br = basis_l(basis_l(op)), basis_r(basis_l(op))
     for b in (bl, br)
         for i=1:length(b)
-            (b[i] isa NLevelBasis) || throw(ArgumentError("Choi state must be over systems composed of SpinBasis(1//2) to be converted to chi representation"))
+            (b[i] isa SpinBasis && dimension(b[i]) == 2) || throw(ArgumentError("Choi state must be over systems composed of SpinBasis(1//2) to be converted to chi representation"))
         end
     end
 
@@ -49,7 +75,7 @@ function chi(op::ChoiStateType; tol=1e-9)
 end
 
 """
-function pauli(op::SuperOperatorType; tol=1e-9)
+function hwpauli(op::SuperOperatorType; tol=1e-9)
     bl, br = basis_l(op), basis_r(op)
     ((basis_l(bl) == basis_r(bl)) && (basis_l(br) == basis_r(br))) || throw(ArgumentError("Superoperator must map between square operators in order to be converted to pauli represenation"))
 

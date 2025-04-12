@@ -20,9 +20,13 @@ const ChoiStateType = Operator{<:ChoiBasis,<:ChoiBasis}
 vec(op::Operator) = Ket(KetBraBasis(basis_l(op), basis_r(op)), vec(op.data))
 function unvec(k::SuperKetType)
     bl, br = basis_l(basis(k)), basis_r(basis(k))
-    @cast A[n,m] |= k.data[(n,m)] (n ∈ 1:dimension(bl), m ∈ 1:dimension(br))
-    return Operator(bl, br, A)
+    Operator(bl, br, reshape(k.data, dimension(bl), dimension(br)))
 end
+#function unvec(k::SuperKetType)
+#    bl, br = basis_l(basis(k)), basis_r(basis(k))
+#    @cast A[n,m] |= k.data[(n,m)] (n ∈ 1:dimension(bl), m ∈ 1:dimension(br))
+#    return Operator(bl, br, A)
+#end
 
 function spre(op::Operator)
     multiplicable(op, op) || throw(ArgumentError("It's not clear what spre of a non-square operator should be. See issue #113"))
@@ -33,8 +37,12 @@ function spost(op::Operator)
     multiplicable(op, op) || throw(ArgumentError("It's not clear what spost of a non-square operator should be. See issue #113"))
     sprepost(identityoperator(op), op)
 end
+#function sprepost(A::Operator, B::Operator)
+#    @cast C[(ν,μ), (n,m)] |= A.data[ν,n] * B.data[m,μ]
+#    Operator(KetBraBasis(basis_l(A), basis_r(B)), KetBraBasis(basis_r(A), basis_l(B)), C)
+#end
 
-#sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(A.basis_l, B.basis_r), KetBraBasis(A.basis_r, B.basis_l), kron(permutedims(B.data), A.data))
+#sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(basis_l(A), basis_r(B)), KetBraBasis(basis_r(A), basis_l(B)), kron(permutedims(B.data), A.data))
 
 function sprepost(A::Operator, B::Operator)
     @cast C[(ν,μ), (n,m)] |= A.data[ν,n] * B.data[m,μ]
@@ -63,7 +71,6 @@ super(op::ChoiStateType) =  _super_choi(KetBraBasis, op)
 
 dagger(a::ChoiStateType) = choi(dagger(super(a)))
 
-*(a::SuperOperatorType, b::SuperOperatorType) = (check_multiplicable(a,b); Operator(a.basis_l, b.basis_r, a.data*b.data))
 *(a::SuperOperatorType, b::Operator) = unvec(a*vec(b))
 *(a::ChoiStateType, b::SuperOperatorType) = super(a)*b
 *(a::SuperOperatorType, b::ChoiStateType) = a*super(b)
