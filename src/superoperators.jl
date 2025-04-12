@@ -11,6 +11,7 @@ const SparseSuperOpType{BL,BR} = Union{SparseOpPureType{<:KetBraBasis,<:KetBraBa
 
 const SuperOperatorType = Operator{<:KetBraBasis,<:KetBraBasis}
 const ChoiStateType = Operator{<:ChoiBasis,<:ChoiBasis}
+const PauliTransferType = Operator{<:ChoiBasis,<:ChoiBasis}
 
 #const ChoiBasisType = Union{CompositeBasis{ChoiBasis,T} where {T}, CompositeBasis{ChoiBasis{B},T} where {B,T}}
 #const ChoiStateType = Operator{ChoiBasisType,ChoiBasisType}
@@ -34,8 +35,6 @@ end
 
 sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(A.basis_l, B.basis_r), KetBraBasis(A.basis_r, B.basis_l), kron(permutedims(B.data), A.data))
 
-# reshape swaps within systems due to colum major ordering
-# https://docs.qojulia.org/quantumobjects/operators/#tensor_order
 function _super_choi((l1, l2), (r1, r2), data)
     data = Base.ReshapedArray(data, map(length, (l2, l1, r2, r1)), ())
     (l1, l2), (r1, r2) = (r2, l2), (r1, l1)
@@ -75,11 +74,15 @@ identitysuperoperator(op::DenseSuperOpType) =
 identitysuperoperator(op::SparseSuperOpType) = 
     Operator(op.basis_l, op.basis_r, sparse(one(eltype(op.data))I, size(op.data)))
 
-function pauli_to_ket_bra(N)
+# TODO this should maybe be exported?
+# TODO also maybe more efficient to super-tensor product vec'd single qubit transformation
+function _ketbra_to_pauli()
     b = SpinBasis(1//2)
-    paulis = Iterators.repeated([identityoperator(b), sigmax(b), sigmaz(b), sigmay(b)], N)
-    reduce(hcat, [vec(tensor(p)) for p in Iterators.product(paulis...)])
+    pvec(fn) = vec(fn(b)).data
+    kb2p = sparse(hcat(map(pvec, [identityoperator, sigmax, sigmay, sigmaz])...)')
 end
+
+#_Ukb2p = _ketbra_to_pauli()
 
 function pauli(op::SuperOperatorType; tol=1e-9)
     bl, br = basis_l(op), basis_r(op)
@@ -118,11 +121,6 @@ function chi(op::ChoiStateType; tol=1e-9)
 end
 
 """
-# TODO figure out case for generalized paulis
-function pauli_to_ketbra(b)
-    #paulix(b[i],i)*pauliz(b[i],j) for i=1:N,j=1:N
-end
-
 function pauli(op::SuperOperatorType; tol=1e-9)
     bl, br = basis_l(op), basis_r(op)
     ((basis_l(bl) == basis_r(bl)) && (basis_l(br) == basis_r(br))) || throw(ArgumentError("Superoperator must map between square operators in order to be converted to pauli represenation"))
@@ -133,3 +131,4 @@ function pauli(op::SuperOperatorType; tol=1e-9)
         end
     end
 end
+"""

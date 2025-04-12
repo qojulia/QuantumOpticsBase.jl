@@ -48,6 +48,7 @@ end
     exp(op::SparseOpType; opts...)
 
 Operator exponential used, for example, to calculate displacement operators.
+Superoperator exponential which can, for example, be used to calculate time evolutions.
 Uses [`FastExpm.jl.jl`](https://github.com/fmentink/FastExpm.jl) which will return a sparse
 or dense operator depending on which is more efficient.
 All optional arguments are passed to `fastExpm` and can be used to specify tolerances.
