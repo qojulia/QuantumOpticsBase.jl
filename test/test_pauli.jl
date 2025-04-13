@@ -2,41 +2,48 @@ using LinearAlgebra
 using Test
 
 using QuantumOpticsBase
+import QuantumOpticsBase: comp_pauli_kb
 
 @testset "pauli" begin
 
 b = SpinBasis(1//2)
+Isop = sprepost(identityoperator(b), dagger(identityoperator(b)))
+Xsop = sprepost(sigmax(b), dagger(sigmax(b)))
+Ysop = sprepost(sigmay(b), dagger(sigmay(b)))
+Zsop = sprepost(sigmaz(b), dagger(sigmaz(b)))
+Xsk = vec(sigmax(b))
+V = comp_pauli_kb(1)
+
+
 # Test conversion of unitary matrices to superoperators.
-q2 = b^2
-q3 = b^3
-CZ = DenseOperator(q2, q2, diagm(0 => [1,1,1,-1]))
-CZ_sop = SuperOperator(CZ)
+CZ = dm(spinup(b))⊗identityoperator(b) + dm(spindown(b))⊗sigmaz(b)
+CZ_sop = sprepost(CZ,dagger(CZ))
 
 # Test conversion of unitary matrices to superoperators.
 @test diag(CZ_sop.data) ==  ComplexF64[1,1,1,-1,1,1,1,-1,1,1,1,-1,-1,-1,-1,1]
-@test CZ_sop.basis_l == CZ_sop.basis_r == (q2, q2)
+@test basis_l(CZ_sop) == basis_r(CZ_sop) == KetBraBasis(b^2, b^2)
 
 # Test conversion of superoperator to Pauli transfer matrix.
-CZ_ptm = PauliTransferMatrix(CZ_sop)
+CZ_ptm = pauli(CZ_sop)
 
 # Test DensePauliTransferMatrix constructor.
-@test_throws DimensionMismatch DensePauliTransferMatrix((q2, q2), (q3, q3), CZ_ptm.data)
-@test DensePauliTransferMatrix((q2, q2), (q2, q2), CZ_ptm.data) == CZ_ptm
+@test_throws DimensionMismatch Operator(PauliBasis(2), PauliBasis(3), CZ_ptm.data)
+@test Operator(PauliBasis(2), PauliBasis(2), CZ_ptm.data) == CZ_ptm
 
-@test all(isapprox.(CZ_ptm.data[[1,30,47,52,72,91,117,140,166,185,205,210,227,256]], 1))
-@test all(isapprox.(CZ_ptm.data[[106,151]], -1))
+@test all(isapprox.(CZ_ptm.data[[1,30,47,52,72,91,117,140,166,185,205,210,227,256]], 4))
+@test all(isapprox.(CZ_ptm.data[[106,151]], -4))
 
 @test CZ_ptm == PauliTransferMatrix(ChiMatrix(CZ))
 
 # Test construction of non-symmetric unitary.
-CNOT = DenseOperator(q2, q2, diagm(0 => [1,1,0,0], 1 => [0,0,1], -1 => [0,0,1]))
+CNOT = DenseOperator(b^2, b^2, diagm(0 => [1,1,0,0], 1 => [0,0,1], -1 => [0,0,1]))
 CNOT_sop = SuperOperator(CNOT)
 CNOT_chi = ChiMatrix(CNOT)
 CNOT_ptm = PauliTransferMatrix(CNOT)
 
-@test CNOT_sop.basis_l == CNOT_sop.basis_r == (q2, q2)
-@test CNOT_chi.basis_l == CNOT_chi.basis_r == (q2, q2)
-@test CNOT_ptm.basis_l == CNOT_ptm.basis_r == (q2, q2)
+@test CNOT_sop.basis_l == CNOT_sop.basis_r == (b^2, b^2)
+@test CNOT_chi.basis_l == CNOT_chi.basis_r == (b^2, b^2)
+@test CNOT_ptm.basis_l == CNOT_ptm.basis_r == (b^2, b^2)
 
 @test all(isapprox.(imag.(CNOT_sop.data), 0))
 @test all(isapprox.(imag.(CNOT_chi.data), 0))
@@ -49,13 +56,13 @@ CNOT_ptm = PauliTransferMatrix(CNOT)
 @test all(isapprox.(CNOT_ptm.data[[123,168]], -1))
 
 # Test DenseChiMatrix constructor.
-@test_throws DimensionMismatch DenseChiMatrix((q2, q2), (q3, q3), CNOT_chi.data)
-@test DenseChiMatrix((q2, q2), (q2, q2), CNOT_chi.data) == CNOT_chi
+@test_throws DimensionMismatch Operator(ChoiBasis(PauliBasis(2), PauliBasis(2)), ChoiBasis(PauliBasis(3), PauliBasis(3)), CNOT_chi.data)
+@test Operator(ChoiBasis(PauliBasis(2), PauliBasis(2)), CNOT_chi.data) == CNOT_chi
 
 # Test equality and conversion among all three bases.
 ident = Complex{Float64}[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]
 
-IDENT = DenseOperator(q2, ident)
+IDENT = DenseOperator(b^2, ident)
 
 IDENT_sop = SuperOperator(IDENT)
 IDENT_chi = ChiMatrix(IDENT)
@@ -71,7 +78,7 @@ IDENT_ptm = PauliTransferMatrix(IDENT)
 # Test approximate equality and conversion among all three bases.
 cphase = Complex{Float64}[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 exp(1im*.6)]
 
-CPHASE = DenseOperator(q2, cphase)
+CPHASE = DenseOperator(b^2, cphase)
 
 CPHASE_sop = SuperOperator(CPHASE)
 CPHASE_chi = ChiMatrix(CPHASE)

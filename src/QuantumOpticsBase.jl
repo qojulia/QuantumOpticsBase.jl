@@ -8,7 +8,7 @@ import QuantumInterface: Basis, GenericBasis, CompositeBasis, basis, basis_l, ba
     IncompatibleBases, @compatiblebases, samebases, check_samebases,
     addible, check_addible, multiplicable, check_multiplicable, reduced, ptrace, permutesystems,
     dagger, directsum, ⊕, dm, embed, expect, identityoperator, identitysuperoperator,
-    permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!,
+    permutesystems, projector, ptrace, reduced, tensor, tensor_pow, ⊗, variance, apply!,
     vec, unvec, super, choi, kraus, stinespring, pauli, chi, spre, spost, sprepost, liouvillian
 
 # metrics
@@ -18,7 +18,7 @@ import QuantumInterface: entropy_vn, fidelity, logarithmic_negativity
 import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
 
 export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r, dimension, shape,
-        tensor, ⊗, permutesystems, @compatiblebases,
+        tensor, tensor_pow, ⊗, permutesystems, @compatiblebases,
         #states
                 StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
                 dagger, normalize, normalize!,
@@ -98,7 +98,7 @@ include("particle.jl")
 include("nlevel.jl")
 include("manybody.jl")
 include("transformations.jl")
-#include("pauli.jl")
+include("pauli.jl")
 include("metrics.jl")
 include("spinors.jl")
 include("phasespace.jl")
