@@ -1,4 +1,4 @@
-import QuantumInterface: KetBraBasis, ChoiBasis, PauliBasis
+import QuantumInterface: KetBraBasis, ChoiBasis, PauliBasis, ChiBasis
 using TensorCast
 
 const SOpBasis = Union{KetBraBasis, PauliBasis}
@@ -93,7 +93,7 @@ function _super_choi(basis_fn, op)
 end
 
 choi(op::SuperOperatorType) = _super_choi(ChoiBasis, op)
-super(op::ChoiStateType) =  _super_choi(KetBraBasis, op)
+super(op::ChoiStateType) = _super_choi(KetBraBasis, op)
 
 # I'm not sure this is actually right... see sec V.C. of https://arxiv.org/abs/1111.6950
 dagger(a::ChoiStateType) = choi(dagger(super(a)))

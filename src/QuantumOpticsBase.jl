@@ -42,7 +42,7 @@ export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r, dimension, 
                 AbstractTimeDependentOperator, TimeDependentSum, set_time!,
                 current_time, time_shift, time_stretch, time_restrict, static_operator,
         #superoperators
-                KetBraBasis, ChoiBasis, PauliBasis,
+                KetBraBasis, ChoiBasis, PauliBasis, ChiBasis,
                 vec, unvec, super, choi, kraus, stinespring, pauli, chi,
                 spre, spost, sprepost, liouvillian, identitysuperoperator,
                 SuperOperatorType, DenseSuperOpType, SparseSuperOpType,

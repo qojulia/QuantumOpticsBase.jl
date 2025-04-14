@@ -224,7 +224,7 @@ b_fock = FockBasis(5)
 z_l = normalize(fockstate(b_fock, 0) + fockstate(b_fock, 4))
 o_l = fockstate(b_fock, 2)
 encoder_kraus = z_l ⊗ dagger(spinup(b_logical)) + o_l ⊗ dagger(spindown(b_logical))
-    encoder_sup = sprepost(encoder_kraus, dagger(encoder_kraus))
+encoder_sup = sprepost(encoder_kraus, dagger(encoder_kraus))
 decoder_sup = sprepost(dagger(encoder_kraus), encoder_kraus)
 @test super(choi(encoder_sup)).data == encoder_sup.data
 @test decoder_sup == dagger(encoder_sup)
