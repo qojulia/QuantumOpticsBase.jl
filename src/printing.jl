@@ -91,7 +91,8 @@ function show(stream::IO, x::SparseOpPureType)
             if !haskey(stream, :compact) && (VERSION < v"1.6.0-beta1")
                 stream = IOContext(stream, :compact => true)
             end
-            show(stream, round.(x.data; digits=machineprecorder))
+            print(stream, "\n")
+            Base.print_array(stream, round.(x.data; digits=machineprecorder))
         else
             showsparsearray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis_l.shape, x.basis_r.shape)
         end
