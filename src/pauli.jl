@@ -1,58 +1,95 @@
+import QuantumInterface: PauliBasis, ChiBasis
+
+const PauliTransferType{BL,BR,T} = Operator{BL,BR,T} where {BL<:PauliBasis,BR<:PauliBasis}
+const ChiType{BL,BR,T} = Operator{BL,BR,T} where {BL<:ChiBasis,BR<:ChiBasis}
 
 # comp stands for computational basis
-function _pauli_comp_1(b_out_fn, b_in)
+function _pauli_comp_1()
     b = SpinBasis(1//2)
     vec_it(fn) = vec((fn(b)/sqrt(2)).data) # provides "standard" normalization
     V = hcat(map(vec_it, [identityoperator, sigmax, sigmay, sigmaz])...)
-    Operator(b_out_fn(b, b), b_in, V)
+    Operator(KetBraBasis(b, b), PauliBasis(1), V)
 end
 
-_pauli_comp_kb1_cached = _pauli_comp_1(KetBraBasis, PauliBasis(1))
-_pauli_comp_choi1_cached = _pauli_comp_1(ChoiBasis, ChiBasis(2))
+_pauli_comp_1_cached = _pauli_comp_1()
 
 # TODO: should this be further cached?
 """
-    pauli_comp_kb(N)
+    pauli_comp(N)
 
 Creates a superoperator which changes from the computational `KetBra(SpinBasis(1//2))`
 to the `PauliBasis()` over `N` qubits.
 """
-pauli_comp_kb(N::Integer) = tensor_pow(_pauli_comp_kb1_cached, N)
-pauli_comp_choi(N::Integer) = tensor_pow(_pauli_comp_choi1_cached, N)
+pauli_comp(N) = tensor_pow(_pauli_comp_1_cached, N)
+
+"""
+    pauli_comp(Nl,Nr)
+
+Creates a superoperator which changes from a Choi state in the computational `SpinBasis(1//2)` with `Nl` in the reference system and `Nr` in the output system to a `ChiBasis(Nl,Nr)`.
+"""
+function choi_chi(Nl, Nr)
+    @assert (Nl+Nr)%2 == 0
+    b = SpinBasis(1//2)
+    Operator(ChoiBasis(b^Nl, b^Nr), ChiBasis(Nl, Nr), pauli_comp((Nl+Nr)÷2).data)
+end
 
 # It's possible to get better asympotic speedups using, e.g. methods from
 # https://iopscience.iop.org/article/10.1088/1402-4896/ad6499
 # https://arxiv.org/abs/2411.00526
 # https://quantum-journal.org/papers/q-2024-09-05-1461/ (see appendices)
-pauli(op::Operator) = dagger(pauli_comp_kb(length(basis(op)))) * vec(op)
-
-function pauli(op::SOpKetBraType)
+function _pauli_comp_convert(op, rev)
     Nl, Nr = length(basis_l(basis_l(op))), length(basis_l(basis_r(op)))
-    Vl = pauli_comp_kb(Nl)
-    Vr = Nl == Nr ? Vl : pauli_comp_kb(Nr)
-    dagger(Vl) * op * Vr
+    Vl = pauli_comp(Nl)
+    Vr = Nl == Nr ? Vl : pauli_comp(Nr)
+    rev ? Vl * op * dagger(Vr) : dagger(Vl) * op * Vr
 end
 
-function chi(op::ChoiStateType)
+function _choi_chi_convert(op, rev)
     Nl, Nr = length(basis_l(basis_l(op))), length(basis_r(basis_l(op)))
-    Vl = pauli_comp_choi(Nl)
-    Vr = Nl == Nr ? Vl : pauli_comp_choi(Nr)
-    dagger(Vl) * op * Vr
+    V = choi_chi(Nl,Nr)
+    rev ? V * op * dagger(V) : dagger(V) * op * V
 end
 
-function _pauli_chi(basis_fn, op)
-    bl, br = basis_l(op), basis_r(op)
-    Nl, Nr = length(bl), length(br)
-    data = reshape(op.data, (2^Nl, 2^Nl, 2^Nr, 2^Nr))
-    data = PermutedDimsArray(data, (4, 2, 3, 1))
-    data = reshape(data, (2^(Nl+Nr), 2^(Nl+Nr)))
-    return Operator(basis_fn(Nl+Nr), basis_fn(Nl+Nr), data)
-end
-
-pauli(op::ChiType) = _pauli_chi(PauliBasis, op)
-chi(op::SOpPauliType) = _pauli_chi(ChiBasis, op)
+pauli(op::SuperOperatorType) = _pauli_comp_convert(op, false)
+super(op::PauliTransferType) = _pauli_comp_convert(op, true)
+chi(op::ChoiStateType) = _choi_chi_convert(op, false)
+choi(op::ChiType) = _choi_chi_convert(op, true)
+pauli(op::ChiType) = _super_choi(PauliBasis, op)
+chi(op::PauliTransferType) = _super_choi(ChiBasis, op)
 pauli(op::ChoiStateType) = pauli(chi(op))
-chi(op::SOpKetBraType) = chi(pauli(op))
+chi(op::SuperOperatorType) = chi(pauli(op))
+super(op::ChiType) = super(choi(op))
+choi(op::PauliTransferType) = choi(super(op))
+
+pauli(op::PauliTransferType) = op
+chi(op::ChiType) = op
+
+pauli(op::Operator) = pauli(vec(op))
+pauli(k::Ket{<:KetBraBasis}) = dagger(pauli_comp(length(basis_l(basis(k))))) * k
+unvec(k::Ket{<:PauliBasis}) = unvec(pauli_comp(length(basis_l(basis(k)))) * k)
+
+# TODO: document return types of mixed superoperator multiplication...
+# This method is necessary so we don't fall back to the method below it
+*(a::PauliTransferType, b::PauliTransferType) = (check_multiplicable(a,b); Operator(a.basis_l, b.basis_r, a.data*b.data))
+*(a::PauliTransferType, b::Operator) = unvec(a*pauli(b))
+
+*(a::ChiType, b::ChiType) = chi(pauli(a)*pauli(b))
+*(a::ChiType, b::Operator) = pauli(a)*b
+
+*(a::PauliTransferType, b::SuperOperatorType) = super(a)*b
+*(a::SuperOperatorType, b::PauliTransferType) = a*super(b)
+
+*(a::PauliTransferType, b::ChoiStateType) = a*chi(b)
+*(a::ChoiStateType, b::PauliTransferType) = chi(a)*b
+
+*(a::SuperOperatorType, b::ChiType) = a*super(b)
+*(a::ChiType, b::SuperOperatorType) = super(a)*b
+
+*(a::PauliTransferType, b::ChiType) = a*pauli(b)
+*(a::ChiType, b::PauliTransferType) = pauli(a)*b
+
+*(a::ChoiStateType, b::ChiType) = a*choi(b)
+*(a::ChiType, b::ChoiStateType) = choi(a)*b
 
 """
 function hwpauli(op::SuperOperatorType; tol=1e-9)

@@ -45,7 +45,7 @@ export Basis, GenericBasis, CompositeBasis, basis, basis_l, basis_r, dimension, 
                 KetBraBasis, ChoiBasis, PauliBasis, ChiBasis,
                 vec, unvec, super, choi, kraus, stinespring, pauli, chi,
                 spre, spost, sprepost, liouvillian, identitysuperoperator,
-                SuperOperatorType, DenseSuperOpType, SparseSuperOpType,
+                SuperOperatorType, ChoiStateType, PauliTransferType, ChiType,
         #fock
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
