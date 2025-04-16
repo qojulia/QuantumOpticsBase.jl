@@ -1,4 +1,3 @@
-"""
 names = [
     "test_states.jl",
 
@@ -61,7 +60,3 @@ for name=names
         include(name)
     end
 end
-"""
-
-include("test_pauli.jl")
-#include("test_superoperators.jl")

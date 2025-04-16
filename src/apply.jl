@@ -23,13 +23,14 @@ function apply!(state::Operator, indices, operation::Operator)
     state
 end
 
-function apply!(state::Ket, indices, operation::T) where {T<:SuperOperatorType}
+function apply!(state::Ket, indices, operation::SuperOperatorType)
     apply!(dm(state), indices, operation)
 end
 
-function apply!(state::Operator, indices, operation::T) where {T<:SuperOperatorType}
-    if is_apply_shortcircuit(state, indices, operation)
-        state.data = (operation*state).data
+function apply!(state::Operator, indices, operation::SuperOperatorType)
+    vecd = vec(state)
+    if is_apply_shortcircuit(vecd, indices, operation)
+        state.data = unvec(operation*vecd).data
         return state
     else
         error("`apply!` does not yet support embedding superoperators acting only on a subsystem of the given state")

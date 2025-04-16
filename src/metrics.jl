@@ -253,13 +253,14 @@ logarithmic_negativity(rho::DenseOpType{B,B}, index) where B<:CompositeBasis = l
 
 The average gate fidelity between two superoperators x and y.
 """
-
-"""
-function avg_gate_fidelity(x::T, y::T) where T <: Union{PauliTransferMatrix{B, B} where B, SuperOperator{B, B} where B, ChiMatrix{B, B} where B}
-    dim = 2 ^ length(x.basis_l)
+function avg_gate_fidelity(x::T, y::T) where T <: Union{PauliTransferType, SuperOperatorType}
+    check_multiplicable(x,x); check_multiplicable(y,y)
+    check_samebases(basis_l(basis_l(x)), basis_r(basis_l(x)));
+    dim = dimension(basis_l(basis_l(x)))
     return (tr(transpose(x.data) * y.data) + dim) / (dim^2 + dim)
 end
-"""
+
+avg_gate_fidelity(x::T, y::T) where T <: Union{ChoiStateType, ChiType} = avg_gate_fidelity(super(x), super(y))
 
 """
     entanglement_entropy(state, partition, [entropy_fun=entropy_vn])
