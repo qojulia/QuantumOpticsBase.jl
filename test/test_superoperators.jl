@@ -28,68 +28,68 @@ s1 = SparseOperator(KetBraBasis(b1, b2), KetBraBasis(b3, b4))
 s2 = SparseOperator(KetBraBasis(b3, b4), KetBraBasis(b1, b2))
 
 x = d1*d2
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == x.basis_r == KetBraBasis(b1, b2)
 
 x = s1*s2
-@test isa(x, SparseSuperOpType)
+@test isa(x, SparseOpType)
 @test x.basis_l == x.basis_r == KetBraBasis(b1, b2)
 
 x = d1*s2
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == x.basis_r == KetBraBasis(b1, b2)
 
 x = s1*d2
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == x.basis_r == KetBraBasis(b1, b2)
 
 x = d1*3
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = 2.5*s1
-@test isa(x, SparseSuperOpType)
+@test isa(x, SparseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = d1 + d1
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = s1 + s1
-@test isa(x, SparseSuperOpType)
+@test isa(x, SparseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = d1 + s1
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = d1 - d1
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = s1 - s1
-@test isa(x, SparseSuperOpType)
+@test isa(x, SparseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = d1 - s1
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = -d1
-@test isa(x, DenseSuperOpType)
+@test isa(x, DenseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
 x = -s1
-@test isa(x, SparseSuperOpType)
+@test isa(x, SparseOpType)
 @test x.basis_l == KetBraBasis(b1, b2)
 @test x.basis_r == KetBraBasis(b3, b4)
 
@@ -203,7 +203,7 @@ Ldense_ = dense(L_)
 Ldense .+= Ldense
 @test Ldense == 2*Ldense_
 Ldense .+= L
-@test isa(Ldense, DenseSuperOpType)
+@test isa(Ldense, DenseOpType)
 @test isapprox(Ldense.data, 5*Ldense_.data)
 
 b = FockBasis(20)
@@ -221,7 +221,7 @@ N = exp(log(2) * sparse(L)) # 50% loss channel
 # Testing 0-2-4 binomial code encoder
 b_logical = SpinBasis(1//2)
 b_fock = FockBasis(5)
-z_l = normalize(fockstate(b_fock, 0) + fockstate(b_fock, 4))
+z_l = normalize(fockstate(b_fock, 0) + 1im*fockstate(b_fock, 4))
 o_l = fockstate(b_fock, 2)
 encoder_kraus = z_l ⊗ dagger(spinup(b_logical)) + o_l ⊗ dagger(spindown(b_logical))
 encoder_sup = sprepost(encoder_kraus, dagger(encoder_kraus))

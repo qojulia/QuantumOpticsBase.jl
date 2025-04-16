@@ -4,6 +4,8 @@ import QuantumInterface: KetBraBasis, ChoiBasis
 const SuperOperatorType{BL,BR,T} = Operator{BL,BR,T} where {BL<:KetBraBasis,BR<:KetBraBasis}
 const ChoiStateType{BL,BR,T} = Operator{BL,BR,T} where {BR<:ChoiBasis,BL<:ChoiBasis}
 
+#const ChannelType = Union{SuperOperatorType, ChoiStateType, PauliTransferType, ChiType}
+
 #const SOpBasis = Union{KetBraBasis, PauliBasis}
 #const SuperOperatorType{BL,BR,T} = Operator{BL,BR,T} where {BL<:SOpBasis,BR<:SOpBasis}
 #const SOpKetBraType{BL,BR,T} = Operator{BL,BR,T} where {BL<:KetBraBasis,BR<:KetBraBasis}
@@ -45,21 +47,33 @@ sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(basis_l(A), basis_r(B)
 #    Operator(KetBraBasis(basis_l(A), basis_r(B)), KetBraBasis(basis_r(A), basis_l(B)), C)
 #end
 
-function tensor(A::T, B::T) where T<:Union{SuperOperatorType, ChoiStateType}
-    a1, a2 = basis_l(A), basis_r(A)
-    b1, b2 = basis_l(B), basis_r(B)
-    #da1, da2, db1, db2 = map(dimension, (a1, a2, b1, b2))
-    #@cast C[(ν,μ), (n,m)] |= A.data[m,μ] * B.data[n,ν] (m ∈ 1:da1, μ ∈ 1:da2, n ∈ 1:db1, ν ∈ 1:db2)
-    #data = kron(B.data, A.data)
-    #data = reshape(data, map(dimension, (a1, a2, b1, b2)))
-    #data = PermutedDimsArray(data, (4, 2, 3, 1))
-    #data = reshape(data, map(dimension, (a2⊗b2, a1⊗b1)))
-    #return Operator(a1⊗b1, a2⊗b2, data)
+#function super_tensor(A, B)
+#    a1, a2 = basis_l(A), basis_r(A)
+#    b1, b2 = basis_l(B), basis_r(B)
+#    #da1, da2, db1, db2 = map(dimension, (a1, a2, b1, b2))
+#    #@cast C[(ν,μ), (n,m)] |= A.data[m,μ] * B.data[n,ν] (m ∈ 1:da1, μ ∈ 1:da2, n ∈ 1:db1, ν ∈ 1:db2)
+#    #data = kron(B.data, A.data)
+#    #data = reshape(data, map(dimension, (a1, a2, b1, b2)))
+#    #data = PermutedDimsArray(data, (4, 2, 3, 1))
+#    #data = reshape(data, map(dimension, (a2⊗b2, a1⊗b1)))
+#    #return Operator(a1⊗b1, a2⊗b2, data)
+#    data = kron(B.data, A.data)
+#    data = reshape(data, map(dimension, (a1, a2, b1, b2)))
+#    data = PermutedDimsArray(data, (1, 3, 2, 4))
+#    data = reshape(data, map(dimension, (a1⊗b1, a2⊗b2)))
+#    return Operator(a1⊗b1, a2⊗b2, data)
+#end
+
+function super_tensor(A, B)
+    all, alr = basis_l(basis_l(A)), basis_r(basis_l(A))
+    arl, arr = basis_l(basis_r(A)), basis_r(basis_r(A))
+    bll, blr = basis_l(basis_l(A)), basis_r(basis_l(A))
+    brl, brr = basis_l(basis_r(A)), basis_r(basis_r(A))
     data = kron(B.data, A.data)
-    data = reshape(data, map(dimension, (a1, a2, b1, b2)))
-    data = PermutedDimsArray(data, (1, 3, 2, 4))
-    data = reshape(data, map(dimension, (a1⊗b1, a2⊗b2)))
-    return Operator(a1⊗b1, a2⊗b2, data)
+    data = reshape(data, map(dimension, (all, bll, alr, blr, arl, brl, arr, brr)))
+    data = PermutedDimsArray(data, (1, 3, 2, 4, 5, 6, 7, 8))
+    data = reshape(data, map(dimension, (basis_l(A)⊗basis_l(B), basis_r(A)⊗basis_r(B))))
+    return Operator(basis_l(A)⊗basis_l(B), basis_r(A)⊗basis_r(B), data)
 end
 
 #function _sch(data, l1, l2, r1, r2)

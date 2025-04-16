@@ -11,6 +11,8 @@ function _pauli_comp_1()
     Operator(KetBraBasis(b, b), PauliBasis(1), V)
 end
 
+tensor(A::Operator{BL,BR}, B::Operator{BL,BR}) where {BL<:KetBraBasis, BR<:PauliBasis} = super_tensor(A,B)
+
 _pauli_comp_1_cached = _pauli_comp_1()
 
 # TODO: should this be further cached?
@@ -47,19 +49,24 @@ end
 function _choi_chi_convert(op, rev)
     Nl, Nr = length(basis_l(basis_l(op))), length(basis_r(basis_l(op)))
     V = choi_chi(Nl,Nr)
-    rev ? V * op * dagger(V) : dagger(V) * op * V
+    norm = 2^((Nl+Nr)÷2)
+    out = rev ? norm * V * op * dagger(V) : (1/norm) * dagger(V) * op * V
 end
 
 pauli(op::SuperOperatorType) = _pauli_comp_convert(op, false)
 super(op::PauliTransferType) = _pauli_comp_convert(op, true)
 chi(op::ChoiStateType) = _choi_chi_convert(op, false)
 choi(op::ChiType) = _choi_chi_convert(op, true)
-pauli(op::ChiType) = _super_choi(PauliBasis, op)
-chi(op::PauliTransferType) = _super_choi(ChiBasis, op)
-pauli(op::ChoiStateType) = pauli(chi(op))
-chi(op::SuperOperatorType) = chi(pauli(op))
+
 super(op::ChiType) = super(choi(op))
 choi(op::PauliTransferType) = choi(super(op))
+pauli(op::ChoiStateType) = pauli(super(op))
+chi(op::SuperOperatorType) = chi(choi(op))
+pauli(op::ChiType) = pauli(super(choi(op)))
+chi(op::PauliTransferType) = chi(choi(super(op)))
+
+#pauli(op::ChiType) = _super_choi(PauliBasis, op)
+#chi(op::PauliTransferType) = _super_choi(ChiBasis, op)
 
 pauli(op::PauliTransferType) = op
 chi(op::ChiType) = op
@@ -67,6 +74,8 @@ chi(op::ChiType) = op
 pauli(op::Operator) = pauli(vec(op))
 pauli(k::Ket{<:KetBraBasis}) = dagger(pauli_comp(length(basis_l(basis(k))))) * k
 unvec(k::Ket{<:PauliBasis}) = unvec(pauli_comp(length(basis_l(basis(k)))) * k)
+
+dagger(a::ChiType) = chi(dagger(choi(a)))
 
 # TODO: document return types of mixed superoperator multiplication...
 # This method is necessary so we don't fall back to the method below it
