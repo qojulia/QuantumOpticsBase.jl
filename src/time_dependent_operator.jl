@@ -201,12 +201,12 @@ function dagger(op::TimeDependentSum)
 end
 adjoint(op::TimeDependentSum) = dagger(op)
 
-function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, i::Integer, o::TimeDependentSum)
-    TimeDependentSum(coefficients(o), embed(basis_l, basis_r, i, static_operator(o)), o.current_time)
+function embed(bl::Basis, br::Basis, i::Integer, o::TimeDependentSum)
+    TimeDependentSum(coefficients(o), embed(bl, br, i, static_operator(o)), o.current_time)
 end
 
-function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices, o::TimeDependentSum)
-    TimeDependentSum(coefficients(o), embed(basis_l, basis_r, indices, static_operator(o)), o.current_time)
+function embed(bl::Basis, br::Basis, indices, o::TimeDependentSum)
+    TimeDependentSum(coefficients(o), embed(bl, br, indices, static_operator(o)), o.current_time)
 end
 
 function +(A::TimeDependentSum, B::TimeDependentSum)

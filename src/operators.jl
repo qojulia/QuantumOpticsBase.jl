@@ -21,8 +21,7 @@ using QuantumInterface: arithmetic_binary_error, arithmetic_unary_error, addnumb
 
 Embed operator acting on a joint Hilbert space where missing indices are filled up with identity operators.
 """
-function embed(bl::CompositeBasis, br::CompositeBasis,
-               indices, op::T) where T<:DataOperator
+function embed(bl::Basis, br::Basis, indices, op::T) where T<:DataOperator
     (length(bl) == length(br)) || throw(ArgumentError("Must have length(bl) == length(br) in embed"))
     N = length(bl)
 
@@ -70,15 +69,13 @@ function embed(bl::CompositeBasis, br::CompositeBasis,
     return unpermuted_op
 end
 
-function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-                index::Integer, op::T) where T<:DataOperator
-
-    N = length(basis_l)
+function embed(bl::Basis, br::Basis, index::Integer, op::DataOperator)
+    N = length(bl)
 
     # Check stuff
-    @assert length(basis_r) == N
-    basis_l[index] == op.basis_l || throw(IncompatibleBases())
-    basis_r[index] == op.basis_r || throw(IncompatibleBases())
+    @assert length(br) == N
+    bl[index] == basis_l(op) || throw(IncompatibleBases())
+    br[index] == basis_r(op) || throw(IncompatibleBases())
     check_indices(N, index)
 
     # Build data
@@ -89,17 +86,14 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     while i > 0
         if i == index
             data = kron(data, op.data)
-            i -= length(index)
         else
-            bl = basis_l[i]
-            br = basis_r[i]
-            id = SparseMatrixCSC{Tnum}(I, dimension(bl), dimension(br))
+            id = SparseMatrixCSC{Tnum}(I, dimension(bl[i]), dimension(br[i]))
             data = kron(data, id)
-            i -= 1
         end
+        i -= 1
     end
 
-    return Operator(basis_l, basis_r, data)
+    return Operator(bl, br, data)
 end
 
 """
@@ -117,13 +111,13 @@ end
 # TODO upstream this one
 # expect(op::AbstractOperator{B,B}, state::AbstractKet{B}) where B = norm(op * state) ^ 2
 
-function expect(indices, op::AbstractOperator, state::Ket{B}) where {B<:CompositeBasis}
+function expect(indices, op::AbstractOperator, state::Ket)
     N = length(basis(state))
     indices_ = complement(N, indices)
     expect(op, ptrace(state, indices_))
 end
 
-expect(index::Integer, op::AbstractOperator, state::Ket{B}) where {B<:CompositeBasis} = expect([index], op, state)
+expect(index::Integer, op::AbstractOperator, state::Ket) = expect([index], op, state)
 
 """
     variance(op, state)
@@ -138,22 +132,22 @@ function variance(op::AbstractOperator, state::Ket)
     state.data'*(op*x).data - (state.data'*x.data)^2
 end
 
-function variance(indices, op::AbstractOperator, state::Ket{B}) where {B<:CompositeBasis}
+function variance(indices, op::AbstractOperator, state::Ket)
     N = length(basis(state))
     indices_ = complement(N, indices)
     variance(op, ptrace(state, indices_))
 end
 
-variance(index::Integer, op::AbstractOperator, state::Ket{B}) where {B<:CompositeBasis} = variance([index], op, state)
+variance(index::Integer, op::AbstractOperator, state::Ket) = variance([index], op, state)
 
 # Helper functions to check validity of arguments
 function check_ptrace_arguments(a::AbstractOperator, indices)
-    if !isa(a.basis_l, CompositeBasis) || !isa(a.basis_r, CompositeBasis)
-        throw(ArgumentError("Partial trace can only be applied onto operators with composite bases."))
-    end
     rank = length(basis_l(a))
     if rank != length(basis_r(a))
         throw(ArgumentError("Partial trace can only be applied onto operators wich have the same number of subsystems in the left basis and right basis."))
+    end
+    if rank < 2
+        throw(ArgumentError("Partial trace can only be applied to operators over at least two subsystems."))
     end
     if rank == length(indices)
         throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))

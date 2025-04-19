@@ -246,7 +246,7 @@ function exp(op::T) where {B,T<:DenseOpType{B,B}}
     return DenseOperator(op.basis_l, op.basis_r, exp(op.data))
 end
 
-function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
+function permutesystems(a::Operator, perm)
     @assert length(a.basis_l) == length(a.basis_r) == length(perm)
     @assert isperm(perm)
     data = Base.ReshapedArray(a.data, (a.basis_l.shape..., a.basis_r.shape...), ())
@@ -254,7 +254,7 @@ function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:
     data = Base.ReshapedArray(data, (dimension(a.basis_l), dimension(a.basis_r)), ())
     return Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), copy(data))
 end
-permutesystems(a::AdjointOperator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
+permutesystems(a::AdjointOperator, perm) = dagger(permutesystems(dagger(a),perm))
 
 identityoperator(::Type{S}, ::Type{T}, b1::Basis, b2::Basis) where {S<:DenseOpType,T<:Number} =
     Operator(b1, b2, Matrix{T}(I, dimension(b1), dimension(b2)))

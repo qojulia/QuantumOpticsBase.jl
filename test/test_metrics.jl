@@ -1,5 +1,6 @@
 using Test
 using QuantumOpticsBase
+import QuantumInterface: IncompatibleBases
 using SparseArrays, LinearAlgebra
 
 @testset "metrics" begin
@@ -49,8 +50,8 @@ sigma = tensor(psi2, dagger(psi2))
 @test tracedistance(sigma, sigma) ≈ 0.
 
 rho = spinup(b1) ⊗ dagger(coherentstate(b2, 0.1))
-@test_throws ArgumentError tracedistance(rho, rho)
-@test_throws ArgumentError tracedistance_h(rho, rho)
+@test_throws IncompatibleBases tracedistance(rho, rho)
+@test_throws IncompatibleBases tracedistance_h(rho, rho)
 
 @test tracedistance_nh(rho, rho) ≈ 0.
 

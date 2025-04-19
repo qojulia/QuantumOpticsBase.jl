@@ -277,7 +277,7 @@ psi_x_fft2 = tensor((dagger.(psi0_p).*Tpx_sub)...)
 difference = (dense(Txp) - identityoperator(DenseOpType, Txp.basis_l)*Txp).data
 @test isapprox(difference, zero(difference); atol=1e-12)
 @test_throws AssertionError transform(tensor(basis_position...), tensor(basis_position...))
-@test_throws QuantumOpticsBase.IncompatibleBases transform(SpinBasis(1//2)^2, SpinBasis(1//2)^2)
+@test_throws MethodError transform(SpinBasis(1//2)^2, SpinBasis(1//2)^2)
 
 @test dense(Txp) == dense(Txp_sub[1] ⊗ Txp_sub[2])
 

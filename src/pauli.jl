@@ -36,9 +36,12 @@ function choi_chi(Nl, Nr)
 end
 
 # It's possible to get better asympotic speedups using, e.g. methods from
+# https://quantum-journal.org/papers/q-2024-09-05-1461/ (see appendices)
 # https://iopscience.iop.org/article/10.1088/1402-4896/ad6499
 # https://arxiv.org/abs/2411.00526
-# https://quantum-journal.org/papers/q-2024-09-05-1461/ (see appendices)
+# https://arxiv.org/abs/2408.06206
+# https://quantumcomputing.stackexchange.com/questions/31788/how-to-write-the-iswap-unitary-as-a-linear-combination-of-tensor-products-betw/31790#31790
+# So probably using https://github.com/JuliaMath/Hadamard.jl would be best
 function _pauli_comp_convert(op, rev)
     Nl, Nr = length(basis_l(basis_l(op))), length(basis_l(basis_r(op)))
     Vl = pauli_comp(Nl)

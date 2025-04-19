@@ -215,6 +215,8 @@ function embed(bl::SumBasis, br::SumBasis, indices, op::LazyDirectSum)
 end
 # TODO: embed for multiple LazyDirectums?
 
+embed(bl::SumBasis, br::SumBasis, index::Integer, op::LazyDirectSum) = embed(bl,br,[index],op)
+
 # Fast in-place multiplication
 function mul!(result::Ket{B1},M::LazyDirectSum{B1,B2},b::Ket{B2},alpha_,beta_) where {B1,B2}
     alpha = convert(ComplexF64, alpha_)

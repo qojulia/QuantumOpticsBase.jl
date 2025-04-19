@@ -64,11 +64,12 @@ sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(basis_l(A), basis_r(B)
 #    return Operator(a1⊗b1, a2⊗b2, data)
 #end
 
+# https://discourse.julialang.org/t/permuteddimsarray-slower-than-permutedims/46401
 function super_tensor(A, B)
     all, alr = basis_l(basis_l(A)), basis_r(basis_l(A))
     arl, arr = basis_l(basis_r(A)), basis_r(basis_r(A))
-    bll, blr = basis_l(basis_l(A)), basis_r(basis_l(A))
-    brl, brr = basis_l(basis_r(A)), basis_r(basis_r(A))
+    bll, blr = basis_l(basis_l(B)), basis_r(basis_l(B))
+    brl, brr = basis_l(basis_r(B)), basis_r(basis_r(B))
     data = kron(B.data, A.data)
     data = reshape(data, map(dimension, (all, bll, alr, blr, arl, brl, arr, brr)))
     data = PermutedDimsArray(data, (1, 3, 2, 4, 5, 6, 7, 8))
