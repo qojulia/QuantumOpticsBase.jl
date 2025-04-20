@@ -348,25 +348,11 @@ dagger(a::ChoiState) = ChoiState(dagger(SuperOperator(a)))
 # reshape swaps within systems due to colum major ordering
 # https://docs.qojulia.org/quantumobjects/operators/#tensor_order
 function _super_choi((l1, l2), (r1, r2), data)
-    data = reshape(data, map(length, (l2, l1, r2, r1)))
+    data = Base.ReshapedArray(data, map(length, (l2, l1, r2, r1)), ())
     (l1, l2), (r1, r2) = (r2, l2), (r1, l1)
-    data = permutedims(data, (1, 3, 2, 4))
-    data = reshape(data, map(length, (l1⊗l2, r1⊗r2)))
-    return (l1, l2), (r1, r2), data
-end
-
-function _super_choi((r2, l2), (r1, l1), data::SparseMatrixCSC)
-    data = _permutedims(data, map(length, (l2, r2, l1, r1)), (1, 3, 2, 4))
-    data = reshape(data, map(length, (l1⊗l2, r1⊗r2)))
-    # sparse(data) is necessary since reshape of a sparse array returns a
-    # ReshapedSparseArray which is not a subtype of AbstractArray and so
-    # _permutedims fails to acces the ".m" field
-    # https://github.com/qojulia/QuantumOpticsBase.jl/pull/83
-    # https://github.com/JuliaSparse/SparseArrays.jl/issues/24
-    # permutedims in SparseArrays.jl only implements perm (2,1) and so
-    # _permutedims should probably be upstreamed
-    # https://github.com/JuliaLang/julia/issues/26534
-    return (l1, l2), (r1, r2), sparse(data)
+    data = PermutedDimsArray(data, (1, 3, 2, 4))
+    data = Base.ReshapedArray(data, map(length, (l1⊗l2, r1⊗r2)), ())
+    return (l1, l2), (r1, r2), copy(data)
 end
 
 ChoiState(op::SuperOperator) = ChoiState(_super_choi(op.basis_l, op.basis_r, op.data)...)

@@ -1,5 +1,3 @@
-import Base: permutedims
-
 function gemm_sp_dense_small(alpha, M::SparseMatrixCSC, B::AbstractMatrix, result::AbstractMatrix)
     if isone(alpha)
         @inbounds for colindex = 1:M.n
@@ -237,22 +235,4 @@ function gemv!(alpha, v::AbstractVector, M::SparseMatrixCSC, beta, result::Abstr
             end
         end
     end
-end
-
-
-
-
-function _permutedims(x::AbstractSparseMatrix, shape, perm) # TODO upstream as `permutedims` to SparseArrays to avoid piracy -- used in a single location in operators_sparse
-    shape = (shape...,)
-    shape_perm = ([shape[i] for i in perm]...,)
-    y = spzeros(eltype(x), x.m, x.n)
-    for I in eachindex(x)::CartesianIndices # Help with inference (detected by JET)
-        linear_index = LinearIndices((x.m, x.n))[I.I...]
-        cartesian_index = CartesianIndices(shape)[linear_index]
-        cartesian_index_perm = [cartesian_index[i] for i=perm]
-        linear_index_perm = LinearIndices(shape_perm)[cartesian_index_perm...]
-        J = Tuple(CartesianIndices((x.m, x.n))[linear_index_perm])
-        y[J...] = x[I.I...]
-    end
-    y
 end
