@@ -245,10 +245,10 @@ end
 function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
     @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
     @assert isperm(perm)
-    data = reshape(a.data, [a.basis_l.shape; a.basis_r.shape]...)
-    data = permutedims(data, [perm; perm .+ length(perm)])
-    data = reshape(data, length(a.basis_l), length(a.basis_r))
-    return Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), data)
+    data = Base.ReshapedArray(a.data, (a.basis_l.shape..., a.basis_r.shape...), ())
+    data = PermutedDimsArray(data, [perm; perm .+ length(perm)])
+    data = Base.ReshapedArray(data, (length(a.basis_l), length(a.basis_r)), ())
+    return Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), copy(data))
 end
 permutesystems(a::AdjointOperator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
 
