@@ -31,7 +31,7 @@ Bra
 Ket
 ```
 
-* General purpose QuantumOpticsBase. A few more specialized operators are implemented in [API: Quantum-systems](@ref).
+* General purpose operators. A few more specialized operators are implemented in [API: Quantum-systems](@ref).
 
 ```@docs
 AbstractOperator
@@ -51,6 +51,10 @@ DenseOperator
 
 ```@docs
 SparseOperator
+```
+
+```@docs
+LazyKet
 ```
 
 ```@docs
@@ -115,6 +119,10 @@ randoperator
 ```
 
 ```@docs
+randunitary_haar
+```
+
+```@docs
 spre
 ```
 
@@ -130,7 +138,7 @@ sprepost
 liouvillian
 ```
 
-* As far as it makes sense the same functions are implemented for bases, states, operators and superQuantumOpticsBase.
+* As far as it makes sense the same functions are implemented for bases, states, operators and superoperators.
 
 ```@docs
 QuantumOpticsBase.samebases
@@ -322,6 +330,10 @@ ShiftedChargeBasis
 ```
 
 ```@docs
+chargestate
+```
+
+```@docs
 chargeop
 ```
 
@@ -350,6 +362,19 @@ transition(::Type{T}, ::NLevelBasis, ::Integer, ::Integer) where T
 ```@docs
 nlevelstate
 ```
+
+```@docs
+paulix
+```
+
+```@docs
+pauliy
+```
+
+```@docs
+pauliz
+```
+
 
 ### [Spin](@id API: Spin)
 
@@ -455,6 +480,10 @@ projector(::Type{T}, b1::SubspaceBasis, b2::SubspaceBasis) where T
 
 ```@docs
 ManyBodyBasis
+```
+
+```@docs
+FermionBitstring
 ```
 
 ```@docs
@@ -578,6 +607,10 @@ avg_gate_fidelity
 
 ```@docs
 randstate
+```
+
+```@docs
+randstate_haar
 ```
 
 ```@docs
