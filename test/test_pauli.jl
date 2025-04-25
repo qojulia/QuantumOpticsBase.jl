@@ -93,12 +93,12 @@ for (gate, rules) in [(CNOT, CNOT_rules)]
     op_chi = chi(op_sop)
 
     @test_throws DimensionMismatch Operator(PauliBasis(2), PauliBasis(3), op_ptm.data)
-    @test_throws DimensionMismatch Operator(ChiBasis(bs^2, bs^2), ChiBasis(bs^3, bs^3), op_chi.data)
+    @test_throws DimensionMismatch Operator(ChiBasis(2, 2), ChiBasis(3, 3), op_chi.data)
     @test Operator(PauliBasis(2), PauliBasis(2), op_ptm.data) == op_ptm
-    @test Operator(ChiBasis(bs^2, bs^2), op_chi.data) == op_chi
+    @test Operator(ChiBasis(2, 2), op_chi.data) == op_chi
     @test basis_l(op_sop) == basis_r(op_sop) == KetBraBasis(bs^2, bs^2)
     @test basis_l(op_choi) == basis_r(op_choi) == ChoiBasis(bs^2, bs^2)
-    @test basis_l(op_chi) == basis_r(op_chi) == ChiBasis(2)
+    @test basis_l(op_chi) == basis_r(op_chi) == ChiBasis(2, 2)
     @test basis_l(op_ptm) == basis_r(op_ptm) == PauliBasis(2)
 
     @test all(isapprox.(imag.(op_sop.data), 0))

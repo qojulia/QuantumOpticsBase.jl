@@ -50,10 +50,10 @@ function _pauli_comp_convert(op, rev)
 end
 
 function _choi_chi_convert(op, rev)
-    Nl, Nr = length(basis_l(basis_l(op))), length(basis_r(basis_l(op)))
+    Nl, Nr = length(basis_l(basis(op))), length(basis_r(basis(op)))
     V = choi_chi(Nl,Nr)
-    norm = 2^((Nl+Nr)÷2)
-    out = rev ? norm * V * op * dagger(V) : (1/norm) * dagger(V) * op * V
+    norm = 2^((Nl+Nr)÷2) # provides "standard" normalization
+    rev ? norm * V * op * dagger(V) : (1/norm) * dagger(V) * op * V
 end
 
 pauli(op::SuperOperatorType) = _pauli_comp_convert(op, false)
@@ -67,9 +67,6 @@ pauli(op::ChoiStateType) = pauli(super(op))
 chi(op::SuperOperatorType) = chi(choi(op))
 pauli(op::ChiType) = pauli(super(choi(op)))
 chi(op::PauliTransferType) = chi(choi(super(op)))
-
-#pauli(op::ChiType) = _super_choi(PauliBasis, op)
-#chi(op::PauliTransferType) = _super_choi(ChiBasis, op)
 
 pauli(op::PauliTransferType) = op
 chi(op::ChiType) = op
