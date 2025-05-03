@@ -1,4 +1,4 @@
-import QuantumInterface: KetBraBasis, ChoiBasis
+import QuantumInterface: KetBraBasis, ChoiBasis, spre, spost
 
 const SuperOperatorType{BL,BR,T} = Operator{BL,BR,T} where {BL<:KetBraBasis,BR<:KetBraBasis}
 const ChoiStateType{BL,BR,T} = Operator{BL,BR,T} where {BR<:ChoiBasis,BL<:ChoiBasis}
@@ -10,20 +10,6 @@ function unvec(k::Ket{<:KetBraBasis})
     bl, br = basis_l(basis(k)), basis_r(basis(k))
     Operator(bl, br, reshape(k.data, dimension(bl), dimension(br)))
     #@cast A[n,m] |= k.data[(n,m)] (n ∈ 1:dimension(bl), m ∈ 1:dimension(br))
-end
-#function unvec(k::Ket{<:KetBraBasis})
-#    bl, br = basis_l(basis(k)), basis_r(basis(k))
-#    return Operator(bl, br, A)
-#end
-
-function spre(op::Operator)
-    multiplicable(op, op) || throw(ArgumentError("It's not clear what spre of a non-square operator should be. See issue #113"))
-    sprepost(op, identityoperator(op))
-end
-
-function spost(op::Operator)
-    multiplicable(op, op) || throw(ArgumentError("It's not clear what spost of a non-square operator should be. See issue #113"))
-    sprepost(identityoperator(op), op)
 end
 
 sprepost(A::Operator, B::Operator) = Operator(KetBraBasis(basis_l(A), basis_r(B)), KetBraBasis(basis_r(A), basis_l(B)), kron(permutedims(B.data), A.data))
@@ -72,7 +58,7 @@ super(op::ChoiStateType) = _super_choi(KetBraBasis, op)
 super(op::SuperOperatorType) = op
 choi(op::ChoiStateType) = op
 
-# I'm not sure this is actually right... see sec V.C. of https://arxiv.org/abs/1111.6950
+# Probably possible to do this directly... see sec V.C. of https://arxiv.org/abs/1111.6950
 dagger(a::ChoiStateType) = choi(dagger(super(a)))
 
 # This method is necessary so we don't fall back to the method below it
@@ -93,3 +79,41 @@ identitysuperoperator(op::DenseOpType{BL,BR}) where {BL<:KetBraBasis, BR<:KetBra
 identitysuperoperator(op::SparseOpType{BL,BR}) where {BL<:KetBraBasis, BR<:KetBraBasis} =
     Operator(op.basis_l, op.basis_r, sparse(one(eltype(op.data))I, size(op.data)))
 
+
+"""
+    KrausOperators <: AbstractOperator
+
+Superoperator represented as a list of Kraus operators.
+
+Note that KrausOperators can only represent linear maps taking density operators to other
+(potentially unnormalized) density operators.
+In contrast the `SuperOperator` or `ChoiState` representations can represent arbitrary linear maps
+taking arbitrary operators defined on ``H_A \\to H_B`` to ``H_C \\to H_D``.
+In otherwords, the Kraus representation is only defined for completely positive linear maps of the form
+``(H_A \\to H_A) \\to (H_B \\to H_B)``.
+Thus converting from `SuperOperator` or `ChoiState` to `KrausOperators` will throw an exception if the
+map cannot be faithfully represented up to the specificed tolerance `tol`.
+
+struct KrausOperators{B1,B2,T} <: AbstractSuperOperator{B1,B2}
+    basis_l::B1
+    basis_r::B2
+    data::Vector{T}
+    function KrausOperators(bl::BL, br::BR, data::Vector{T}) where {BL,BR,T}
+        foreach(M -> check_samebases(br, basis_r(M)), data)
+        foreach(M -> check_samebases(bl, basis_r(M)), data)
+        new(basis_l, basis_r, data)
+    end
+end
+
+dagger(a::KrausOperators) = KrausOperators(a.basis_r, a.basis_l, [dagger(op) for op in a.data])
+*(a::KrausOperators, b::KrausOperators) =
+    (check_samebases(a.basis_r, b.basis_l);
+     KrausOperators(a.basis_l, b.basis_r, [A*B for A in a.data for B in b.data]))
+*(a::KrausOperators, b::AbstractOperator) = sum(op*b*dagger(op) for op in a.data)
+==(a::KrausOperators, b::KrausOperators) = (super(a) == super(b))
+isapprox(a::KrausOperators, b::KrausOperators; kwargs...) = isapprox(SuperOperator(a), SuperOperator(b); kwargs...)
+tensor(a::KrausOperators, b::KrausOperators) =
+    KrausOperators(a.basis_l ⊗ b.basis_l, a.basis_r ⊗ b.basis_r,
+                   [A ⊗ B for A in a.data for B in b.data])
+
+"""
