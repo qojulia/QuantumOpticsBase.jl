@@ -1,5 +1,6 @@
 using Test
 using QuantumOpticsBase
+import QuantumInterface: IncompatibleBases
 using LinearAlgebra, Random
 
 
@@ -23,8 +24,8 @@ b_r = b1b⊗b2b⊗b3b
 # Test creation
 @test_throws ArgumentError LazySum()
 @test_throws ArgumentError LazySum([1., 2.], [randoperator(b_l)])
-@test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_l)))
-@test_throws QuantumOpticsBase.IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_r, b_r)))
+@test_throws IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_l)))
+@test_throws IncompatibleBases LazySum(randoperator(b_l, b_r), sparse(randoperator(b_r, b_r)))
 
 # Test copy
 op1 = 2*LazySum(randoperator(b_l, b_r), sparse(randoperator(b_l, b_r)))
@@ -80,18 +81,18 @@ op2_ = 0.7*op2a + 0.9*op2b
 op3 = LazySum(op3a)
 op3_ = op3a
 
-x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
-x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+x2 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Addition
-@test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op2)
+@test_throws IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(op1+op2, op1_+op2_)
 @test 1e-14 > D(op1+op2_, op1_+op2_)
 @test 1e-14 > D(op1_+op2, op1_+op2_)
 
 # Subtraction
-@test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op2)
+@test_throws IncompatibleBases op1 - dagger(op2)
 @test 1e-14 > D(op1 - op2, op1_ - op2_)
 @test 1e-14 > D(op1 - op2_, op1_ - op2_)
 @test 1e-14 > D(op1_ - op2, op1_ - op2_)
@@ -99,7 +100,7 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 
 # Test multiplication
-@test_throws QuantumOpticsBase.IncompatibleBases op1*op2
+@test_throws IncompatibleBases op1*op2
 @test 1e-11 > D(dense(op1*op2'), op1_ * op2_')
 @test LazySum([0.1, 0.1], (op1a, op2a)) == LazySum(op1a, op2a)*0.1
 @test LazySum([0.1, 0.1], (op1a, op2a)) == 0.1*LazySum(op1a, op2a)
@@ -114,16 +115,16 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test iszero( op1a * LazySum(b_r, b_l) )
 @test iszero( LazySum(b_l, b_r) * x1 )
 @test iszero( xbra1 * LazySum(b_l, b_r) )
-@test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randoperator(NLevelBasis(4), GenericBasis(2)) # save Basis with different size
-@test_throws DimensionMismatch randoperator(GenericBasis(1), FockBasis(3)) * LazySum(FockBasis(1), NLevelBasis(2))
-@test_throws DimensionMismatch LazySum(FockBasis(2), NLevelBasis(2)) * randstate(NLevelBasis(7))
-@test_throws DimensionMismatch randstate(FockBasis(3))' * LazySum(FockBasis(1), NLevelBasis(2))
+@test_throws IncompatibleBases LazySum(FockBasis(2), NLevelBasis(2)) * randoperator(NLevelBasis(4), GenericBasis(2)) # save Basis with different size
+@test_throws IncompatibleBases randoperator(GenericBasis(1), FockBasis(3)) * LazySum(FockBasis(1), NLevelBasis(2))
+@test_throws IncompatibleBases LazySum(FockBasis(2), NLevelBasis(2)) * randstate(NLevelBasis(7))
+@test_throws IncompatibleBases randstate(FockBasis(3))' * LazySum(FockBasis(1), NLevelBasis(2))
 
 ## multiplication with Operator of AbstractMatrix
 LSop = LazySum(randoperator(b1a^2)) # AbstractOperator
 LSop_s = LazySum(sparse(randoperator(b1a^2)))
-hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Hermitian
-symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,length(basis(LSop)),length(basis(LSop))))) # Symmetric
+hermitian_op = Operator(basis(LSop), Hermitian(randn(ComplexF64,dimension(basis(LSop)),dimension(basis(LSop))))) # Hermitian
+symmetric_op = Operator(basis(LSop), Symmetric(randn(ComplexF64,dimension(basis(LSop)),dimension(basis(LSop))))) # Symmetric
 adjoint_op = randoperator(basis(LSop))' # Adjoint
 real_op = Operator(basis(LSop), real(adjoint_op.data)) # real
 ops_tuple = (symmetric_op,hermitian_op,adjoint_op)
@@ -222,10 +223,10 @@ op123_ = 0.1*op1 + 0.3*op2 + 1.2*op3
 @test_throws ArgumentError ptrace(op123, [1,2,3])
 
 # Test expect
-state = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 @test expect(op123, state) ≈ expect(op123_, state)
 
-state = DenseOperator(b_l, b_l, rand(ComplexF64, length(b_l), length(b_l)))
+state = DenseOperator(b_l, b_l, rand(ComplexF64, dimension(b_l), dimension(b_l)))
 @test expect(op123, state) ≈ expect(op123_, state)
 
 # Permute systems
@@ -262,8 +263,8 @@ zero_op = LazySum(b_l, b_r)
 zero_op_ = sparse(zero_op)
 @test dense(zero_op) == zero_op_
 
-state = Ket(b_r, rand(ComplexF64, length(b_r)))
-result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+result_ = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test 1e-13 > D(result, op_*state)
@@ -282,8 +283,8 @@ result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,zero_op,state,alpha,beta)
 @test 1e-13 > D(result, beta*result_)
 
-state = Bra(b_l, rand(ComplexF64, length(b_l)))
-result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
+state = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+result_ = Bra(b_r, rand(ComplexF64, dimension(b_r)))
 result = deepcopy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test 1e-13 > D(result, state*op_)

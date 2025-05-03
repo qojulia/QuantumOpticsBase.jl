@@ -9,7 +9,7 @@ Abstract type for operators with a data field.
 This is an abstract type for operators that have a direct matrix representation
 stored in their `.data` field.
 """
-abstract type DataOperator{BL,BR} <: AbstractOperator{BL,BR} end
+abstract type DataOperator{BL,BR} <: AbstractOperator end
 
 
 # Common error messages
@@ -21,16 +21,15 @@ using QuantumInterface: arithmetic_binary_error, arithmetic_unary_error, addnumb
 
 Embed operator acting on a joint Hilbert space where missing indices are filled up with identity operators.
 """
-function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-               indices, op::T) where T<:DataOperator
-    N = length(basis_l.bases)
-    @assert length(basis_r.bases) == N
+function embed(bl::Basis, br::Basis, indices, op::T) where T<:DataOperator
+    (length(bl) == length(br)) || throw(ArgumentError("Must have length(bl) == length(br) in embed"))
+    N = length(bl)
 
-    reduce(tensor, basis_l.bases[indices]) == op.basis_l || throw(IncompatibleBases())
-    reduce(tensor, basis_r.bases[indices]) == op.basis_r || throw(IncompatibleBases())
+    reduce(tensor, bl[indices]) == basis_l(op) || throw(IncompatibleBases())
+    reduce(tensor, br[indices]) == basis_r(op) || throw(IncompatibleBases())
 
-    index_order = [idx for idx in 1:length(basis_l.bases) if idx ∉ indices]
-    all_operators = AbstractOperator[identityoperator(T, eltype(op), basis_l.bases[i], basis_r.bases[i]) for i in index_order]
+    index_order = [idx for idx in 1:N if idx ∉ indices]
+    all_operators = AbstractOperator[identityoperator(T, eltype(op), bl[i], br[i]) for i in index_order]
 
     for idx in indices
         pushfirst!(index_order, idx)
@@ -44,8 +43,8 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
 
     # Reorient the matrix to act in the correctly ordered basis.
     # Get the dimensions necessary for index permuting.
-    dims_l = [b.shape[1] for b in basis_l.bases]
-    dims_r = [b.shape[1] for b in basis_r.bases]
+    dims_l = shape(bl)
+    dims_r = shape(br)
 
     # Get the order of indices to use in the first reshape. Julia indices go in
     # reverse order.
@@ -65,20 +64,18 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
 
     # Create operator with proper data and bases
     constructor = Base.typename(T)
-    unpermuted_op = constructor.wrapper(basis_l, basis_r, M)
+    unpermuted_op = constructor.wrapper(bl, br, M)
 
     return unpermuted_op
 end
 
-function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-                index::Integer, op::T) where T<:DataOperator
-
-    N = length(basis_l.bases)
+function embed(bl::Basis, br::Basis, index::Integer, op::DataOperator)
+    N = length(bl)
 
     # Check stuff
-    @assert N==length(basis_r.bases)
-    basis_l.bases[index] == op.basis_l || throw(IncompatibleBases())
-    basis_r.bases[index] == op.basis_r || throw(IncompatibleBases())
+    @assert length(br) == N
+    bl[index] == basis_l(op) || throw(IncompatibleBases())
+    br[index] == basis_r(op) || throw(IncompatibleBases())
     check_indices(N, index)
 
     # Build data
@@ -89,17 +86,14 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     while i > 0
         if i == index
             data = kron(data, op.data)
-            i -= length(index)
         else
-            bl = basis_l.bases[i]
-            br = basis_r.bases[i]
-            id = SparseMatrixCSC{Tnum}(I, length(bl), length(br))
+            id = SparseMatrixCSC{Tnum}(I, dimension(bl[i]), dimension(br[i]))
             data = kron(data, id)
-            i -= 1
         end
+        i -= 1
     end
 
-    return Operator(basis_l, basis_r, data)
+    return Operator(bl, br, data)
 end
 
 """
@@ -109,18 +103,21 @@ Expectation value of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-expect(op::AbstractOperator{B,B}, state::Ket{B}) where B = dot(state.data, (op * state).data)
+function expect(op::AbstractOperator, state::Ket)
+    check_multiplicable(op,op); check_multiplicable(op,state)
+    dot(state.data, (op * state).data)
+end
 
 # TODO upstream this one
 # expect(op::AbstractOperator{B,B}, state::AbstractKet{B}) where B = norm(op * state) ^ 2
 
-function expect(indices, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis}
-    N = length(state.basis.shape)
+function expect(indices, op::AbstractOperator, state::Ket)
+    N = length(basis(state))
     indices_ = complement(N, indices)
     expect(op, ptrace(state, indices_))
 end
 
-expect(index::Integer, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis} = expect([index], op, state)
+expect(index::Integer, op::AbstractOperator, state::Ket) = expect([index], op, state)
 
 """
     variance(op, state)
@@ -129,44 +126,42 @@ Variance of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-function variance(op::AbstractOperator{B,B}, state::Ket{B}) where B
+function variance(op::AbstractOperator, state::Ket)
+    check_multiplicable(op,op); check_multiplicable(op,state)
     x = op*state
     state.data'*(op*x).data - (state.data'*x.data)^2
 end
 
-function variance(indices, op::AbstractOperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis}
-    N = length(state.basis.shape)
+function variance(indices, op::AbstractOperator, state::Ket)
+    N = length(basis(state))
     indices_ = complement(N, indices)
     variance(op, ptrace(state, indices_))
 end
 
-variance(index::Integer, op::AbstractOperator{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis} = variance([index], op, state)
+variance(index::Integer, op::AbstractOperator, state::Ket) = variance([index], op, state)
 
 # Helper functions to check validity of arguments
 function check_ptrace_arguments(a::AbstractOperator, indices)
-    if !isa(a.basis_l, CompositeBasis) || !isa(a.basis_r, CompositeBasis)
-        throw(ArgumentError("Partial trace can only be applied onto operators with composite bases."))
-    end
-    rank = length(a.basis_l.shape)
-    if rank != length(a.basis_r.shape)
+    rank = length(basis_l(a))
+    if rank != length(basis_r(a))
         throw(ArgumentError("Partial trace can only be applied onto operators wich have the same number of subsystems in the left basis and right basis."))
+    end
+    if rank < 2
+        throw(ArgumentError("Partial trace can only be applied to operators over at least two subsystems."))
     end
     if rank == length(indices)
         throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))
     end
-    check_indices(length(a.basis_l.shape), indices)
+    check_indices(length(basis_l(a)), indices)
     for i=indices
-        if a.basis_l.shape[i] != a.basis_r.shape[i]
+        if shape(basis_l(a))[i] != shape(basis_r(a))[i]
             throw(ArgumentError("Partial trace can only be applied onto subsystems that have the same left and right dimension."))
         end
     end
 end
 function check_ptrace_arguments(a::StateVector, indices)
-    if length(basis(a).shape) == length(indices)
+    if length(basis(a)) == length(indices)
         throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))
     end
-    check_indices(length(basis(a).shape), indices)
+    check_indices(length(basis(a)), indices)
 end
-
-multiplicable(a::AbstractOperator, b::Ket) = multiplicable(a.basis_r, b.basis)
-multiplicable(a::Bra, b::AbstractOperator) = multiplicable(a.basis, b.basis_l)

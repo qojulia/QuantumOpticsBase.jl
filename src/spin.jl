@@ -12,7 +12,7 @@ See [`paulix`](@ref) for the generalization of the qubit pauli operators to
 qudits while preserving them being unitary instead of Hermitian.
 """
 function sigmax(::Type{T}, b::SpinBasis) where T
-    N = length(b)
+    N = dimension(b)
     diag = T[complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:N-1]
     data = spdiagm(1 => diag, -1 => diag)
     SparseOperator(b, data)
@@ -31,7 +31,7 @@ See [`pauliy`](@ref) for the generalization of the qubit pauli operators to
 qudits while preserving them being unitary instead of Hermitian.
 """
 function sigmay(::Type{T}, b::SpinBasis) where T
-    N = length(b)
+    N = dimension(b)
     diag = T[1im*complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:N-1]
     data = spdiagm(-1 => diag, 1 => -diag)
     SparseOperator(b, data)
@@ -50,7 +50,7 @@ See [`pauliz`](@ref) for the generalization of the qubit pauli operators to
 qudits while preserving them being unitary instead of Hermitian.
 """
 function sigmaz(::Type{T}, b::SpinBasis) where T
-    N = length(b)
+    N = dimension(b)
     diag = T[complex(2*m) for m=b.spinnumber:-1:-b.spinnumber]
     data = spdiagm(0 => diag)
     SparseOperator(b, data)
@@ -63,7 +63,7 @@ sigmaz(b::SpinBasis) = sigmaz(ComplexF64,b)
 Raising operator ``σ_+`` for the given Spin basis.
 """
 function sigmap(::Type{T}, b::SpinBasis) where T
-    N = length(b)
+    N = dimension(b)
     S = (b.spinnumber + 1)*b.spinnumber
     diag = T[complex(sqrt(float(S - m*(m+1)))) for m=b.spinnumber-1:-1:-b.spinnumber]
     data = spdiagm(1 => diag)
@@ -77,7 +77,7 @@ sigmap(b::SpinBasis) = sigmap(ComplexF64,b)
 Lowering operator ``σ_-`` for the given Spin basis.
 """
 function sigmam(::Type{T}, b::SpinBasis) where T
-    N = length(b)
+    N = dimension(b)
     S = (b.spinnumber + 1)*b.spinnumber
     diag = T[complex(sqrt(float(S - m*(m-1)))) for m=b.spinnumber:-1:-b.spinnumber+1]
     data = spdiagm(-1 => diag)
@@ -99,7 +99,7 @@ spinup(b::SpinBasis) = spinup(ComplexF64, b)
 
 Spin down state for the given Spin basis.
 """
-spindown(::Type{T}, b::SpinBasis) where T = basisstate(T, b, b.shape[1])
+spindown(::Type{T}, b::SpinBasis) where T = basisstate(T, b, dimension(b))
 spindown(b::SpinBasis) = spindown(ComplexF64, b)
 
 
@@ -111,7 +111,7 @@ specified Spin-``N/2`` basis with optional data type `T`, computed as the matrix
 large squeezing (``|z| > \\sqrt{N}``) will create an oversqueezed state.
 """
 function squeeze(::Type{T}, b::SpinBasis, z::Number) where T
-    N = Int(length(b)-1)
+    N = Int(dimension(b)-1)
     z = T(z)/2N
     Jm = sigmam(b)/2
     Jp = sigmap(b)/2

@@ -1,5 +1,6 @@
 using Test
 using QuantumOpticsBase
+import QuantumInterface: IncompatibleBases
 using SparseArrays, LinearAlgebra
 
 @testset "metrics" begin
@@ -49,8 +50,8 @@ sigma = tensor(psi2, dagger(psi2))
 @test tracedistance(sigma, sigma) ≈ 0.
 
 rho = spinup(b1) ⊗ dagger(coherentstate(b2, 0.1))
-@test_throws ArgumentError tracedistance(rho, rho)
-@test_throws ArgumentError tracedistance_h(rho, rho)
+@test_throws IncompatibleBases tracedistance(rho, rho)
+@test_throws IncompatibleBases tracedistance_h(rho, rho)
 
 @test tracedistance_nh(rho, rho) ≈ 0.
 
@@ -128,13 +129,13 @@ rho_mix = DenseOperator(rho_ent.basis_l, diagm(ComplexF64[1.0,1.0,1.0,1.0]))
 @test_throws ArgumentError entanglement_entropy(rho_mix, 3)
 
 CNOT = dm(spinup(b1))⊗identityoperator(b1) + dm(spindown(b1))⊗sigmax(b1)
-CNOT_sop = SuperOperator(CNOT)
-CNOT_chi = ChiMatrix(CNOT)
-CNOT_ptm = PauliTransferMatrix(CNOT)
+CNOT_sop = sprepost(CNOT, dagger(CNOT))
+CNOT_chi = chi(CNOT_sop)
+CNOT_ptm = pauli(CNOT_sop)
 
-@test avg_gate_fidelity(CNOT_sop, CNOT_sop) == 1
-@test avg_gate_fidelity(CNOT_chi, CNOT_chi) == 1
-@test avg_gate_fidelity(CNOT_ptm, CNOT_ptm) == 1
+@test avg_gate_fidelity(CNOT_sop, CNOT_sop) ≈ 1
+@test avg_gate_fidelity(CNOT_chi, CNOT_chi) ≈ 1
+@test avg_gate_fidelity(CNOT_ptm, CNOT_ptm) ≈ 1
 
 @test_throws MethodError avg_gate_fidelity(CNOT_sop, CNOT_chi)
 @test_throws MethodError avg_gate_fidelity(CNOT_sop, CNOT_ptm)

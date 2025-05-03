@@ -67,6 +67,8 @@ MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi
 
 ==(b1::PositionBasis, b2::PositionBasis) = b1.xmin==b2.xmin && b1.xmax==b2.xmax && b1.N==b2.N
 ==(b1::MomentumBasis, b2::MomentumBasis) = b1.pmin==b2.pmin && b1.pmax==b2.pmax && b1.N==b2.N
+dimension(b::PositionBasis) = b.N
+dimension(b::MomentumBasis) = b.N
 
 
 """
@@ -280,7 +282,7 @@ end
 
 Abstract type for all implementations of FFT operators.
 """
-abstract type FFTOperator{BL, BR, T} <: AbstractOperator{BL,BR} end
+abstract type FFTOperator{BL, BR, T} <: AbstractOperator end
 
 Base.eltype(x::FFTOperator) = promote_type(eltype(x.mul_before), eltype(x.mul_after))
 
@@ -310,6 +312,9 @@ struct FFTOperators{BL,BR,T,P1,P2,P3,P4} <: FFTOperator{BL, BR, T}
     end
 end
 
+basis_l(op::FFTOperators) = op.basis_l
+basis_r(op::FFTOperators) = op.basis_r
+
 """
     FFTKets
 
@@ -332,6 +337,9 @@ struct FFTKets{BL,BR,T,P1,P2} <: FFTOperator{BL, BR, T}
     end
 end
 
+basis_l(ket::FFTKets) = ket.basis_l
+basis_r(ket::FFTKets) = ket.basis_r
+
 """
     transform(b1::MomentumBasis, b2::PositionBasis)
     transform(b1::PositionBasis, b2::MomentumBasis)
@@ -347,11 +355,11 @@ function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only=fals
     end
     mul_before = exp.(-1im*basis_l.pmin*(samplepoints(basis_r) .- basis_r.xmin))
     mul_after = exp.(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{eltype(mul_before)}(undef, length(basis_r))
+    x = Vector{eltype(mul_before)}(undef, dimension(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), mul_before, mul_after)
     else
-        A = Matrix{eltype(mul_before)}(undef, length(basis_r), length(basis_r))
+        A = Matrix{eltype(mul_before)}(undef, dimension(basis_r), dimension(basis_r))
         FFTOperators(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), plan_bfft!(A, 2), plan_fft!(A, 1), mul_before, mul_after)
     end
 end
@@ -372,24 +380,24 @@ function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only=fals
     end
     mul_before = exp.(1im*basis_l.xmin*(samplepoints(basis_r) .- basis_r.pmin))
     mul_after = exp.(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    x = Vector{eltype(mul_before)}(undef, length(basis_r))
+    x = Vector{eltype(mul_before)}(undef, dimension(basis_r))
     if ket_only
         FFTKets(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), mul_before, mul_after)
     else
-        A = Matrix{eltype(mul_before)}(undef, length(basis_r), length(basis_r))
+        A = Matrix{eltype(mul_before)}(undef, dimension(basis_r), dimension(basis_r))
         FFTOperators(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), plan_fft!(A, 2), plan_bfft!(A, 1), mul_before, mul_after)
     end
 end
 
 function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only=false, index=Int[])
-    @assert length(basis_l.bases) == length(basis_r.bases)
+    @assert length(basis_l) == length(basis_r)
     if length(index) == 0
         check_pos = [isa.(basis_l.bases, PositionBasis)...]
         check_mom = [isa.(basis_l.bases, MomentumBasis)...]
         if any(check_pos) && !any(check_mom)
-            index = [1:length(basis_l.bases);][check_pos]
+            index = [1:length(basis_l);][check_pos]
         elseif any(check_mom) && !any(check_pos)
-            index = [1:length(basis_l.bases);][check_mom]
+            index = [1:length(basis_l);][check_mom]
         else
             throw(IncompatibleBases())
         end
@@ -406,13 +414,13 @@ function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only=fa
 end
 
 function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index; ket_only=false)
-    n = length(basis_l.bases)
+    n = length(basis_l)
     Lx = [(b.xmax - b.xmin) for b=basis_l.bases[index]]
     dp = [spacing(b) for b=basis_r.bases[index]]
     dx = [spacing(b) for b=basis_l.bases[index]]
-    N = [length(b) for b=basis_l.bases]
+    N = [dimension(b) for b=basis_l.bases]
     for i=1:n
-        if N[i] != length(basis_r.bases[i])
+        if N[i] != dimension(basis_r[i])
             throw(IncompatibleBases())
         end
     end
@@ -451,13 +459,13 @@ function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index; k
 end
 
 function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index; ket_only=false)
-    n = length(basis_l.bases)
+    n = length(basis_l)
     Lx = [(b.xmax - b.xmin) for b=basis_r.bases[index]]
     dp = [spacing(b) for b=basis_l.bases[index]]
     dx = [spacing(b) for b=basis_r.bases[index]]
-    N = [length(b) for b=basis_l.bases]
+    N = [dimension(b) for b=basis_l.bases]
     for i=1:n
-        if N[i] != length(basis_r.bases[i])
+        if N[i] != dimension(basis_r.bases[i])
             throw(IncompatibleBases())
         end
     end
@@ -504,7 +512,7 @@ tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l
 tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
 
 function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2}
-    N = length(M.basis_r)
+    N = dimension(M.basis_r)
     if iszero(beta)
         @inbounds for i=1:N
             result.data[i] = M.mul_before[i] * b.data[i]
@@ -527,7 +535,7 @@ function mul!(result::Ket{B1},M::FFTOperator{B1,B2},b::Ket{B2},alpha,beta) where
 end
 
 function mul!(result::Bra{B2},b::Bra{B1},M::FFTOperator{B1,B2},alpha,beta) where {B1,B2}
-    N = length(M.basis_l)
+    N = dimension(M.basis_l)
     if iszero(beta)
         @inbounds for i=1:N
             result.data[i] = conj(M.mul_after[i]) * conj(b.data[i])

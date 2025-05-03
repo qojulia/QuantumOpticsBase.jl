@@ -4,7 +4,7 @@
 Calculate a random normalized ket state.
 """
 function randstate(::Type{T}, b::Basis) where T
-    psi = Ket(b, rand(T, length(b)))
+    psi = Ket(b, rand(T, dimension(b)))
     normalize!(psi)
     psi
 end
@@ -13,10 +13,10 @@ randstate(b) = randstate(ComplexF64, b)
 """
     randstate_haar(b::Basis)
 
-Returns a Haar random pure state of dimension `length(b)` by applying a Haar random unitary to a fixed pure state.
+Returns a Haar random pure state of dimension `dimension(b)` by applying a Haar random unitary to a fixed pure state.
 """
 function randstate_haar(b::Basis)
-    dim = length(b)
+    dim = dimension(b)
     mat = rand(ComplexF64, dim, dim)
     q, r = qr!(mat)
     return Ket(b, q[:,1])
@@ -27,7 +27,7 @@ end
 
 Calculate a random unnormalized dense operator.
 """
-randoperator(::Type{T}, b1::Basis, b2::Basis) where T = DenseOperator(b1, b2, rand(T, length(b1), length(b2)))
+randoperator(::Type{T}, b1::Basis, b2::Basis) where T = DenseOperator(b1, b2, rand(T, dimension(b1), dimension(b2)))
 randoperator(b1::Basis, b2::Basis) = randoperator(ComplexF64, b1, b2)
 randoperator(::Type{T}, b::Basis) where T = randoperator(T, b, b)
 randoperator(b) = randoperator(ComplexF64, b)
@@ -35,10 +35,10 @@ randoperator(b) = randoperator(ComplexF64, b)
 """
     randunitary_haar(b::Basis)
 
-Returns a Haar random unitary matrix of dimension `length(b)`.
+Returns a Haar random unitary matrix of dimension `dimension(b)`.
 """
 function randunitary_haar(b::Basis)
-    dim = length(b)
+    dim = dimension(b)
     mat = rand(ComplexF64, dim, dim)
     q, r = qr!(mat)
     d = Diagonal([r[i, i] / abs(r[i, i]) for i in 1:dim])
@@ -60,11 +60,11 @@ end
 
 Coherent thermal state ``D(α)exp(-H/T)/Tr[exp(-H/T)]D^†(α)``.
 """
-function coherentthermalstate(::Type{C},basis::B,H::AbstractOperator{B,B},T,alpha) where {C,B<:FockBasis}
+function coherentthermalstate(::Type{C},basis::B,H::AbstractOperator,T,alpha) where {C,B<:FockBasis}
     D = displace(C,basis,alpha)
     return D*thermalstate(H,T)*dagger(D)
 end
-coherentthermalstate(basis::B,H::AbstractOperator{B,B},T,alpha) where B<:FockBasis = coherentthermalstate(ComplexF64,basis,H,T,alpha)
+coherentthermalstate(basis::B,H::AbstractOperator,T,alpha) where B<:FockBasis = coherentthermalstate(ComplexF64,basis,H,T,alpha)
 
 """
     phase_average(rho)

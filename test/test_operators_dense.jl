@@ -1,5 +1,6 @@
 using Test
 using QuantumOpticsBase
+import QuantumInterface: IncompatibleBases
 using Random, SparseArrays, LinearAlgebra
 
 @testset "operators-dense" begin
@@ -31,18 +32,18 @@ op2 = DenseOperator(b1b, b1a, [1 1; 1 1; 1 1])
 ## Stacking Kets to make an Operator
 ### signle basis
 ψlist = basisstate.([GenericBasis(4)], 1:2)
-@test Operator(ψlist...) == Operator(ψlist) == Operator(ψlist[1].basis, GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
-@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(FockBasis(length(ψlist)-1), ψlist) == Operator(ψlist[1].basis, FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
-@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
-ψlist = vcat(ψlist, basisstate.(Real, [NLevelBasis(prod(ψlist[1].basis.shape))], [1,prod(ψlist[1].basis.shape)]))
-@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(ψlist...) == Operator(ψlist) == Operator(basis(ψlist[1]), GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
+@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(FockBasis(length(ψlist)-1), ψlist) == Operator(basis(ψlist[1]), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+ψlist = vcat(ψlist, basisstate.(Real, [NLevelBasis(dimension(basis(ψlist[1])))], [1,dimension(basis(ψlist[1]))]))
+@test Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
 ### composite basis
 ψlist = basisstate.([GenericBasis(4)^2], 1:2)
-@test Operator(ψlist...) == Operator(ψlist) == Operator(ψlist[1].basis, GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
-@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(FockBasis(length(ψlist)-1), ψlist) == Operator(ψlist[1].basis, FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
-@test Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(prod(ψlist[1].basis.shape)), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
-ψlist2= vcat(ψlist, basisstate.(Float64, [NLevelBasis(prod(ψlist[1].basis.shape))], range(prod(ψlist[1].basis.shape);step=-1,length=length(ψlist))))
-@test Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2, ψlist2...) == Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2, ψlist2) == Operator(NLevelBasis(prod(ψlist2[1].basis.shape)), FockBasis(length(ψlist)-1)^2,  hcat(getfield.(ψlist2,:data)...))
+@test Operator(ψlist...) == Operator(ψlist) == Operator(basis(ψlist[1]), GenericBasis(length(ψlist)), hcat(getfield.(ψlist,:data)...))
+@test Operator(FockBasis(length(ψlist)-1), ψlist...) == Operator(FockBasis(length(ψlist)-1), ψlist) == Operator(basis(ψlist[1]), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+@test Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1), ψlist...) == Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1), ψlist) == Operator(NLevelBasis(dimension(basis(ψlist[1]))), FockBasis(length(ψlist)-1),  hcat(getfield.(ψlist,:data)...))
+ψlist2= vcat(ψlist, basisstate.(Float64, [NLevelBasis(dimension(basis(ψlist[1])))], range(dimension(basis(ψlist[1]));step=-1,length=length(ψlist))))
+@test Operator(NLevelBasis(dimension(basis(ψlist2[1]))), FockBasis(length(ψlist)-1)^2, ψlist2...) == Operator(NLevelBasis(dimension(basis(ψlist2[1]))), FockBasis(length(ψlist)-1)^2, ψlist2) == Operator(NLevelBasis(dimension(basis(ψlist2[1]))), FockBasis(length(ψlist)-1)^2,  hcat(getfield.(ψlist2,:data)...))
 
 # Test ' shorthand
 @test dagger(op2) == op2'
@@ -66,27 +67,27 @@ op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_l, b_r)
 op3 = randoperator(b_l, b_r)
 
-x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
-x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
+x1 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+x2 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
 
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Addition
-@test_throws DimensionMismatch op1 + dagger(op2)
+@test_throws IncompatibleBases op1 + dagger(op2)
 @test 1e-14 > D(op1 + op_zero, op1)
 @test 1e-14 > D(op1 + op2, op2 + op1)
 @test 1e-14 > D(op1 + (op2 + op3), (op1 + op2) + op3)
 
 # Subtraction
-@test_throws DimensionMismatch op1 - dagger(op2)
+@test_throws IncompatibleBases op1 - dagger(op2)
 @test 1e-14 > D(op1-op_zero, op1)
 @test 1e-14 > D(op1-op2, op1 + (-op2))
 @test 1e-14 > D(op1-op2, op1 + (-1*op2))
 @test 1e-14 > D(op1-op2-op3, op1-(op2+op3))
 
 # Test multiplication
-@test_throws DimensionMismatch op1*op2
+@test_throws IncompatibleBases op1*op2
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1*x1 + 0.3*op1*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), op1*x1 + 0.3*op1*x2 + op2*x1 + 0.3*op2*x2)
 
@@ -125,8 +126,8 @@ op2a = randoperator(b2a, b2b)
 op2b = randoperator(b2a, b2b)
 op3a = randoperator(b3a, b3b)
 op123 = op1a ⊗ op2a ⊗ op3a
-@test op123.basis_l == b_l
-@test op123.basis_r == b_r
+@test basis_l(op123) == b_l
+@test basis_r(op123) == b_r
 
 # Associativity
 @test 1e-13 > D((op1a ⊗ op2a) ⊗ op3a, op1a ⊗ (op2a ⊗ op3a))
@@ -147,27 +148,27 @@ op123 = op1a ⊗ op2a ⊗ op3a
 @test 1e-13 > D(dagger(op1a ⊗ op2a), dagger(op1a) ⊗ dagger(op2a))
 
 # Internal layout
-a = Ket(b1a, rand(ComplexF64, length(b1a)))
-b = Ket(b2b, rand(ComplexF64, length(b2b)))
+a = Ket(b1a, rand(ComplexF64, dimension(b1a)))
+b = Ket(b2b, rand(ComplexF64, dimension(b2b)))
 ab = a ⊗ dagger(b)
 @test ab.data[2,3] == a.data[2]*conj(b.data[3])
 @test ab.data[2,1] == a.data[2]*conj(b.data[1])
 
-shape = tuple(op123.basis_l.shape..., op123.basis_r.shape...)
-idx = LinearIndices(shape)[2, 1, 1, 3, 4, 5]
+shape_ = tuple(shape(basis_l(op123))..., shape(basis_r(op123))...)
+idx = LinearIndices(shape_)[2, 1, 1, 3, 4, 5]
 @test op123.data[idx] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
-@test reshape(op123.data, shape...)[2, 1, 1, 3, 4, 5] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
+@test reshape(op123.data, shape_...)[2, 1, 1, 3, 4, 5] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
 
-idx = LinearIndices(shape)[2, 1, 1, 1, 3, 4]
+idx = LinearIndices(shape_)[2, 1, 1, 1, 3, 4]
 @test op123.data[idx] == op1a.data[2,1]*op2a.data[1,3]*op3a.data[1,4]
-@test reshape(op123.data, shape...)[2, 1, 1, 1, 3, 4] == op1a.data[2,1]*op2a.data[1,3]*op3a.data[1,4]
+@test reshape(op123.data, shape_...)[2, 1, 1, 1, 3, 4] == op1a.data[2,1]*op2a.data[1,3]*op3a.data[1,4]
 
 
 # Test identityoperator
-x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
-x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+x2 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 I = identityoperator(DenseOpType, b_r)
 @test isa(I, DenseOpType)
@@ -296,8 +297,8 @@ op321 = op3⊗op2⊗op1
 
 
 # Test projector
-xket = normalize(Ket(b_l, rand(ComplexF64, length(b_l))))
-yket = normalize(Ket(b_l, rand(ComplexF64, length(b_l))))
+xket = normalize(Ket(b_l, rand(ComplexF64, dimension(b_l))))
+yket = normalize(Ket(b_l, rand(ComplexF64, dimension(b_l))))
 xbra = dagger(xket)
 ybra = dagger(yket)
 
@@ -359,7 +360,7 @@ r_ = deepcopy(r)
 QuantumOpticsBase.mul!(r_,op1,op2,alpha,beta)
 @test 1e-10 > D(r_, alpha*op1*op2 + beta*r)
 
-dat = rand(prod(b_r.shape))
+dat = rand(dimension(b_r))
 x = Ket(b_r, dat)
 y = Bra(b_r, dat)
 @test dm(x) == dm(y)
@@ -394,7 +395,7 @@ end # testset
 
 @testset "State-operator tensor products" begin
     b = FockBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2)
-    b1, b2, b3 = b.bases
+    b1, b2, b3 = b[1], b[2], b[3]
 
     o1 = randoperator(b1)
     v1 = randstate(b1)
@@ -406,10 +407,10 @@ end # testset
     v3 = randstate(b3)
     p3 = projector(v3)
 
-    @test (v1 ⊗ o2).basis_l == b1 ⊗ b2
-    @test (v1 ⊗ o2).basis_r == b2
-    @test (v1' ⊗ o2).basis_l == b2
-    @test (v1' ⊗ o2).basis_r == b1 ⊗ b2
+    @test basis_l(v1 ⊗ o2) == b1 ⊗ b2
+    @test basis_r(v1 ⊗ o2) == b2
+    @test basis_l(v1' ⊗ o2) == b2
+    @test basis_r(v1' ⊗ o2) == b1 ⊗ b2
 
     @test ((o1 ⊗ v2) * (o1 ⊗ v2')).data ≈ (o1^2 ⊗ p2).data
     @test ((o1 ⊗ v2') * (o1 ⊗ v2)).data ≈ (o1^2).data

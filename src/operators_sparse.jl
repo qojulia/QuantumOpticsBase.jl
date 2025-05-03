@@ -17,8 +17,8 @@ SparseOperator(b1::Basis, b2::Basis, data) = Operator(b1, b2, SparseMatrixCSC(da
 SparseOperator(b1::Basis, b2::Basis, data::SparseMatrixCSC) = Operator(b1, b2, data)
 SparseOperator(b::Basis, data) = SparseOperator(b, b, data)
 SparseOperator(op::DataOperator) = SparseOperator(op.basis_l, op.basis_r, op.data)
-SparseOperator(::Type{T},b1::Basis,b2::Basis) where T = SparseOperator(b1,b2,spzeros(T,length(b1),length(b2)))
-SparseOperator(::Type{T},b::Basis) where T = SparseOperator(b,b,spzeros(T,length(b),length(b)))
+SparseOperator(::Type{T},b1::Basis,b2::Basis) where T = SparseOperator(b1,b2,spzeros(T,dimension(b1),dimension(b2)))
+SparseOperator(::Type{T},b::Basis) where T = SparseOperator(b,b,spzeros(T,dimension(b),dimension(b)))
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(ComplexF64, b1, b2)
 SparseOperator(b::Basis) = SparseOperator(ComplexF64, b, b)
 
@@ -26,15 +26,15 @@ sparse(a::DataOperator) = Operator(a.basis_l, a.basis_r, sparse(a.data))
 
 function ptrace(op::SparseOpPureType, indices)
     check_ptrace_arguments(op, indices)
-    shape = [op.basis_l.shape; op.basis_r.shape]
-    data = ptrace(op.data, shape, indices)
+    shape_ = [shape(op.basis_l); shape(op.basis_r)]
+    data = ptrace(op.data, shape_, indices)
     b_l = ptrace(op.basis_l, indices)
     b_r = ptrace(op.basis_r, indices)
     Operator(b_l, b_r, data)
 end
 
-function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1,B2}
-    check_samebases(op, state)
+function expect(op::SparseOpPureType, state::Operator)
+    check_multiplicable(op,state); check_multiplicable(state, state)
     result = zero(promote_type(eltype(op),eltype(state)))
     @inbounds for colindex = 1:op.data.n
         for i=op.data.colptr[colindex]:op.data.colptr[colindex+1]-1
@@ -48,6 +48,7 @@ end
     exp(op::SparseOpType; opts...)
 
 Operator exponential used, for example, to calculate displacement operators.
+Superoperator exponential which can, for example, be used to calculate time evolutions.
 Uses [`FastExpm.jl.jl`](https://github.com/fmentink/FastExpm.jl) which will return a sparse
 or dense operator depending on which is more efficient.
 All optional arguments are passed to `fastExpm` and can be used to specify tolerances.
@@ -64,18 +65,18 @@ function exp(op::T; opts...) where {B,T<:SparseOpType{B,B}}
 end
 
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:SparseOpType,S<:Number} =
-    SparseOperator(b1, b2, sparse(one(S)*I, length(b1), length(b2)))
+    SparseOperator(b1, b2, sparse(one(S)*I, dimension(b1), dimension(b2)))
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:SparseOpType,S<:Number} =
-    SparseOperator(b, b, sparse(one(S)*I, length(b), length(b)))
+    SparseOperator(b, b, sparse(one(S)*I, dimension(b), dimension(b)))
 
 const EyeOpPureType{BL,BR} = Operator{BL,BR,<:Eye}
 const EyeOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:Eye}}
 const EyeOpType{BL,BR} = Union{EyeOpPureType{BL,BR},EyeOpAdjType{BL,BR}}
 
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
-    Operator(b1, b2, Eye{S}(length(b1), length(b2)))
+    Operator(b1, b2, Eye{S}(dimension(b1), dimension(b2)))
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:DataOperator,S<:Number} =
-    Operator(b, b, Eye{S}(length(b)))
+    Operator(b, b, Eye{S}(dimension(b)))
 
 identityoperator(::Type{T}, b1::Basis, b2::Basis) where T<:Number = identityoperator(DataOperator, T, b1, b2) # XXX This is purposeful type piracy over QuantumInterface, that hardcodes the use of QuantumOpticsBase.DataOperator in identityoperator. Also necessary for backward compatibility.
 identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOperator, T, b)
@@ -86,15 +87,15 @@ identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOpe
 Create a diagonal operator of type [`SparseOperator`](@ref).
 """
 function diagonaloperator(b::Basis, diag)
-  @assert 1 <= length(diag) <= length(b)
+  @assert 1 <= length(diag) <= dimension(b)
   SparseOperator(b, spdiagm(0=>diag))
 end
 
 # Fast in-place multiplication implementations
-mul!(result::DenseOpType{B1,B3},M::SparseOpType{B1,B2},b::DenseOpType{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm!(alpha,M.data,b.data,beta,result.data); result)
-mul!(result::DenseOpType{B1,B3},a::DenseOpType{B1,B2},M::SparseOpType{B2,B3},alpha,beta) where {B1,B2,B3} = (gemm!(alpha,a.data,M.data,beta,result.data); result)
-mul!(result::Ket{B1},M::SparseOpPureType{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2} = (gemv!(alpha,M.data,b.data,beta,result.data); result)
-mul!(result::Bra{B2},b::Bra{B1},M::SparseOpPureType{B1,B2},alpha,beta) where {B1,B2} = (gemv!(alpha,b.data,M.data,beta,result.data); result)
+mul!(result::DenseOpType,M::SparseOpType,b::DenseOpType,alpha,beta) = (gemm!(alpha,M.data,b.data,beta,result.data); result)
+mul!(result::DenseOpType,a::DenseOpType,M::SparseOpType,alpha,beta) = (gemm!(alpha,a.data,M.data,beta,result.data); result)
+mul!(result::Ket,M::SparseOpPureType,b::Ket,alpha,beta) = (gemv!(alpha,M.data,b.data,beta,result.data); result)
+mul!(result::Bra,b::Bra,M::SparseOpPureType,alpha,beta) = (gemv!(alpha,b.data,M.data,beta,result.data); result)
 
 # Ensure that Eye is not densified # TODO - some of this can still be special cased on Eye or lazy embed
 +(op1::EyeOpType{BL,BR},op2::SparseOpType{BL,BR}) where {BL,BR} = sparse(op1) + op2

@@ -7,14 +7,14 @@ using Base.Cartesian
     Operator{BL,BR,T} <: DataOperator{BL,BR}
 
 Operator type that stores the representation of an operator on the Hilbert spaces
-given by `BL` and `BR` (e.g. a Matrix).
+given by `.basis_l` and `.basis_r` (e.g. a Matrix).
 """
 mutable struct Operator{BL,BR,T} <: DataOperator{BL,BR}
     basis_l::BL
     basis_r::BR
     data::T
     function Operator{BL,BR,T}(basis_l::BL,basis_r::BR,data::T) where {BL,BR,T}
-        (length.((basis_l,basis_r))==size(data)) || throw(DimensionMismatch("Tried to assign data of size $(size(data)) to bases of length $(length(basis_l)) and $(length(basis_r))!"))
+        (dimension.((basis_l,basis_r))==size(data)) || throw(DimensionMismatch("Tried to assign data of size $(size(data)) to bases of length $(dimension(basis_l)) and $(dimension(basis_r))!"))
         new(basis_l,basis_r,data)
     end
 end
@@ -27,6 +27,9 @@ Operator(basis_l::BL,basis_r::BR,qet1::Ket,qetva::Ket...) where {BL,BR} = Operat
 Operator(qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, GenericBasis(length(qets)), qets)
 Operator(basis_r::Basis,qets::AbstractVector{<:Ket}) = Operator(first(qets).basis, basis_r, qets)
 Operator(basis_l::BL,basis_r::BR,qets::AbstractVector{<:Ket}) where {BL,BR} = Operator{BL,BR}(basis_l, basis_r, reduce(hcat, getfield.(qets, :data)))
+
+basis_l(op::Operator) = op.basis_l
+basis_r(op::Operator) = op.basis_r
 
 QuantumInterface.traceout!(s::QuantumOpticsBase.Operator, i) = QuantumInterface.ptrace(s,i)
 
@@ -59,8 +62,8 @@ Dense array implementation of Operator. Converts any given data to a dense `Matr
 DenseOperator(basis_l::Basis,basis_r::Basis,data::T) where T = Operator(basis_l,basis_r,Matrix(data))
 DenseOperator(basis_l::Basis,basis_r::Basis,data::Matrix) = Operator(basis_l,basis_r,data)
 DenseOperator(b::Basis, data) = DenseOperator(b, b, data)
-DenseOperator(::Type{T},b1::Basis,b2::Basis) where T = Operator(b1,b2,zeros(T,length(b1),length(b2)))
-DenseOperator(::Type{T},b::Basis) where T = Operator(b,b,zeros(T,length(b),length(b)))
+DenseOperator(::Type{T},b1::Basis,b2::Basis) where T = Operator(b1,b2,zeros(T,dimension(b1),dimension(b2)))
+DenseOperator(::Type{T},b::Basis) where T = Operator(b,b,zeros(T,dimension(b),dimension(b)))
 DenseOperator(b1::Basis, b2::Basis) = DenseOperator(ComplexF64, b1, b2)
 DenseOperator(b::Basis) = DenseOperator(ComplexF64, b)
 DenseOperator(op::DataOperator) = DenseOperator(op.basis_l,op.basis_r,Matrix(op.data))
@@ -74,47 +77,44 @@ Convert an arbitrary Operator into a [`DenseOperator`](@ref).
 """
 dense(x::AbstractOperator) = DenseOperator(x)
 
-isequal(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL,BR} = (samebases(x,y) && isequal(x.data, y.data))
-==(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}) where {BL,BR} = (samebases(x,y) && x.data==y.data)
-==(x::DataOperator, y::DataOperator) = false
-Base.isapprox(x::DataOperator{BL,BR}, y::DataOperator{BL,BR}; kwargs...) where {BL,BR} = (samebases(x,y) && isapprox(x.data, y.data; kwargs...))
-Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = false
+isequal(x::DataOperator, y::DataOperator) = (addible(x,y) && isequal(x.data, y.data))
+==(x::DataOperator, y::DataOperator) = (addible(x,y) && x.data==y.data)
+Base.isapprox(x::DataOperator, y::DataOperator; kwargs...) = (addible(x,y) && isapprox(x.data, y.data; kwargs...))
 
 # Arithmetic operations
-+(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL,BR} = Operator(a.basis_l, a.basis_r, a.data+b.data)
-+(a::Operator, b::Operator) = throw(IncompatibleBases())
++(a::Operator, b::Operator) = (check_addible(a,b); Operator(a.basis_l, a.basis_r, a.data+b.data))
 
 -(a::Operator) = Operator(a.basis_l, a.basis_r, -a.data)
--(a::Operator{BL,BR}, b::Operator{BL,BR}) where {BL,BR} = Operator(a.basis_l, a.basis_r, a.data-b.data)
--(a::Operator, b::Operator) = throw(IncompatibleBases())
+-(a::Operator, b::Operator) = (check_addible(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
 
-*(a::Operator{BL,BR}, b::Ket{BR}) where {BL,BR} = Ket{BL}(a.basis_l, a.data*b.data)
-*(a::DataOperator, b::Ket) = throw(IncompatibleBases())
-*(a::Bra{BL}, b::Operator{BL,BR}) where {BL,BR} = Bra{BR}(b.basis_r, transpose(b.data)*a.data)
-*(a::Bra, b::DataOperator) = throw(IncompatibleBases())
-*(a::Operator{B1,B2}, b::Operator{B2,B3}) where {B1,B2,B3} = Operator(a.basis_l, b.basis_r, a.data*b.data)
-*(a::DataOperator, b::DataOperator) = throw(IncompatibleBases())
-*(a::DataOperator{B1, B2}, b::Operator{B2, B3, T}) where {B1, B2, B3, T} = error("no `*` method defined for DataOperator subtype $(typeof(a))") # defined to avoid method ambiguity
-*(a::Operator{B1, B2, T}, b::DataOperator{B2, B3}) where {B1, B2, B3, T} = error("no `*` method defined for DataOperator subtype $(typeof(b))") # defined to avoid method ambiguity
+*(a::Operator, b::Ket) = (check_multiplicable(a,b); Ket(a.basis_l, a.data*b.data))
+*(a::Bra, b::Operator) = (check_multiplicable(a,b); Bra(b.basis_r, transpose(b.data)*a.data))
+*(a::Operator, b::Operator) = (check_multiplicable(a,b); Operator(a.basis_l, b.basis_r, a.data*b.data))
+*(a::DataOperator, b::Operator) = error("no `*` method defined for DataOperator subtype $(typeof(a))") # defined to avoid method ambiguity
+*(a::Operator, b::DataOperator) = error("no `*` method defined for DataOperator subtype $(typeof(b))") # defined to avoid method ambiguity
 *(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, b*a.data)
 *(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, a*b.data)
-function *(op1::AbstractOperator{B1,B2}, op2::Operator{B2,B3,T}) where {B1,B2,B3,T}
-    result = Operator{B1,B3}(op1.basis_l, op2.basis_r, similar(_parent(op2.data),promote_type(eltype(op1),eltype(op2)),length(op1.basis_l),length(op2.basis_r)))
+function *(op1::AbstractOperator, op2::Operator)
+    check_multiplicable(op1,op2)
+    result = Operator(basis_l(op1), basis_r(op2), similar(_parent(op2.data), promote_type(eltype(op1), eltype(op2)), dimension(basis_l(op1)),dimension(basis_r(op2))))
     mul!(result,op1,op2)
     return result
 end
-function *(op1::Operator{B1,B2,T}, op2::AbstractOperator{B2,B3}) where {B1,B2,B3,T}
-    result = Operator{B1,B3}(op1.basis_l, op2.basis_r, similar(_parent(op1.data),promote_type(eltype(op1),eltype(op2)),length(op1.basis_l),length(op2.basis_r)))
+function *(op1::Operator, op2::AbstractOperator)
+    check_multiplicable(op1,op2)
+    result = Operator(basis_l(op1), basis_r(op2), similar(_parent(op1.data), promote_type(eltype(op1), eltype(op2)), dimension(basis_l(op1)), dimension(basis_r(op2))))
     mul!(result,op1,op2)
     return result
 end
-function *(op::AbstractOperator{BL,BR}, psi::Ket{BR,T}) where {BL,BR,T}
-    result = Ket{BL,T}(op.basis_l,similar(psi.data,length(op.basis_l)))
+function *(op::AbstractOperator, psi::Ket)
+    check_multiplicable(op,psi)
+    result = Ket(basis_l(op), similar(psi.data, dimension(basis_l(op))))
     mul!(result,op,psi)
     return result
 end
-function *(psi::Bra{BL,T}, op::AbstractOperator{BL,BR}) where {BL,BR,T}
-    result = Bra{BR,T}(op.basis_r, similar(psi.data,length(op.basis_r)))
+function *(psi::Bra, op::AbstractOperator)
+    check_multiplicable(psi,op)
+    result = Bra(basis_r(op), similar(psi.data, dimension(basis_r(op))))
     mul!(result,psi,op)
     return result
 end
@@ -142,7 +142,7 @@ conj!(a::Operator) = (conj!(a.data); a)
 
 Outer product ``|x⟩⟨y|`` of the given states.
 """
-tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), length(a.basis), length(b.basis)))
+tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), dimension(a.basis), dimension(b.basis)))
 
 """
     tensor(a::AbstractOperator, b::Bra)
@@ -190,8 +190,8 @@ tr(op::Operator{B,B}) where B = tr(op.data)
 
 function ptrace(a::DataOperator, indices)
     check_ptrace_arguments(a, indices)
-    rank = length(a.basis_l.shape)
-    result = _ptrace(Val{rank}, a.data, a.basis_l.shape, a.basis_r.shape, indices)
+    rank = length(a.basis_l)
+    result = _ptrace(Val{rank}, a.data, shape(a.basis_l), shape(a.basis_r), indices)
     return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
 ptrace(op::AdjointOperator, indices) = dagger(ptrace(op, indices))
@@ -200,8 +200,8 @@ function ptrace(psi::Ket, indices)
     check_ptrace_arguments(psi, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
-    rank = length(b.shape)
-    result = _ptrace_ket(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
+    rank = length(b)
+    result = _ptrace_ket(Val{rank}, psi.data, shape(b), indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
 
@@ -209,19 +209,20 @@ function ptrace(psi::Bra, indices)
     check_ptrace_arguments(psi, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
-    rank = length(b.shape)
-    result = _ptrace_bra(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
+    rank = length(b)
+    result = _ptrace_bra(Val{rank}, psi.data, shape(b), indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
 
 normalize!(op::Operator) = (rmul!(op.data, 1.0/tr(op)); op)
 
-function expect(op::DataOperator{B,B}, state::Ket{B}) where B
+function expect(op::DataOperator, state::Ket)
+    check_multiplicable(op,op); check_multiplicable(op, state)
     dot(state.data, op.data, state.data)
 end
 
-function expect(op::DataOperator{B1,B2}, state::DataOperator{B2,B2}) where {B1,B2}
-    check_samebases(op, state)
+function expect(op::DataOperator, state::DataOperator)
+    check_multiplicable(op,state); check_multiplicable(state, state)
     result = zero(promote_type(eltype(op),eltype(state)))
     @inbounds for i=1:size(op.data, 1), j=1:size(op.data,2)
         result += op.data[i,j]*state.data[j,i]
@@ -235,6 +236,9 @@ end
 Operator exponential used, for example, to calculate displacement operators.
 Uses LinearAlgebra's `Base.exp`.
 
+Superoperator exponential which can, for example, be used to calculate time evolutions.
+Uses LinearAlgebra's `Base.exp`.
+
 If you only need the result of the exponential acting on a vector,
 consider using much faster implicit methods that do not calculate the entire exponential.
 """
@@ -242,18 +246,18 @@ function exp(op::T) where {B,T<:DenseOpType{B,B}}
     return DenseOperator(op.basis_l, op.basis_r, exp(op.data))
 end
 
-function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
-    @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
+function permutesystems(a::Operator, perm)
+    @assert length(a.basis_l) == length(a.basis_r) == length(perm)
     @assert isperm(perm)
     data = Base.ReshapedArray(a.data, (a.basis_l.shape..., a.basis_r.shape...), ())
     data = PermutedDimsArray(data, [perm; perm .+ length(perm)])
-    data = Base.ReshapedArray(data, (length(a.basis_l), length(a.basis_r)), ())
+    data = Base.ReshapedArray(data, (dimension(a.basis_l), dimension(a.basis_r)), ())
     return Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), copy(data))
 end
-permutesystems(a::AdjointOperator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis} = dagger(permutesystems(dagger(a),perm))
+permutesystems(a::AdjointOperator, perm) = dagger(permutesystems(dagger(a),perm))
 
 identityoperator(::Type{S}, ::Type{T}, b1::Basis, b2::Basis) where {S<:DenseOpType,T<:Number} =
-    Operator(b1, b2, Matrix{T}(I, length(b1), length(b2)))
+    Operator(b1, b2, Matrix{T}(I, dimension(b1), dimension(b2)))
 
 """
     projector(a::Ket, b::Bra)
@@ -382,13 +386,13 @@ Fast in-place multiplication of operators/state vectors. Updates `Y` as
 Julia's 5-arg mul! implementation on the underlying data.
 See also [`LinearAlgebra.mul!`](@ref).
 """
-mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
-mul!(result::Ket{B1},a::Operator{B1,B2},b::Ket{B2},alpha,beta) where {B1,B2} = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
-mul!(result::Bra{B2},a::Bra{B1},b::Operator{B1,B2},alpha,beta) where {B1,B2} = (LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
+mul!(result::Operator,a::Operator,b::Operator,alpha,beta) = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
+mul!(result::Ket,a::Operator,b::Ket,alpha,beta) = (LinearAlgebra.mul!(result.data,a.data,b.data,alpha,beta); result)
+mul!(result::Bra,a::Bra,b::Operator,alpha,beta) = (LinearAlgebra.mul!(result.data,transpose(b.data),a.data,alpha,beta); result)
 rmul!(op::Operator, x) = (rmul!(op.data, x); op)
 
 # Multiplication for Operators in terms of their gemv! implementation
-function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,B3},alpha,beta) where {B1,B2,B3}
+function mul!(result::Operator,M::AbstractOperator,b::Operator,alpha,beta)
     for i=1:size(b.data, 2)
         bket = Ket(b.basis_l, b.data[:,i])
         resultket = Ket(M.basis_l, result.data[:,i])
@@ -398,7 +402,7 @@ function mul!(result::Operator{B1,B3},M::AbstractOperator{B1,B2},b::Operator{B2,
     return result
 end
 
-function mul!(result::Operator{B1,B3},b::Operator{B1,B2},M::AbstractOperator{B2,B3},alpha,beta) where {B1,B2,B3}
+function mul!(result::Operator,b::Operator,M::AbstractOperator,alpha,beta)
     for i=1:size(b.data, 1)
         bbra = Bra(b.basis_r, vec(b.data[i,:]))
         resultbra = Bra(M.basis_r, vec(result.data[i,:]))
@@ -431,7 +435,7 @@ Broadcast.BroadcastStyle(::T, ::Broadcast.DefaultArrayStyle{0}) where {Bl<:Basis
     bcf = Broadcast.flatten(bc)
     bl,br = find_basis(bcf.args)
     T = find_dType(bcf)
-    data = zeros(T, length(bl), length(br))
+    data = zeros(T, dimension(bl), dimension(br))
     @inbounds @simd for I in eachindex(bcf)
         data[I] = bcf[I]
     end

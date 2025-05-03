@@ -1,5 +1,6 @@
 using Test
 using QuantumOpticsBase
+import QuantumInterface: IncompatibleBases
 using LinearAlgebra, Random
 
 
@@ -22,8 +23,8 @@ b_r = b1b⊗b2b⊗b3b
 
 # Test creation
 @test_throws ArgumentError LazyProduct()
-@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct(randoperator(b_l, b_r), randoperator(b_l, b_r))
-@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct(randoperator(b_l, b_r), sparse(randoperator(b_l, b_r)))
+@test_throws IncompatibleBases LazyProduct(randoperator(b_l, b_r), randoperator(b_l, b_r))
+@test_throws IncompatibleBases LazyProduct(randoperator(b_l, b_r), sparse(randoperator(b_l, b_r)))
 
 # Test copy
 op1 = 2*LazyProduct(randoperator(b_l, b_r), sparse(randoperator(b_r, b_l)))
@@ -62,33 +63,33 @@ op3_ = op3a
 op4 = LazyProduct(op3b)
 op4_ = op3b
 
-x1 = Ket(b_l, rand(ComplexF64, length(b_l)))
-x2 = Ket(b_l, rand(ComplexF64, length(b_l)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_l, rand(ComplexF64, dimension(b_l)))
+x2 = Ket(b_l, rand(ComplexF64, dimension(b_l)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Test Addition
-@test_throws QuantumOpticsBase.IncompatibleBases op1 + dagger(op4)
+@test_throws IncompatibleBases op1 + dagger(op4)
 @test 1e-14 > D(-op1_, -op1)
 @test 1e-14 > D(op1+op2, op1_+op2_)
 @test 1e-14 > D(op1+op2_, op1_+op2_)
 @test 1e-14 > D(op1_+op2, op1_+op2_)
 #Check for unallowed addition:
-@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct([op1a, sparse(op1a)])+LazyProduct([sparse(op2b), op2b], 0.3)
+@test_throws IncompatibleBases LazyProduct([op1a, sparse(op1a)])+LazyProduct([sparse(op2b), op2b], 0.3)
 
 # Test Subtraction
-@test_throws QuantumOpticsBase.IncompatibleBases op1 - dagger(op4)
+@test_throws IncompatibleBases op1 - dagger(op4)
 @test 1e-14 > D(op1 - op2, op1_ - op2_)
 @test 1e-14 > D(op1 - op2_, op1_ - op2_)
 @test 1e-14 > D(op1_ - op2, op1_ - op2_)
 @test 1e-14 > D(op1 + (-op2), op1_ - op2_)
 @test 1e-14 > D(op1 + (-1*op2), op1_ - op2_)
 #Check for unallowed subtraction:
-@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct([op1a, sparse(op1a)])-LazyProduct([sparse(op2b), op2b], 0.3)
+@test_throws IncompatibleBases LazyProduct([op1a, sparse(op1a)])-LazyProduct([sparse(op2b), op2b], 0.3)
 
 
 # Test multiplication
-@test_throws DimensionMismatch op1a*op1a
+@test_throws IncompatibleBases op1a*op1a
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test 1e-11 > D((xbra1 + 0.3*xbra2)*op1, (xbra1 + 0.3*xbra2)*op1_)
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
@@ -130,10 +131,10 @@ op2 = randoperator(b_l)
 op = 0.3*LazyProduct(op1, sparse(op2))
 op_ = 0.3*op1*op2
 
-state = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
-state = DenseOperator(b_l, b_l, rand(ComplexF64, length(b_l), length(b_l)))
+state = DenseOperator(b_l, b_l, rand(ComplexF64, dimension(b_l), dimension(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
 # Permute systems
@@ -175,7 +176,7 @@ for N=1:3
     QuantumOpticsBase.mul!(result,op,state,0,beta)
     @test 1e-11 > D(result, beta*result_)
 
-    state = Bra(b_l, rand(ComplexF64, length(b_l)))
+    state = Bra(b_l, rand(ComplexF64, dimension(b_l)))
     result_ = randstate(iseven(N) ? b_l : b_r)'
     result = copy(result_)
     QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))

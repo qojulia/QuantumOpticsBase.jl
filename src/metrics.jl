@@ -32,7 +32,8 @@ T(ρ) = Tr\\{\\sqrt{ρ^† ρ}\\} = \\sum_i |λ_i|
 
 where ``λ_i`` are the eigenvalues of `rho`.
 """
-function tracenorm_h(rho::DenseOpType{B,B}) where B
+function tracenorm_h(rho::DenseOpType)
+    check_multiplicable(rho,rho)
     s = eigvals(Hermitian(rho.data))
     sum(abs.(s))
 end
@@ -77,7 +78,7 @@ T(ρ,σ) = \\frac{1}{2} Tr\\{\\sqrt{(ρ - σ)^† (ρ - σ)}\\}.
 It calls [`tracenorm`](@ref) which in turn either uses [`tracenorm_h`](@ref)
 or [`tracenorm_nh`](@ref) depending if ``ρ-σ`` is hermitian or not.
 """
-tracedistance(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B} = 0.5*tracenorm(rho - sigma)
+tracedistance(rho::DenseOpType, sigma::DenseOpType) = (check_addible(rho,sigma); check_multiplicable(rho,rho); 0.5*tracenorm(rho - sigma))
 function tracedistance(rho::AbstractOperator, sigma::AbstractOperator)
     throw(ArgumentError("tracedistance not implemented for $(typeof(rho)) and $(typeof(sigma)). Use dense operators instead."))
 end
@@ -95,7 +96,7 @@ T(ρ,σ) = \\frac{1}{2} Tr\\{\\sqrt{(ρ - σ)^† (ρ - σ)}\\} = \\frac{1}{2} \
 
 where ``λ_i`` are the eigenvalues of `rho` - `sigma`.
 """
-tracedistance_h(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B}= 0.5*tracenorm_h(rho - sigma)
+tracedistance_h(rho::DenseOpType, sigma::DenseOpType) = (check_addible(rho,sigma); check_multiplicable(rho,rho); 0.5*tracenorm_h(rho - sigma))
 function tracedistance_h(rho::AbstractOperator, sigma::AbstractOperator)
     throw(ArgumentError("tracedistance_h not implemented for $(typeof(rho)) and $(typeof(sigma)). Use dense operators instead."))
 end
@@ -117,11 +118,10 @@ It uses the identity
 
 where ``σ_i`` are the singular values of `rho` - `sigma`.
 """
-tracedistance_nh(rho::DenseOpType{B1,B2}, sigma::DenseOpType{B1,B2}) where {B1,B2} = 0.5*tracenorm_nh(rho - sigma)
+tracedistance_nh(rho::DenseOpType, sigma::DenseOpType) = (check_addible(rho, sigma); 0.5*tracenorm_nh(rho - sigma))
 function tracedistance_nh(rho::AbstractOperator, sigma::AbstractOperator)
     throw(ArgumentError("tracedistance_nh not implemented for $(typeof(rho)) and $(typeof(sigma)). Use dense operators instead."))
 end
-
 
 """
     entropy_vn(rho)
@@ -141,7 +141,8 @@ natural logarithm and ``0\\log(0) ≡ 0``.
 * `rho`: Density operator of which to calculate Von Neumann entropy.
 * `tol=1e-15`: Tolerance for rounding errors in the computed eigenvalues.
 """
-function entropy_vn(rho::DenseOpType{B,B}; tol=1e-15) where B
+function entropy_vn(rho::DenseOpType; tol=1e-15)
+    check_multiplicable(rho, rho)
     evals::Vector{ComplexF64} = eigvals(rho.data)
     entr = zero(eltype(rho))
     for d ∈ evals
@@ -163,9 +164,10 @@ The Renyi α-entropy of a density operator is defined as
 S_α(ρ) = 1/(1-α) \\log(Tr(ρ^α))
 ```
 """
-function entropy_renyi(rho::DenseOpType{B,B}, α::Integer=2) where B
+function entropy_renyi(rho::Operator, α::Integer=2)
     α <  0 && throw(ArgumentError("α-Renyi entropy is defined for α≥0, α≂̸1"))
     α == 1 && throw(ArgumentError("α-Renyi entropy is defined for α≥0, α≂̸1"))
+    check_multiplicable(rho,rho)
 
     return 1/(1-α) * log(tr(rho^α))
 end
@@ -185,7 +187,12 @@ F(ρ, σ) = Tr\\left(\\sqrt{\\sqrt{ρ}σ\\sqrt{ρ}}\\right),
 
 where ``\\sqrt{ρ}=\\sum_n\\sqrt{λ_n}|ψ⟩⟨ψ|``.
 """
-fidelity(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B} = tr(sqrt(sqrt(rho.data)*sigma.data*sqrt(rho.data)))
+function fidelity(rho::DenseOpType, sigma::DenseOpType)
+    check_multiplicable(rho,rho)
+    check_multiplicable(sigma,sigma)
+    check_multiplicable(rho,sigma)
+    tr(sqrt(sqrt(rho.data)*sigma.data*sqrt(rho.data)))
+end
 
 
 """
@@ -195,18 +202,20 @@ Partial transpose of rho with respect to subsystem specified by indices.
                         
 The `indices` argument can be a single integer or a collection of integers.
 """
-function ptranspose(rho::DenseOpType{B,B}, indices=1) where B<:CompositeBasis
+function ptranspose(rho::DenseOpType, indices=1)
+    length(basis_l(rho)) == length(basis_r(rho)) || throw(ArgumentError())
+    length(basis_l(rho)) > 1 || throw(ArgumentError())
     # adapted from qutip.partial_transpose (https://qutip.org/docs/4.0.2/modules/qutip/partial_transpose.html)
     # works as long as QuantumOptics.jl doesn't change the implementation of `tensor`, i.e. tensor(a,b).data = kron(b.data,a.data)
-    nsys = length(rho.basis_l.shape)
+    nsys = length(basis_l(rho))
     mask = ones(Int, nsys)
     mask[collect(indices)] .+= 1
     pt_dims = reshape(1:2*nsys, (nsys,2)) # indices of the operator viewed as a tensor with 2nsys legs
     pt_idx = [[pt_dims[i,mask[i]] for i = 1 : nsys]; [pt_dims[i,3-mask[i]] for i = 1 : nsys] ] # permute the legs on the subsystem of `indices`
     # reshape the operator data into a 2nsys-legged tensor and shape it back with the legs permuted
-    data = reshape(permutedims(reshape(rho.data, Tuple([rho.basis_l.shape; rho.basis_r.shape])), pt_idx), size(rho.data))
+    data = reshape(permutedims(reshape(rho.data, Tuple([shape(basis_l(rho)); shape(basis_r(rho))])), pt_idx), size(rho.data))
 
-    return DenseOperator(rho.basis_l,data)
+    return DenseOperator(basis_l(rho),data)
     
 end
                         
@@ -217,7 +226,7 @@ end
 
 Peres-Horodecki criterion of partial transpose.
 """
-PPT(rho::DenseOpType{B,B}, index) where B<:CompositeBasis = all(real.(eigvals(ptranspose(rho, index).data)) .>= 0.0)
+PPT(rho::DenseOpType, index) = all(real.(eigvals(ptranspose(rho, index).data)) .>= 0.0)
 
 
 """
@@ -232,7 +241,7 @@ N(ρ) = \\frac{\\|ρᵀ\\|-1}{2},
 ```
 where `ρᵀ` is the partial transpose.
 """
-negativity(rho::DenseOpType{B,B}, index) where B<:CompositeBasis = 0.5*(tracenorm(ptranspose(rho, index)) - 1.0)
+negativity(rho::DenseOpType, index) = 0.5*(tracenorm(ptranspose(rho, index)) - 1.0)
 
 
 """
@@ -245,7 +254,7 @@ N(ρ) = \\log₂\\|ρᵀ\\|,
 ```
 where `ρᵀ` is the partial transpose.
 """
-logarithmic_negativity(rho::DenseOpType{B,B}, index) where B<:CompositeBasis = log(2, tracenorm(ptranspose(rho, index)))
+logarithmic_negativity(rho::DenseOpType, index) = log(2, tracenorm(ptranspose(rho, index)))
 
 
 """
@@ -253,10 +262,14 @@ logarithmic_negativity(rho::DenseOpType{B,B}, index) where B<:CompositeBasis = l
 
 The average gate fidelity between two superoperators x and y.
 """
-function avg_gate_fidelity(x::T, y::T) where T <: Union{PauliTransferMatrix{B, B} where B, SuperOperator{B, B} where B, ChiMatrix{B, B} where B}
-    dim = 2 ^ length(x.basis_l)
+function avg_gate_fidelity(x::T, y::T) where T <: Union{PauliTransferType, SuperOperatorType}
+    check_multiplicable(x,x); check_multiplicable(y,y)
+    check_samebases(basis_l(basis_l(x)), basis_r(basis_l(x)));
+    dim = dimension(basis_l(basis_l(x)))
     return (tr(transpose(x.data) * y.data) + dim) / (dim^2 + dim)
 end
+
+avg_gate_fidelity(x::T, y::T) where T <: Union{ChoiStateType, ChiType} = avg_gate_fidelity(super(x), super(y))
 
 """
     entanglement_entropy(state, partition, [entropy_fun=entropy_vn])
@@ -273,34 +286,16 @@ entanglement_entropy(dm(ket)) = 2 * entanglement_entropy(ket)
 By default the computed entropy is the Von-Neumann entropy, but a different
 function can be provided (for example to compute the entanglement-renyi entropy).
 """
-function entanglement_entropy(psi::Ket{B}, partition, entropy_fun=entropy_vn) where B<:CompositeBasis
-    # check that sites are within the range
-    @assert all(partition .<= length(psi.basis.bases))
+entanglement_entropy(psi::Ket, partition, entropy_fun=entropy_vn) = entropy_fun(ptrace(psi, partition))
 
-    rho = ptrace(psi, partition)
-    return entropy_fun(rho)
-end
-
-function entanglement_entropy(rho::DenseOpType{B,B}, partition, args...) where {B<:CompositeBasis}
-    # check that sites is within the range
-    hilb = rho.basis_l
-    all(partition .<= length(hilb.bases)) || throw(ArgumentError("Indices in partition must be within the bounds of the composite basis."))
-    length(partition) <= length(hilb.bases) || throw(ArgumentError("Partition cannot include the whole system."))
+function entanglement_entropy(rho::DenseOpType, partition, args...)
+    check_multiplicable(rho,rho)
+    N = length(basis_l(rho))
 
     # build the doubled hilbert space for the vectorised dm, normalized like a Ket.
-    b_doubled = hilb^2
-    rho_vec = normalize!(Ket(b_doubled, vec(rho.data)))
-
-    if partition isa Tuple
-        partition_ = tuple(partition..., (partition.+length(hilb.bases))...)
-    else
-        partition_ = vcat(partition, partition.+length(hilb.bases))
-    end
-
-    return entanglement_entropy(rho_vec,partition_,args...)
+    rho_vec = normalize!(Ket(basis_l(rho)^2, vec(rho.data)))
+    entanglement_entropy(rho_vec, [partition..., (partition.+N)...], args...)
 end
 
-entanglement_entropy(state::Ket{B}, partition::Number, args...) where B<:CompositeBasis =
-    entanglement_entropy(state, [partition], args...)
-entanglement_entropy(state::DenseOpType{B,B}, partition::Number, args...) where B<:CompositeBasis =
-    entanglement_entropy(state, [partition], args...)
+entanglement_entropy(state::Ket, partition::Integer, args...) = entanglement_entropy(state, [partition], args...)
+entanglement_entropy(state::DenseOpType, partition::Integer, args...) = entanglement_entropy(state, [partition], args...)

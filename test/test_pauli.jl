@@ -2,90 +2,136 @@ using LinearAlgebra
 using Test
 
 using QuantumOpticsBase
+using QuantumOpticsBase: pauli_comp
 
 @testset "pauli" begin
 
-b = SpinBasis(1//2)
-# Test conversion of unitary matrices to superoperators.
-q2 = b^2
-q3 = b^3
-CZ = DenseOperator(q2, q2, diagm(0 => [1,1,1,-1]))
-CZ_sop = SuperOperator(CZ)
+bs = SpinBasis(1//2)
+bp = PauliBasis(1)
 
-# Test conversion of unitary matrices to superoperators.
-@test diag(CZ_sop.data) ==  ComplexF64[1,1,1,-1,1,1,1,-1,1,1,1,-1,-1,-1,-1,1]
-@test CZ_sop.basis_l == CZ_sop.basis_r == (q2, q2)
+for N=1:5
+    @test (dagger(pauli_comp(N))*pauli_comp(N)) ≈ identityoperator(PauliBasis(N))
+    @test (pauli_comp(N)*dagger(pauli_comp(N))) ≈ identityoperator(KetBraBasis(bs^N, bs^N))
+end
 
-# Test conversion of superoperator to Pauli transfer matrix.
-CZ_ptm = PauliTransferMatrix(CZ_sop)
+I = identityoperator(bs)
+X = sigmax(bs)
+Y = sigmay(bs)
+Z = sigmaz(bs)
+Isop = sprepost(I, dagger(I))
+Xsop = sprepost(X, dagger(X))
+Ysop = sprepost(Y, dagger(Y))
+Zsop = sprepost(Z, dagger(Z))
 
-# Test DensePauliTransferMatrix constructor.
-@test_throws DimensionMismatch DensePauliTransferMatrix((q2, q2), (q3, q3), CZ_ptm.data)
-@test DensePauliTransferMatrix((q2, q2), (q2, q2), CZ_ptm.data) == CZ_ptm
+# Test Pauli basis vectors are in I, X, Y, Z order
+@test pauli(I/sqrt(2)).data ≈ [1., 0, 0, 0]
+@test pauli(X/sqrt(2)).data ≈ [0, 1., 0, 0]
+@test pauli(Y/sqrt(2)).data ≈ [0, 0, 1., 0]
+@test pauli(Z/sqrt(2)).data ≈ [0, 0, 0, 1.]
 
-@test all(isapprox.(CZ_ptm.data[[1,30,47,52,72,91,117,140,166,185,205,210,227,256]], 1))
-@test all(isapprox.(CZ_ptm.data[[106,151]], -1))
+# Test that single qubit unitary channels are diagonal in Pauli transfer and chi
+@test pauli(Isop).data ≈ diagm([1, 1, 1, 1])
+@test pauli(Xsop).data ≈ diagm([1, 1, -1, -1])
+@test pauli(Ysop).data ≈ diagm([1, -1, 1, -1])
+@test pauli(Zsop).data ≈ diagm([1, -1, -1, 1])
+@test chi(Isop).data ≈ diagm([1, 0, 0, 0])
+@test chi(Xsop).data ≈ diagm([0, 1, 0, 0])
+@test chi(Ysop).data ≈ diagm([0, 0, 1, 0])
+@test chi(Zsop).data ≈ diagm([0, 0, 0, 1])
 
-@test CZ_ptm == PauliTransferMatrix(ChiMatrix(CZ))
+# Test Haddamard Clifford rules
+H = ( (spinup(bs)+spindown(bs))⊗dagger(spinup(bs)) +
+    (spinup(bs)-spindown(bs))⊗dagger(spindown(bs)) )/sqrt(2)
+H_sop = sprepost(H, dagger(H))
+@test pauli(H_sop).data ≈ diagm(0=>[1,0,-1,0], 2=>[0,1], -2=>[0,1]) 
+@test chi(H_sop).data ≈ diagm(0=>[0,1,0,1], 2=>[0,1], -2=>[0,1])/2
 
-# Test construction of non-symmetric unitary.
-CNOT = DenseOperator(q2, q2, diagm(0 => [1,1,0,0], 1 => [0,0,1], -1 => [0,0,1]))
-CNOT_sop = SuperOperator(CNOT)
-CNOT_chi = ChiMatrix(CNOT)
-CNOT_ptm = PauliTransferMatrix(CNOT)
+for op in (H_sop, choi(H_sop), pauli(H_sop), chi(H_sop))
+    @test op*I ≈ I
+    @test op*X ≈ Z
+    @test op*Y ≈ -Y
+    @test op*Z ≈ X
+end
 
-@test CNOT_sop.basis_l == CNOT_sop.basis_r == (q2, q2)
-@test CNOT_chi.basis_l == CNOT_chi.basis_r == (q2, q2)
-@test CNOT_ptm.basis_l == CNOT_ptm.basis_r == (q2, q2)
+# Test equality and conversion of identity among all three bases.
+IDENT_sop = identitysuperoperator(bs^2)
+IDENT_chi = chi(IDENT_sop)
+IDENT_ptm = pauli(IDENT_sop)
 
-@test all(isapprox.(imag.(CNOT_sop.data), 0))
-@test all(isapprox.(imag.(CNOT_chi.data), 0))
-@test all(isapprox.(imag.(CNOT_ptm.data), 0))
+@test IDENT_sop.data ≈ IDENT_ptm.data
+@test chi(IDENT_ptm) ≈ IDENT_chi
+@test super(IDENT_chi) ≈ IDENT_sop
+@test super(IDENT_ptm) ≈ IDENT_sop
+@test pauli(IDENT_sop) ≈ IDENT_ptm
+@test pauli(IDENT_chi) ≈ IDENT_ptm
 
-@test all(isapprox.(CNOT_sop.data[[1,18,36,51,69,86,104,119,141,158,176,191,201,218,236,251]], 1))
-@test all(isapprox.(CNOT_chi.data[[1,2,13,17,18,29,193,194,205,222]], 1))
-@test all(isapprox.(CNOT_chi.data[[14,30,206,209,210,221]], -1))
-@test all(isapprox.(CNOT_ptm.data[[1,18,47,64,70,85,108,138,153,183,205,222,227,244,]], 1))
-@test all(isapprox.(CNOT_ptm.data[[123,168]], -1))
+# Test bit flip encoder isometry
+encoder_kraus = (tensor_pow(spinup(bs), 3) ⊗ dagger(spinup(bs)) +
+                 tensor_pow(spindown(bs), 3) ⊗ dagger(spindown(bs)))
+encoder_sup = sprepost(encoder_kraus, dagger(encoder_kraus))
+decoder_sup = sprepost(dagger(encoder_kraus), encoder_kraus)
+for f1 in [super, choi, pauli, chi]
+    @test f1(decoder_sup) ≈ f1(dagger(encoder_sup))
+    @test f1(decoder_sup) ≈ dagger(f1(encoder_sup))
+    for f2 in [super, choi, pauli, chi]
+        @test super(f2(f1(encoder_sup))).data ≈ encoder_sup.data
+        @test super(f2(decoder_sup)*f1(encoder_sup)) ≈ dense(identitysuperoperator(bs))
+    end
+end
 
-# Test DenseChiMatrix constructor.
-@test_throws DimensionMismatch DenseChiMatrix((q2, q2), (q3, q3), CNOT_chi.data)
-@test DenseChiMatrix((q2, q2), (q2, q2), CNOT_chi.data) == CNOT_chi
+# Test CZ and CNOT
+CZ = dm(spinup(bs))⊗identityoperator(bs) + dm(spindown(bs))⊗sigmaz(bs)
+CNOT = dm(spinup(bs))⊗identityoperator(bs) + dm(spindown(bs))⊗sigmax(bs)
+CZ_rules =   [(I⊗I, I⊗I), (X⊗I, X⊗Z), (Z⊗I, Z⊗I), (I⊗X, I⊗Z), (I⊗Z, X⊗Z)]
+CNOT_rules = [(I⊗I, I⊗I), (X⊗I, X⊗X), (Z⊗I, Z⊗I), (I⊗X, I⊗X), (I⊗Z, Z⊗Z)]
 
-# Test equality and conversion among all three bases.
-ident = Complex{Float64}[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]
+#for (gate, rules) in [(CZ, CZ_rules), (CNOT, CNOT_rules)]
+for (gate, rules) in [(CNOT, CNOT_rules)]
+    op_sop = sprepost(gate,dagger(gate))
+    op_choi = choi(op_sop)
+    op_ptm = pauli(op_sop)
+    op_chi = chi(op_sop)
 
-IDENT = DenseOperator(q2, ident)
+    @test_throws DimensionMismatch Operator(PauliBasis(2), PauliBasis(3), op_ptm.data)
+    @test_throws DimensionMismatch Operator(ChiBasis(2, 2), ChiBasis(3, 3), op_chi.data)
+    @test Operator(PauliBasis(2), PauliBasis(2), op_ptm.data) == op_ptm
+    @test Operator(ChiBasis(2, 2), op_chi.data) == op_chi
+    @test basis_l(op_sop) == basis_r(op_sop) == KetBraBasis(bs^2, bs^2)
+    @test basis_l(op_choi) == basis_r(op_choi) == ChoiBasis(bs^2, bs^2)
+    @test basis_l(op_chi) == basis_r(op_chi) == ChiBasis(2, 2)
+    @test basis_l(op_ptm) == basis_r(op_ptm) == PauliBasis(2)
 
-IDENT_sop = SuperOperator(IDENT)
-IDENT_chi = ChiMatrix(IDENT)
-IDENT_ptm = PauliTransferMatrix(IDENT)
+    @test all(isapprox.(imag.(op_sop.data), 0))
+    @test all(isapprox.(imag.(op_choi.data), 0))
+    @test all(isapprox.(imag.(op_ptm.data), 0; atol=1e-26))
+    @test dagger(op_chi) ≈ op_chi
 
-@test ChiMatrix(IDENT_sop) == IDENT_chi
-@test ChiMatrix(IDENT_ptm) == IDENT_chi
-@test SuperOperator(IDENT_chi) == IDENT_sop
-@test SuperOperator(IDENT_ptm) == IDENT_sop
-@test PauliTransferMatrix(IDENT_sop) == IDENT_ptm
-@test PauliTransferMatrix(IDENT_chi) == IDENT_ptm
+    for (lhs, rhs) in rules
+        @test op_ptm*pauli(lhs) ≈ pauli(rhs)
+        for op in (op_sop, op_choi, op_chi, op_ptm)
+            @test op*lhs ≈ rhs
+        end
+    end
+end
 
 # Test approximate equality and conversion among all three bases.
-cphase = Complex{Float64}[1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 exp(1im*.6)]
+cphase(θ) = dm(spinup(bs))⊗identityoperator(bs) +
+    dm(spindown(bs))⊗(spindown(bs)⊗spindown(bs)' + exp(1im*θ)spindown(bs)⊗spindown(bs)')
 
-CPHASE = DenseOperator(q2, cphase)
+CPHASE_sop = sprepost(cphase(0.6),dagger(cphase(0.6)))
+CPHASE_chi = chi(CPHASE_sop)
+CPHASE_ptm = pauli(CPHASE_sop)
 
-CPHASE_sop = SuperOperator(CPHASE)
-CPHASE_chi = ChiMatrix(CPHASE)
-CPHASE_ptm = PauliTransferMatrix(CPHASE)
-
-@test isapprox(ChiMatrix(CPHASE_sop), CPHASE_chi)
-@test isapprox(ChiMatrix(CPHASE_ptm), CPHASE_chi)
-@test isapprox(SuperOperator(CPHASE_chi), CPHASE_sop)
-@test isapprox(SuperOperator(CPHASE_ptm), CPHASE_sop)
-@test isapprox(PauliTransferMatrix(CPHASE_sop), CPHASE_ptm)
-@test isapprox(PauliTransferMatrix(CPHASE_chi), CPHASE_ptm)
+@test isapprox(chi(CPHASE_sop), CPHASE_chi)
+@test isapprox(chi(CPHASE_ptm), CPHASE_chi)
+@test isapprox(super(CPHASE_chi), CPHASE_sop)
+@test isapprox(super(CPHASE_ptm), CPHASE_sop)
+@test isapprox(pauli(CPHASE_sop), CPHASE_ptm)
+@test isapprox(pauli(CPHASE_chi), CPHASE_ptm)
 
 # Test composition.
-@test isapprox(ChiMatrix(CPHASE) * ChiMatrix(CNOT), ChiMatrix(CPHASE * CNOT))
-@test isapprox(PauliTransferMatrix(CPHASE) * PauliTransferMatrix(CNOT), PauliTransferMatrix(CPHASE * CNOT))
+CNOT_sop = sprepost(CNOT,dagger(CNOT))
+@test isapprox(chi(CPHASE_sop) * chi(CNOT_sop), chi(CPHASE_sop * CNOT_sop))
+@test isapprox(pauli(CPHASE_sop) * pauli(CNOT_sop), pauli(CPHASE_sop * CNOT_sop))
 
 end # testset

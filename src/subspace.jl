@@ -25,6 +25,7 @@ end
 SubspaceBasis(basisstates::Vector{T}) where T = SubspaceBasis(basisstates[1].basis, basisstates)
 
 ==(b1::SubspaceBasis, b2::SubspaceBasis) = b1.superbasis==b2.superbasis && b1.basisstates_hash==b2.basisstates_hash
+dimension(b::SubspaceBasis) = length(b.basisstates)
 
 
 proj(u::Ket, v::Ket) = dagger(v)*u/(dagger(u)*u)*u
@@ -77,7 +78,7 @@ function projector(::Type{T}, b1::SubspaceBasis, b2::Basis) where T
     if b1.superbasis != b2
         throw(ArgumentError("Second basis has to be the superbasis of the first one."))
     end
-    data = zeros(T, length(b1), length(b2))
+    data = zeros(T, dimension(b1), dimension(b2))
     for (i, state) = enumerate(b1.basisstates)
         data[i,:] = state.data'
     end
@@ -92,7 +93,7 @@ function projector(::Type{T}, b1::Basis, b2::SubspaceBasis) where T
     if b1 != b2.superbasis
         throw(ArgumentError("First basis has to be the superbasis of the second one."))
     end
-    data = zeros(T, length(b1), length(b2))
+    data = zeros(T, dimension(b1), dimension(b2))
     for (i, state) = enumerate(b2.basisstates)
         data[:,i] = state.data
     end
@@ -129,7 +130,7 @@ function sparseprojector(::Type{T}, b1::SubspaceBasis, b2::Basis) where T
     if b1.superbasis != b2
         throw(ArgumentError("Second basis has to be the superbasis of the first one."))
     end
-    data = spzeros(T, length(b1), length(b2))
+    data = spzeros(T, dimension(b1), dimension(b2))
     for (i, state) = enumerate(b1.basisstates)
         data[i,:] = state.data'
     end
@@ -144,7 +145,7 @@ function sparseprojector(::Type{T}, b1::Basis, b2::SubspaceBasis) where T
     if b1 != b2.superbasis
         throw(ArgumentError("First basis has to be the superbasis of the second one."))
     end
-    data = spzeros(T, length(b1), length(b2))
+    data = spzeros(T, dimension(b1), dimension(b2))
     for (i, state) = enumerate(b2.basisstates)
         data[:,i] = state.data
     end

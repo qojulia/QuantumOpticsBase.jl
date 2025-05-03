@@ -47,7 +47,7 @@ Powers of `paulix` together with [`pauliz`](@ref) form a complete, orthornormal
 Returns `X^pow`.
 """
 function paulix(::Type{T}, b::NLevelBasis, pow=1) where T
-    N = length(b)
+    N = dimension(b)
     SparseOperator(b, spdiagm(pow => fill(one(T), N-pow),
                               pow-N => fill(one(T), pow)))
 end
@@ -68,7 +68,7 @@ Powers of `pauliz` together with [`paulix`](@ref) form a complete, orthornormal
 Returns `Z^pow`.
 """
 function pauliz(::Type{T}, b::NLevelBasis, pow=1) where T
-    N = length(b)
+    N = dimension(b)
     ω = exp(2π*1im*pow/N)
     SparseOperator(b, spdiagm(0 => T[ω^n for n=1:N]))
 end
@@ -86,7 +86,7 @@ Returns `Y^pow = ω^pow X^pow Z^pow` where `ω = ω = exp(2π*1im*pow/N)` and
 See [`paulix`](@ref) and [`pauliz`](@ref) for more details.
 """
 function pauliy(::Type{T}, b::NLevelBasis, pow=1) where T
-    N = length(b)
+    N = dimension(b)
     N = N%2 == 0 ? 2N : N
     ω = exp(2π*1im*pow/N)
     exp(2π*1im*pow/N)*paulix(T,b,pow)*pauliz(T,b,pow)

@@ -2,17 +2,17 @@ import Base: isequal, ==, *, /, +, -
 import SparseArrays: sparse, spzeros
 import QuantumInterface: BASES_CHECK
 
-function _check_bases(basis_l, basis_r, operators)
+function _check_bases(bl, br, operators)
     for o in operators
-        basis_l == o.basis_l || throw(IncompatibleBases())
-        basis_r == o.basis_r || throw(IncompatibleBases())
+        bl == basis_l(o) || throw(IncompatibleBases())
+        br == basis_r(o) || throw(IncompatibleBases())
     end
 end
 
 """
 Abstract class for all Lazy type operators ([`LazySum`](@ref), [`LazyProduct`](@ref), and [`LazyTensor`](@ref))
 """
-abstract type LazyOperator{BL,BR} <: AbstractOperator{BL,BR} end
+abstract type LazyOperator{BL,BR} <: AbstractOperator end
 
 """
     LazySum([Tf,] [factors,] operators)
@@ -42,12 +42,15 @@ mutable struct LazySum{BL,BR,F,T} <: LazyOperator{BL,BR}
     basis_r::BR
     factors::F
     operators::T
-    function LazySum(basis_l::BL, basis_r::BR, factors::F, operators::T) where {BL,BR,F,T}
+    function LazySum(bl::BL, br::BR, factors::F, operators::T) where {BL,BR,F,T}
         length(operators) == length(factors) || throw(ArgumentError("LazySum `operators` and `factors` have different lengths."))
-        BASES_CHECK[] && _check_bases(basis_l, basis_r, operators)
-        new{BL,BR,F,T}(basis_l,basis_r,factors,operators)
+        BASES_CHECK[] && _check_bases(bl, br, operators)
+        new{BL,BR,F,T}(bl,br,factors,operators)
     end
 end
+
+basis_l(op::LazySum) = op.basis_l
+basis_r(op::LazySum) = op.basis_r
 
 LazySum(::Type{Tf}, basis_l::Basis, basis_r::Basis) where Tf = LazySum(basis_l,basis_r,Tf[],())
 LazySum(basis_l::Basis, basis_r::Basis) = LazySum(ComplexF64, basis_l, basis_r)
@@ -73,62 +76,59 @@ coefficients(x::LazySum) = x.factors
 suboperators(x::LazySum) = x.operators
 
 # FIXME: Should copy really copy each operator?
-Base.copy(x::LazySum) = @samebases LazySum(x.basis_l, x.basis_r, copy.(x.factors), copy.(x.operators))
+Base.copy(x::LazySum) = @compatiblebases LazySum(x.basis_l, x.basis_r, copy.(x.factors), copy.(x.operators))
 Base.eltype(x::LazySum) = mapreduce(eltype, promote_type, x.operators; init=eltype(x.factors))
 
-dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
-SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* sparse.(op.operators)) : Operator(op.basis_l, op.basis_r, spzeros(eltype(op.factors), length(op.basis_l), length(op.basis_r)))
+dense(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* dense.(op.operators)) : Operator(op.basis_l, op.basis_r, zeros(eltype(op.factors), dimension(op.basis_l), dimension(op.basis_r)))
+SparseArrays.sparse(op::LazySum) = length(op.operators) > 0 ? sum(op.factors .* sparse.(op.operators)) : Operator(op.basis_l, op.basis_r, spzeros(eltype(op.factors), dimension(op.basis_l), dimension(op.basis_r)))
 
-isequal(x::LazySum, y::LazySum) = samebases(x,y) && isequal(x.operators, y.operators) && isequal(x.factors, y.factors)
-==(x::LazySum, y::LazySum) = (samebases(x,y) && x.operators==y.operators && x.factors==y.factors)
+isequal(x::LazySum, y::LazySum) = addible(x,y) && isequal(x.operators, y.operators) && isequal(x.factors, y.factors)
+==(x::LazySum, y::LazySum) = (addible(x,y) && x.operators==y.operators && x.factors==y.factors)
 
 # Make vectors contagious in LazySum arithmetic, but preserve "tuple-only" cases
 _lazysum_cat(opsA::Tuple, opsB::Tuple) = (opsA..., opsB...)
 _lazysum_cat(opsA, opsB) = [opsA..., opsB...]
 
 # Arithmetic operations
-function +(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
-    check_samebases(a,b)
+function +(a::LazySum, b::LazySum)
+    check_addible(a,b)
     factors = _lazysum_cat(a.factors, b.factors)
     ops = _lazysum_cat(a.operators, b.operators)
-    @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
+    @compatiblebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
-+(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 +(a::LazyOperator, b::AbstractOperator) = LazySum(a) + LazySum(b)
 +(a::AbstractOperator, b::LazyOperator) = LazySum(a) + LazySum(b)
 +(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) + LazySum(b)
 
--(a::LazySum) = @samebases LazySum(a.basis_l, a.basis_r, -a.factors, a.operators)
-function -(a::LazySum{B1,B2}, b::LazySum{B1,B2}) where {B1,B2}
-    check_samebases(a,b)
+-(a::LazySum) = @compatiblebases LazySum(a.basis_l, a.basis_r, -a.factors, a.operators)
+function -(a::LazySum, b::LazySum)
+    check_addible(a,b)
     factors = _lazysum_cat(a.factors, -b.factors)
     ops = _lazysum_cat(a.operators, b.operators)
-    @samebases LazySum(a.basis_l, a.basis_r, factors, ops)
+    @compatiblebases LazySum(a.basis_l, a.basis_r, factors, ops)
 end
--(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 -(a::LazyOperator, b::AbstractOperator) = LazySum(a) - LazySum(b)
 -(a::AbstractOperator, b::LazyOperator) = LazySum(a) - LazySum(b)
 -(a::O1, b::O2) where {O1<:LazyOperator,O2<:LazyOperator} = LazySum(a) - LazySum(b)
 
 _lazysum_cartprod(prodop, a::Tuple, b::Tuple) = ((prodop(a_, b_) for (a_,b_) in Iterators.product(a, b))...,)
 _lazysum_cartprod(prodop, a, b) = promote_type(eltype(a),eltype(b))[(prodop(a_, b_) for (a_,b_) in Iterators.product(a, b))...]
-function *(a::LazySum{B1,B2}, b::LazySum{B2,B3}) where {B1,B2,B3}
-    check_samebases(a.basis_r, b.basis_l)
+function *(a::LazySum, b::LazySum)
+    check_multiplicable(a, b)
     ops = _lazysum_cartprod(*, a.operators, b.operators)
     factors = _lazysum_cartprod(*, a.factors, b.factors)
-    @samebases LazySum(a.basis_l, b.basis_r, factors, ops)
+    @compatiblebases LazySum(a.basis_l, b.basis_r, factors, ops)
 end
-*(a::LazySum{B1,B2}, b::LazySum{B3,B4}) where {B1,B2,B3,B4} = throw(IncompatibleBases())
 
 function *(a::LazySum, b::Number)
     factors = b*a.factors
-    @samebases LazySum(a.basis_l, a.basis_r, factors, a.operators)
+    @compatiblebases LazySum(a.basis_l, a.basis_r, factors, a.operators)
 end
 *(a::Number, b::LazySum) = b*a
 
 function /(a::LazySum, b::Number)
     factors = a.factors/b
-    @samebases LazySum(a.basis_l, a.basis_r, factors, a.operators)
+    @compatiblebases LazySum(a.basis_l, a.basis_r, factors, a.operators)
 end
 
 function tensor(a::Operator,b::LazySum)
@@ -146,14 +146,14 @@ end
 
 function dagger(op::LazySum)
     ops = dagger.(op.operators)
-    @samebases LazySum(op.basis_r, op.basis_l, conj.(op.factors), ops)
+    @compatiblebases LazySum(op.basis_r, op.basis_l, conj.(op.factors), ops)
 end
 
 tr(op::LazySum) = sum(op.factors .* tr.(op.operators))
 
 function ptrace(op::LazySum, indices)
     check_ptrace_arguments(op, indices)
-    #rank = length(op.basis_l.shape) - length(indices) #????
+    #rank = length(op.basis_l) - length(indices) #????
     LazySum(op.factors, map(o->ptrace(o, indices), op.operators))
 end
 
@@ -163,7 +163,7 @@ function permutesystems(op::LazySum, perm)
     ops = map(o->permutesystems(o, perm), op.operators)
     bl = ops[1].basis_l
     br = ops[1].basis_r
-    @samebases LazySum(bl, br, op.factors, ops)
+    @compatiblebases LazySum(bl, br, op.factors, ops)
 end
 
 identityoperator(::Type{<:LazySum}, ::Type{S}, b1::Basis, b2::Basis) where S<:Number = LazySum(identityoperator(S, b1, b2))

@@ -1,3 +1,4 @@
+import QuantumInterface: IncompatibleBases
 using QuantumOpticsBase
 using Test
 using LinearAlgebra
@@ -75,27 +76,27 @@ op1 = randtestoperator(b_l, b_r)
 op2 = randtestoperator(b_l, b_r)
 op3 = randtestoperator(b_l, b_r)
 
-x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
-x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
+x1 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+x2 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
 
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Addition
-@test_throws DimensionMismatch op1 + dagger(op2)
+@test_throws IncompatibleBases op1 + dagger(op2)
 @test D(op1 + op_zero, op1)
 @test D(op1 + op2, op2 + op1)
 @test D(op1 + (op2 + op3), (op1 + op2) + op3)
 
 # Subtraction
-@test_throws DimensionMismatch op1 - dagger(op2)
+@test_throws IncompatibleBases op1 - dagger(op2)
 @test D(op1-op_zero, op1)
 @test D(op1-op2, op1 + (-op2))
 @test D(op1-op2, op1 + (-1*op2))
 @test D(op1-op2-op3, op1-(op2+op3))
 
 # Test multiplication
-@test_throws DimensionMismatch op1*op2
+@test_throws IncompatibleBases op1*op2
 @test D(op1*(x1 + 0.3*x2), op1*x1 + 0.3*op1*x2, 1e-12)
 @test D((op1+op2)*(x1+0.3*x2), op1*x1 + 0.3*op1*x2 + op2*x1 + 0.3*op2*x2, 1e-12)
 
@@ -157,20 +158,20 @@ op123 = op1a ⊗ op2a ⊗ op3a
 @test D(dagger(op1a ⊗ op2a), dagger(op1a) ⊗ dagger(op2a))
 
 # Internal layout
-a = Ket(b1a, rand(ComplexF64, length(b1a)))
-b = Ket(b2b, rand(ComplexF64, length(b2b)))
+a = Ket(b1a, rand(ComplexF64, dimension(b1a)))
+b = Ket(b2b, rand(ComplexF64, dimension(b2b)))
 ab = a ⊗ dagger(b)
 @test ab.data[2,3] == a.data[2]*conj(b.data[3])
 @test ab.data[2,1] == a.data[2]*conj(b.data[1])
 
-shape = tuple(op123.basis_l.shape..., op123.basis_r.shape...)
-idx = LinearIndices(shape)[2, 1, 1, 3, 4, 5]
+shape_ = tuple(shape(op123.basis_l)..., shape(op123.basis_r)...)
+idx = LinearIndices(shape_)[2, 1, 1, 3, 4, 5]
 @test op123.data[idx] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
-@test reshape(op123.data, shape...)[2, 1, 1, 3, 4, 5] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
+@test reshape(op123.data, shape_...)[2, 1, 1, 3, 4, 5] == op1a.data[2,3]*op2a.data[1,4]*op3a.data[1,5]
 
-idx = LinearIndices(shape)[2, 1, 1, 1, 3, 4]
+idx = LinearIndices(shape_)[2, 1, 1, 1, 3, 4]
 @test op123.data[idx] == op1a.data[2,1]*op2a.data[1,3]*op3a.data[1,4]
-@test reshape(op123.data, shape...)[2, 1, 1, 1, 3, 4] == op1a.data[2,1]*op2a.data[1,3]*op3a.data[1,4]
+@test reshape(op123.data, shape_...)[2, 1, 1, 1, 3, 4] == op1a.data[2,1]*op2a.data[1,3]*op3a.data[1,4]
 
 
 # Test tr and normalize
@@ -262,8 +263,8 @@ op321 = op3⊗op2⊗op1
 
 
 # Test projector
-xket = normalize(Ket(b_l, rand(ComplexF64, length(b_l))))
-yket = normalize(Ket(b_l, rand(ComplexF64, length(b_l))))
+xket = normalize(Ket(b_l, rand(ComplexF64, dimension(b_l))))
+yket = normalize(Ket(b_l, rand(ComplexF64, dimension(b_l))))
 xbra = dagger(xket)
 ybra = dagger(yket)
 
@@ -339,7 +340,7 @@ op1 .= op1_ .+ 3 * op1_
 @test_throws DimensionMismatch op1 .= op2
 bf = FockBasis(3)
 op3 = randtestoperator(bf)
-@test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
+@test_throws IncompatibleBases op1 .+ op3 # TODO: Why is this different than the test above?
 
 ####################
 # Test lazy tensor #
@@ -406,16 +407,16 @@ op2_ = 0.7*I1 ⊗ subop2 ⊗ subop3
 op3 = 0.3*LazyTensor(b_l, b_r, 3, subop3)
 op3_ = 0.3*I1 ⊗ I2 ⊗ subop3
 
-x1 = Ket(b_r, rand(ComplexF64, length(b_r)))
-x2 = Ket(b_r, rand(ComplexF64, length(b_r)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+x2 = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Addition
 @test D(-op1_, -op1, 1e-12)
 
 # Test multiplication
-@test_throws DimensionMismatch op1*op2
+@test_throws IncompatibleBases op1*op2
 @test D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test D((xbra1 + 0.3*xbra2)*op1, (xbra1 + 0.3*xbra2)*op1_)
 @test D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
@@ -439,17 +440,17 @@ op2_ = 0.3*(op2a*op2b)
 op3 = LazyProduct(op3a)
 op3_ = op3a
 
-x1 = Ket(b_l, rand(ComplexF64, length(b_l)))
-x2 = Ket(b_l, rand(ComplexF64, length(b_l)))
-xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
-xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
+x1 = Ket(b_l, rand(ComplexF64, dimension(b_l)))
+x2 = Ket(b_l, rand(ComplexF64, dimension(b_l)))
+xbra1 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, dimension(b_l)))
 
 # Addition
 @test D(2.1*op1 + 0.3*op2, 2.1*op1_+0.3*op2_)
 @test D(-op1_, -op1)
 
 # Test multiplication
-@test_throws DimensionMismatch op1a*op1a
+@test_throws IncompatibleBases op1a*op1a
 @test D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2), 1e-11)
 @test D((xbra1 + 0.3*xbra2)*op1, (xbra1 + 0.3*xbra2)*op1_, 1e-11)
 @test D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2, 1e-11)
@@ -466,8 +467,8 @@ op = LazyProduct([op1, sparse(op2), op3], 0.2)
 op_ = 0.2*op1*op2*op3
 tmp = 0.2*prod(dense.([op1*op2*op3]))
 
-state = Ket(b_r, rand(ComplexF64, length(b_r)))
-result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
+state = Ket(b_r, rand(ComplexF64, dimension(b_r)))
+result_ = Ket(b_l, rand(ComplexF64, dimension(b_l)))
 result = copy(result_)
 QuantumOpticsBase.mul!(result,op,state,complex(1.),complex(0.))
 @test D(result, op_*state, 1e-11)
@@ -478,8 +479,8 @@ beta = complex(2.1)
 QuantumOpticsBase.mul!(result,op,state,alpha,beta)
 @test D(result, alpha*op_*state + beta*result_, 1e-9)
 
-state = Bra(b_l, rand(ComplexF64, length(b_l)))
-result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
+state = Bra(b_l, rand(ComplexF64, dimension(b_l)))
+result_ = Bra(b_r, rand(ComplexF64, dimension(b_r)))
 result = copy(result_)
 QuantumOpticsBase.mul!(result,state,op,complex(1.),complex(0.))
 @test D(result, state*op_, 1e-9)

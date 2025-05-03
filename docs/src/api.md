@@ -149,7 +149,7 @@ QuantumOpticsBase.check_samebases
 ```
 
 ```@docs
-@samebases
+@compatiblebases
 ```
 
 ```@docs
