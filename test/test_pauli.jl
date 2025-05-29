@@ -1,9 +1,7 @@
 using LinearAlgebra
-using Test
-
 using QuantumOpticsBase
 
-@testset "pauli" begin
+@testitem "pauli" begin
 
 b = SpinBasis(1//2)
 # Test conversion of unitary matrices to superoperators.

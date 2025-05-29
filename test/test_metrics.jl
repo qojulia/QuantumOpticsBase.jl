@@ -1,8 +1,7 @@
-using Test
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
 
-@testset "metrics" begin
+@testitem "metrics" begin
 
 b1 = SpinBasis(1//2)
 b2 = FockBasis(6)

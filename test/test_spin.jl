@@ -1,8 +1,7 @@
-using Test
 using QuantumOpticsBase
 using LinearAlgebra
 
-@testset "spin" begin
+@testitem "spin" begin
 
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 

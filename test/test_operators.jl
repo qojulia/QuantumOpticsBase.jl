@@ -1,4 +1,3 @@
-using Test
 using QuantumOpticsBase
 using LinearAlgebra, SparseArrays, Random
 
@@ -9,7 +8,7 @@ mutable struct test_operators{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
   test_operators(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
 end
 
-@testset "operators" begin
+@testitem "operators" begin
 
 Random.seed!(0)
 

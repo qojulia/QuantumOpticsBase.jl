@@ -1,8 +1,7 @@
-using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
 
-@testset "time-dependent operators" begin
+@testitem "time-dependent operators" begin
     QOB = QuantumOpticsBase
 
     subop = randoperator(FockBasis(1))
@@ -211,7 +210,7 @@ using LinearAlgebra, Random
     end
 end
 
-@testset "time-dependent operators: Shifts, restrictions, and stretchs" begin
+@testitem "time-dependent operators: Shifts, restrictions, and stretchs" begin
     QOB = QuantumOpticsBase
 
     b = FockBasis(1)

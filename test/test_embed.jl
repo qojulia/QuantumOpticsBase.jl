@@ -1,8 +1,7 @@
-using Test
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
 
-@testset "embed" begin
+@testitem "embed" begin
 
 Random.seed!(0)
 

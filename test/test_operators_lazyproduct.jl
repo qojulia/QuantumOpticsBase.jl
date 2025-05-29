@@ -1,9 +1,8 @@
-using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
 
 
-@testset "operators-lazyproduct" begin
+@testitem "operators-lazyproduct" begin
 
 Random.seed!(0)
 

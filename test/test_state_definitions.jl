@@ -1,8 +1,7 @@
-using Test
 using QuantumOpticsBase
 using Random
 
-@testset "state_definitions" begin
+@testitem "state_definitions" begin
 
 n=30
 b=FockBasis(n)

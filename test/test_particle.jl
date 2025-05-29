@@ -1,8 +1,7 @@
-using Test
 using QuantumOpticsBase
 using FFTW, LinearAlgebra, Random
 
-@testset "particle" begin
+@testitem "particle" begin
 
 Random.seed!(0)
 

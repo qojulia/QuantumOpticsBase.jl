@@ -1,8 +1,7 @@
 using QuantumOpticsBase
-using Test
 using Random
 
-@testset "spinors" begin
+@testitem "spinors" begin
 
 Random.seed!(0)
 

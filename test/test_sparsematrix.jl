@@ -1,11 +1,10 @@
-using Test
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
 
 const SparseMatrix = SparseMatrixCSC{ComplexF64, Int}
 
 
-@testset "sparsematrix" begin
+@testitem "sparsematrix" begin
 
 # Set up test matrices
 A = rand(ComplexF64, 5, 5)

@@ -1,9 +1,8 @@
-using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
 using SparseArrays
 
-@testset "states" begin
+@testitem "states" begin
 
 Random.seed!(0)
 
@@ -170,7 +169,7 @@ bra_ .= 3*bra123
 end # testset
 
 
-@testset "LazyKet" begin
+@testitem "LazyKet" begin
 
 Random.seed!(1)
 

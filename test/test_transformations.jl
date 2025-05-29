@@ -1,8 +1,7 @@
-using Test
 using QuantumOpticsBase
 using Random, LinearAlgebra
 
-@testset "transformation" begin
+@testitem "transformation" begin
 
 Random.seed!(0)
 

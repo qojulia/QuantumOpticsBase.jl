@@ -1,7 +1,6 @@
-using Test
 using QuantumOpticsBase
 
-@testset "printing" begin
+@testitem "printing" begin
 
 @test sprint(show, GenericBasis([2, 3])) == "Basis(shape=[2,3])"
 @test sprint(show, GenericBasis(2)) == "Basis(dim=2)"
