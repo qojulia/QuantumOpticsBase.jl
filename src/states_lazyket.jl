@@ -127,7 +127,7 @@ end
 function mul!(y::LazyKet{BL}, op::LazyTensor{BL, BR}, x::LazyKet{BR}, alpha, beta) where {BL, BR}
     iszero(beta) || throw("Error: cannot perform muladd operation on LazyKets since addition is not implemented. Convert them to dense kets using Ket(x) in order to perform muladd operations.")
 
-    iszero(alpha) && (_zero_op_mul!(y.kets[1].data, beta); return)
+    iszero(alpha) && (_zero_op_mul!(y.kets[1].data, beta); return y)
 
     missing_index_allowed = samebases(op)
     (length(y.basis.bases) == length(x.basis.bases)) || throw(IncompatibleBases())

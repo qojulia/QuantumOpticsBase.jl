@@ -1,6 +1,9 @@
-@testitem "charge" begin
-    using QuantumOpticsBase
+@testitem "test_charge" begin
+using Test
+using QuantumOpticsBase
 
+@testset "charge" begin
+    
     @test_throws DimensionMismatch ChargeBasis(-1)
 
     @test_throws DimensionMismatch ShiftedChargeBasis(2, 1)
@@ -42,3 +45,4 @@
     end
 
 end  # testset
+end

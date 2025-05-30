@@ -1,4 +1,5 @@
-@testitem "lazytensor" begin
+@testitem "test_operators_lazytensor" begin
+using Test
 using QuantumOpticsBase
 using LinearAlgebra, SparseArrays, Random
 

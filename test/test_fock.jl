@@ -1,6 +1,9 @@
-@testitem "fock" begin
+@testitem "test_fock" begin
+using Test
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
+
+@testset "fock" begin
 
 Random.seed!(0)
 
@@ -106,3 +109,4 @@ psi_off = coherentstate(b_off, alpha)
 @test isapprox(norm(psi_off), 1, atol=1e-7)
 
 end # testset
+end

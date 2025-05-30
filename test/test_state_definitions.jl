@@ -1,6 +1,8 @@
-@testitem "state_definitions" begin
+@testitem "test_state_definitions" begin
 using QuantumOpticsBase
 using Random
+
+@testset "state_definitions" begin
 
 n=30
 b=FockBasis(n)
@@ -46,3 +48,4 @@ for n in 1:5:50
 end
 
 end # testset
+end

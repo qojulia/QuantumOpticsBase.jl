@@ -1,6 +1,9 @@
-@testitem "pauli" begin
+@testitem "test_pauli" begin
+using Test
 using LinearAlgebra
 using QuantumOpticsBase
+
+@testset "pauli" begin
 
 b = SpinBasis(1//2)
 # Test conversion of unitary matrices to superoperators.
@@ -86,3 +89,4 @@ CPHASE_ptm = PauliTransferMatrix(CPHASE)
 @test isapprox(PauliTransferMatrix(CPHASE) * PauliTransferMatrix(CNOT), PauliTransferMatrix(CPHASE * CNOT))
 
 end # testset
+end

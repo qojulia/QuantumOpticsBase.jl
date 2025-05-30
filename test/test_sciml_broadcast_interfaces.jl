@@ -1,7 +1,9 @@
-@testitem "sciml interface" begin
-
+@testitem "test_sciml_broadcast_interfaces" begin
+using Test
 using QuantumOptics
 using OrdinaryDiffEq
+
+@testset "sciml interface" begin
 
 # ket ODE problem
 ℋ = SpinBasis(1//2)
@@ -59,4 +61,5 @@ sol_data = solve(prob_data!, DP5(); reltol = 1.0e-8, abstol = 1.0e-10, save_ever
 
 @test sol[end].data ≈ sol_data[end]
 
+end
 end

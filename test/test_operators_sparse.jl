@@ -1,4 +1,5 @@
-@testitem "Sparse operator" begin
+@testitem "test_operators_sparse" begin
+using Test
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
 

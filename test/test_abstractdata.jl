@@ -1,5 +1,6 @@
-@testitem "abstract-data" begin
+@testitem "test_abstractdata" begin
 using QuantumOpticsBase
+using Test
 using LinearAlgebra
 import LinearAlgebra: mul!
 using Random
@@ -32,6 +33,8 @@ end
 D(a::DataOperator,b::DataOperator,tol=1e-14) = isapprox(a.data,b.data,atol=tol)
 D(a::StateVector,b::StateVector,tol=1e-14) = isapprox(a.data,b.data,atol=tol)
 D(a::AbstractOperator,b::AbstractOperator,tol=1e-12) = (tol > abs(tracedistance_nh(dense(a), dense(b))))
+
+@testset "abstract-data" begin
 
 Random.seed!(0)
 
@@ -522,3 +525,4 @@ QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test D(result, alpha*state*op_ + beta*result_, 1e-9)
 
 end # testset
+end

@@ -1,5 +1,8 @@
-@testitem "subspace" begin
+@testitem "test_subspace" begin
+using Test
 using QuantumOpticsBase
+
+@testset "subspace" begin
 
 b = FockBasis(3)
 
@@ -63,3 +66,4 @@ b2_sub = SubspaceBasis(b2, [fockstate(b2, 1)])
 @test_throws ArgumentError projector(bu, b2_sub)
 
 end # testset
+end

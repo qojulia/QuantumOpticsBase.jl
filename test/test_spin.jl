@@ -1,7 +1,9 @@
-@testitem "spin" begin
-
+@testitem "test_spin" begin
+using Test
 using QuantumOpticsBase
 using LinearAlgebra
+
+@testset "spin" begin
 
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 
@@ -130,3 +132,4 @@ s2 = s1*spindown(b_spin);
 @test isapprox(2*log(real(variance(sigmay(b_spin)/2,s2))/Nspins*4) , x1*sqrt(Nspins), atol=1e-2)
 
 end # testset
+end

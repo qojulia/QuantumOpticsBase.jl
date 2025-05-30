@@ -1,8 +1,10 @@
-@testitem "superoperators" begin
-
+@testitem "test_superoperators" begin
+using Test
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
 import QuantumOpticsBase: ChoiState # Remove when ChoiState is publicly exported
+
+@testset "superoperators" begin
 
 # Test creation
 b = GenericBasis(3)
@@ -264,3 +266,4 @@ decoder_sup = sprepost(dagger(encoder_kraus), encoder_kraus)
 @test SuperOperator(ChoiState(decoder_sup)*ChoiState(encoder_sup)) ≈ dense(identitysuperoperator(b_logical))
 
 end # testset
+end

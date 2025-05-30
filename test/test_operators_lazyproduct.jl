@@ -1,6 +1,9 @@
-@testitem "operators-lazyproduct" begin
+@testitem "test_operators_lazyproduct" begin
+using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
+
+@testset "operators-lazyproduct" begin
 
 Random.seed!(0)
 
@@ -223,3 +226,4 @@ for N=1:3
 end
 
 end # testset
+end

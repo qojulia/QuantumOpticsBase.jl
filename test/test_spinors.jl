@@ -1,7 +1,9 @@
-@testitem "spinors" begin
-
+@testitem "test_spinors" begin
+using Test
 using QuantumOpticsBase
 using Random
+
+@testset "spinors" begin
 
 Random.seed!(0)
 
@@ -155,3 +157,4 @@ Hkin_x_tot = Txp_tot*Hkin_tot*Tpx_tot
 # end
 
 end # testset
+end

@@ -1,6 +1,8 @@
-@testitem "printing" begin
-
+@testitem "test_printing" begin
+using Test
 using QuantumOpticsBase
+
+@testset "printing" begin
 
 @test sprint(show, GenericBasis([2, 3])) == "Basis(shape=[2,3])"
 @test sprint(show, GenericBasis(2)) == "Basis(dim=2)"
@@ -159,3 +161,4 @@ state_data_str = sprint(Base.print_array, state_data)
 
 
 end # testset
+end

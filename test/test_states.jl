@@ -1,7 +1,10 @@
-@testitem "states" begin
+@testitem "test_states" begin
+using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
 using SparseArrays
+
+@testset "states" begin
 
 Random.seed!(0)
 
@@ -168,10 +171,7 @@ bra_ .= 3*bra123
 end # testset
 
 
-@testitem "LazyKet" begin
-using QuantumOpticsBase
-using LinearAlgebra, Random
-using SparseArrays
+@testset "LazyKet" begin
 
 Random.seed!(1)
 
@@ -223,4 +223,5 @@ op_nested = rand(ComplexF64) * LazySum(op_prod, op)
 op = rand(ComplexF64) * LazyTensor(b, b, (1, 3), (op1, op3))
 @test expect(op, ψ) ≈ expect(sparse(op), Ket(ψ))
 
+end
 end

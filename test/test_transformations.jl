@@ -1,6 +1,8 @@
-@testitem "transformation" begin
+@testitem "test_transformations" begin
 using QuantumOpticsBase
 using Random, LinearAlgebra
+
+@testset "transformation" begin
 
 Random.seed!(0)
 
@@ -55,3 +57,4 @@ Tnx = transform(b_fock, b_position)
 @test 1e-4 > D(psi_n, Tnx*psi_x)
 
 end # testset
+end

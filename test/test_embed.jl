@@ -1,6 +1,9 @@
-@testitem "embed" begin
+@testitem "test_embed" begin
+using Test
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
+
+@testset "embed" begin
 
 Random.seed!(0)
 
@@ -70,3 +73,4 @@ y = op1 ⊗ I2 ⊗ op3
 @test 0 ≈ abs(tracedistance_nh(x, y))
 
 end # testset
+end

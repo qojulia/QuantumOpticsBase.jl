@@ -1,6 +1,8 @@
-@testitem "time-dependent operators" begin
-    using QuantumOpticsBase
-    using LinearAlgebra, Random
+@testitem "test_time_dependent_operators" begin
+using QuantumOpticsBase
+using LinearAlgebra, Random
+
+@testset "time-dependent operators" begin
     QOB = QuantumOpticsBase
 
     subop = randoperator(FockBasis(1))
@@ -209,9 +211,7 @@
     end
 end
 
-@testitem "time-dependent operators: Shifts, restrictions, and stretchs" begin
-    using QuantumOpticsBase
-    using LinearAlgebra, Random
+@testset "time-dependent operators: Shifts, restrictions, and stretchs" begin
     QOB = QuantumOpticsBase
 
     b = FockBasis(1)
@@ -239,4 +239,5 @@ end
 
     op_stretch = time_stretch(op, 2.0)
     @test @inferred QOB.eval_coefficients(op_stretch, 5.0) == (1.0, 2.5)
+end
 end

@@ -1,8 +1,10 @@
-@testitem "apply" begin
-
+@testitem "test_apply" begin
 using QuantumOpticsBase
 using QuantumInterface
+using Test
 using QuantumOpticsBase: apply!
+
+@testset "apply" begin
 
 _b2 = SpinBasis(1//2)
 _l0 = spinup(_b2)
@@ -50,3 +52,4 @@ st2 = coherentstate(bf1, 0.3)
 @test_broken apply!(st1⊗st2, [1], sOp1)
 
 end #testset
+end

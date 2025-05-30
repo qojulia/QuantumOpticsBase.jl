@@ -1,6 +1,9 @@
-@testitem "nlevel" begin
+@testitem "test_nlevel" begin
+using Test
 using QuantumOpticsBase
 using LinearAlgebra
+
+@testset "nlevel" begin
 
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 
@@ -75,3 +78,4 @@ antikommutator(x, y) = x*y + y*x
 @test 1e-14 > D(-1im*px*py*pz, I)
 
 end # testset
+end

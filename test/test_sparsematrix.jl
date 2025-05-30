@@ -1,9 +1,11 @@
-@testitem "sparsematrix" begin
-
+@testitem "test_sparsematrix" begin
+using Test
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
 
 const SparseMatrix = SparseMatrixCSC{ComplexF64, Int}
+
+@testset "sparsematrix" begin
 
 # Set up test matrices
 A = rand(ComplexF64, 5, 5)
@@ -31,3 +33,4 @@ R = A + B
 @test 0 ≈ norm(Matrix(kron(A_sp, B_sp)) - kron(A, B))
 
 end # testset
+end
