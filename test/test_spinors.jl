@@ -1,7 +1,7 @@
+@testitem "spinors" begin
+
 using QuantumOpticsBase
 using Random
-
-@testitem "spinors" begin
 
 Random.seed!(0)
 

@@ -1,7 +1,6 @@
+@testitem "nlevel" begin
 using QuantumOpticsBase
 using LinearAlgebra
-
-@testitem "nlevel" begin
 
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 

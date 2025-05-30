@@ -1,7 +1,6 @@
+@testitem "fock" begin
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
-
-@testitem "fock" begin
 
 Random.seed!(0)
 

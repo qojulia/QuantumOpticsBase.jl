@@ -1,7 +1,6 @@
+@testitem "particle" begin
 using QuantumOpticsBase
 using FFTW, LinearAlgebra, Random
-
-@testitem "particle" begin
 
 Random.seed!(0)
 

@@ -1,7 +1,6 @@
+@testitem "transformation" begin
 using QuantumOpticsBase
 using Random, LinearAlgebra
-
-@testitem "transformation" begin
 
 Random.seed!(0)
 

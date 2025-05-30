@@ -1,8 +1,7 @@
+@testitem "states" begin
 using QuantumOpticsBase
 using LinearAlgebra, Random
 using SparseArrays
-
-@testitem "states" begin
 
 Random.seed!(0)
 
@@ -170,6 +169,9 @@ end # testset
 
 
 @testitem "LazyKet" begin
+using QuantumOpticsBase
+using LinearAlgebra, Random
+using SparseArrays
 
 Random.seed!(1)
 

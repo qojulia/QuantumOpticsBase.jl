@@ -1,7 +1,6 @@
-using QuantumOpticsBase
-using LinearAlgebra, Random
-
 @testitem "time-dependent operators" begin
+    using QuantumOpticsBase
+    using LinearAlgebra, Random
     QOB = QuantumOpticsBase
 
     subop = randoperator(FockBasis(1))
@@ -211,6 +210,8 @@ using LinearAlgebra, Random
 end
 
 @testitem "time-dependent operators: Shifts, restrictions, and stretchs" begin
+    using QuantumOpticsBase
+    using LinearAlgebra, Random
     QOB = QuantumOpticsBase
 
     b = FockBasis(1)

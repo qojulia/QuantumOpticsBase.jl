@@ -1,3 +1,4 @@
+@testitem "lazytensor" begin
 using QuantumOpticsBase
 using LinearAlgebra, SparseArrays, Random
 
@@ -9,7 +10,7 @@ mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
 end
 Base.eltype(::test_lazytensor) = ComplexF64
 
-@testitem "operators-lazytensor" begin
+@testset "operators-lazytensor" begin
 
 Random.seed!(0)
 
@@ -441,7 +442,7 @@ Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
 
 end # testset
 
-@testitem "LazyTensor: explicit isometries" begin
+@testset "LazyTensor: explicit isometries" begin
 
 D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)
@@ -493,7 +494,7 @@ end
 
 end
 
-@testitem "LazyTensor: ops with adjoints" begin
+@testset "LazyTensor: ops with adjoints" begin
 
 bM = reduce(tensor, (GenericBasis(i) for i in 2:4))
 
@@ -519,4 +520,5 @@ out_adj = adjoint(copy(adjoint(out1)))
 mul!(out_adj, ltM, V_MR)
 @test out_adj == out1
 
+end
 end

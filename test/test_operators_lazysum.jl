@@ -1,8 +1,6 @@
+@testitem "operators-lazysum" begin
 using QuantumOpticsBase
 using LinearAlgebra, Random
-
-
-@testitem "operators-lazysum" begin
 
 Random.seed!(0)
 

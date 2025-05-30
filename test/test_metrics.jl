@@ -1,7 +1,6 @@
+@testitem "metrics" begin
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
-
-@testitem "metrics" begin
 
 b1 = SpinBasis(1//2)
 b2 = FockBasis(6)

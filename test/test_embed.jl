@@ -1,7 +1,6 @@
+@testitem "embed" begin
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
-
-@testitem "embed" begin
 
 Random.seed!(0)
 

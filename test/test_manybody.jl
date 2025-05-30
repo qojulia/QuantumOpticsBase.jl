@@ -1,7 +1,6 @@
+@testitem "manybody" begin
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
-
-@testitem "manybody" begin
 
 Random.seed!(0)
 

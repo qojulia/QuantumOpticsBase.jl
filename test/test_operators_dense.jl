@@ -1,7 +1,6 @@
+@testitem "operators-dense" begin
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
-
-@testitem "operators-dense" begin
 
 Random.seed!(0)
 
@@ -392,6 +391,8 @@ b1, b2, b3 = NLevelBasis.((2,3,4))  # N is not a type parameter
 end # testset
 
 @testitem "State-operator tensor products" begin
+    using QuantumOpticsBase
+    using Random, SparseArrays, LinearAlgebra
     b = FockBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2)
     b1, b2, b3 = b.bases
 

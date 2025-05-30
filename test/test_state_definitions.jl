@@ -1,7 +1,6 @@
+@testitem "state_definitions" begin
 using QuantumOpticsBase
 using Random
-
-@testitem "state_definitions" begin
 
 n=30
 b=FockBasis(n)

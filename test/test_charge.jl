@@ -1,6 +1,5 @@
-using QuantumOpticsBase
-
 @testitem "charge" begin
+    using QuantumOpticsBase
 
     @test_throws DimensionMismatch ChargeBasis(-1)
 

@@ -1,8 +1,8 @@
+@testitem "superoperators" begin
+
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
 import QuantumOpticsBase: ChoiState # Remove when ChoiState is publicly exported
-
-@testitem "superoperators" begin
 
 # Test creation
 b = GenericBasis(3)

@@ -1,6 +1,5 @@
-using QuantumOpticsBase
-
 @testitem "subspace" begin
+using QuantumOpticsBase
 
 b = FockBasis(3)
 

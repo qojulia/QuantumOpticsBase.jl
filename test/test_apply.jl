@@ -1,8 +1,8 @@
+@testitem "apply" begin
+
 using QuantumOpticsBase
 using QuantumInterface
 using QuantumOpticsBase: apply!
-
-@testitem "apply" begin
 
 _b2 = SpinBasis(1//2)
 _l0 = spinup(_b2)

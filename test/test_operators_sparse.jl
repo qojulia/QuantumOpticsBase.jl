@@ -1,3 +1,4 @@
+@testitem "Sparse operator" begin
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
 
@@ -5,7 +6,7 @@ using Random, SparseArrays, LinearAlgebra
 # Custom operator type for testing error msg
 mutable struct TestOperator{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}; end
 
-@testitem "operators-sparse" begin
+@testset "operators-sparse" begin
 
 Random.seed!(0)
 
@@ -428,7 +429,7 @@ b1, b2, b3 = NLevelBasis.((2,3,4))  # N is not a type parameter
 
 end # testset
 
-@testitem "State-operator tensor products, sparse" begin
+@testset "State-operator tensor products, sparse" begin
     b = FockBasis(2) ⊗ SpinBasis(1//2) ⊗ GenericBasis(2)
     b1, b2, b3 = b.bases
 
@@ -461,4 +462,5 @@ end # testset
     res = ((v1 ⊗ o2 ⊗ v3) * (v1' ⊗ o2 ⊗ v3'))
     @test res isa SparseOpType
     @test res.data ≈ (p1 ⊗ o2^2 ⊗ p3).data
+end
 end

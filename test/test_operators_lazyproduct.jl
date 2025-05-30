@@ -1,8 +1,6 @@
+@testitem "operators-lazyproduct" begin
 using QuantumOpticsBase
 using LinearAlgebra, Random
-
-
-@testitem "operators-lazyproduct" begin
 
 Random.seed!(0)
 

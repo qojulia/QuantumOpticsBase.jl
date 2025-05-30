@@ -1,7 +1,7 @@
+@testitem "sciml interface" begin
+
 using QuantumOptics
 using OrdinaryDiffEq
-
-@testitem "sciml interface" begin
 
 # ket ODE problem
 ℋ = SpinBasis(1//2)
