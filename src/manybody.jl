@@ -271,7 +271,7 @@ function manybodyoperator_2(mb::ManyBodyBasis, op::SparseOpType)
     Js = Int[]
     Vs = ComplexF64[]
     buffer = allocate_buffer(mb)
-    @inbounds for (row, column, value) in zip(findnz(op.data)...)
+    @inbounds for (row, column, value) in zip(findnz(sparse(op.data))...)
         for (m, occ) in enumerate(mb.occupations)
             index = Tuple(CartesianIndices((S, S, S, S))[(column-1)*S^2+row])
             C = state_transition!(buffer, occ, index[3:4], index[1:2])

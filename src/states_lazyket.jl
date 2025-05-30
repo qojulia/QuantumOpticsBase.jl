@@ -32,7 +32,7 @@ Base.:(==)(x::LazyKet, y::LazyKet) = (x.basis == y.basis) && (x.kets == y.kets)
 Ket(ket::LazyKet) = ⊗(ket.kets...)
 
 # no lazy bras for now
-dagger(x::LazyKet) = throw(MethodError("dagger not implemented for LazyKet: LazyBra is currently not implemented at all!"))
+dagger(x::LazyKet) = throw(MethodError(dagger, "dagger not implemented for LazyKet: LazyBra is currently not implemented at all!"))
 
 # tensor with other kets
 function tensor(x::LazyKet, y::Ket)
@@ -127,7 +127,7 @@ end
 function mul!(y::LazyKet{BL}, op::LazyTensor{BL, BR}, x::LazyKet{BR}, alpha, beta) where {BL, BR}
     iszero(beta) || throw("Error: cannot perform muladd operation on LazyKets since addition is not implemented. Convert them to dense kets using Ket(x) in order to perform muladd operations.")
 
-    iszero(alpha) && (_zero_op_mul!(y.kets[1].data, beta); return result)
+    iszero(alpha) && (_zero_op_mul!(y.kets[1].data, beta); return)
 
     missing_index_allowed = samebases(op)
     (length(y.basis.bases) == length(x.basis.bases)) || throw(IncompatibleBases())
