@@ -1,6 +1,6 @@
 @testitem "test_spinors" begin
-using Test
 using QuantumOpticsBase
+using Test
 using Random
 
 @testset "spinors" begin

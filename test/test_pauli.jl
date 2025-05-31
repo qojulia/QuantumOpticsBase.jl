@@ -1,6 +1,6 @@
 @testitem "test_pauli" begin
-using Test
 using LinearAlgebra
+using Test
 using QuantumOpticsBase
 
 @testset "pauli" begin

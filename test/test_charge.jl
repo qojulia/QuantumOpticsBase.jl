@@ -3,7 +3,7 @@ using Test
 using QuantumOpticsBase
 
 @testset "charge" begin
-    
+
     @test_throws DimensionMismatch ChargeBasis(-1)
 
     @test_throws DimensionMismatch ShiftedChargeBasis(2, 1)

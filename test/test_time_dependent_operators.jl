@@ -1,4 +1,5 @@
 @testitem "test_time_dependent_operators" begin
+using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
 

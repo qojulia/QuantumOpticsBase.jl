@@ -5,6 +5,7 @@ using SparseArrays, LinearAlgebra
 
 const SparseMatrix = SparseMatrixCSC{ComplexF64, Int}
 
+
 @testset "sparsematrix" begin
 
 # Set up test matrices

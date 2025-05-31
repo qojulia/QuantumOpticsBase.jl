@@ -3,7 +3,7 @@ using Test
 using QuantumOpticsBase
 using JET
 
-@testitem "jet" begin
+@testset "jet" begin
     JET.test_package(QuantumOpticsBase, target_defined_modules = true)
 end # testset
 end

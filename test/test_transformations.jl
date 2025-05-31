@@ -1,4 +1,5 @@
 @testitem "test_transformations" begin
+using Test
 using QuantumOpticsBase
 using Random, LinearAlgebra
 

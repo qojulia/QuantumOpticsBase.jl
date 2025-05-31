@@ -1,4 +1,5 @@
 @testitem "test_state_definitions" begin
+using Test
 using QuantumOpticsBase
 using Random
 

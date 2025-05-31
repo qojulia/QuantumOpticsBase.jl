@@ -1,6 +1,8 @@
 @testitem "test_operators_lazysum" begin
+using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
+
 
 @testset "operators-lazysum" begin
 
