@@ -455,6 +455,18 @@ Base.iterate(a::DataOperator, idx) = iterate(a.data, idx)
     end
     return dest
 end
+# same implementation as Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:AbstractArrayStyle{0}}) in https://github.com/JuliaLang/julia/blob/master/base/broadcast.jl
+@inline function Base.copyto!(dest::DataOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL,BR,Style<:Broadcast.DefaultArrayStyle{0},Axes,F,Args}
+    # Typically, we must independently execute bc for every storage location in `dest`, but:
+    # IF we're in the common no-op identity case with no nested args (like `dest .= val`),
+    if bc.f === identity && bc.args isa Tuple{Any} && Broadcast.isflat(bc)
+        # THEN we can just extract the argument and `fill!` the destination with it
+        return fill!(dest, bc.args[1][])
+    else
+        # Otherwise, fall back to the default implementation like above
+        return copyto!(dest, convert(Broadcast.Broadcasted{Nothing}, bc))
+    end
+end
 @inline Base.copyto!(A::DataOperator{BL,BR},B::DataOperator{BL,BR}) where {BL,BR} = (copyto!(A.data,B.data); A)
 @inline Base.copyto!(dest::DataOperator{BL,BR}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {BL,BR,Style<:DataOperatorStyle,Axes,F,Args} =
     throw(IncompatibleBases())

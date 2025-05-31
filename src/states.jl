@@ -227,6 +227,18 @@ Base.@propagate_inbounds Base.Broadcast._broadcast_getindex(x::T, i) where {T<:U
     end
     return dest
 end
+# same implementation as Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:AbstractArrayStyle{0}}) in https://github.com/JuliaLang/julia/blob/master/base/broadcast.jl
+@inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:Broadcast.DefaultArrayStyle{0},Axes,F,Args}
+    # Typically, we must independently execute bc for every storage location in `dest`, but:
+    # IF we're in the common no-op identity case with no nested args (like `dest .= val`),
+    if bc.f === identity && bc.args isa Tuple{Any} && Broadcast.isflat(bc)
+        # THEN we can just extract the argument and `fill!` the destination with it
+        return fill!(dest, bc.args[1][])
+    else
+        # Otherwise, fall back to the default implementation like above
+        return copyto!(dest, convert(Broadcast.Broadcasted{Nothing}, bc))
+    end
+end
 @inline Base.copyto!(dest::Ket{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:KetStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())
 
@@ -239,6 +251,18 @@ end
         dest′[I] = bc′[I]
     end
     return dest
+end
+# same implementation as Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:AbstractArrayStyle{0}}) in https://github.com/JuliaLang/julia/blob/master/base/broadcast.jl
+@inline function Base.copyto!(dest::Bra{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:Broadcast.DefaultArrayStyle{0},Axes,F,Args}
+    # Typically, we must independently execute bc for every storage location in `dest`, but:
+    # IF we're in the common no-op identity case with no nested args (like `dest .= val`),
+    if bc.f === identity && bc.args isa Tuple{Any} && Broadcast.isflat(bc)
+        # THEN we can just extract the argument and `fill!` the destination with it
+        return fill!(dest, bc.args[1][])
+    else
+        # Otherwise, fall back to the default implementation like above
+        return copyto!(dest, convert(Broadcast.Broadcasted{Nothing}, bc))
+    end
 end
 @inline Base.copyto!(dest::Bra{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:BraStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())
