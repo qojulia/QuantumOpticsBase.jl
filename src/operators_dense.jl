@@ -463,8 +463,7 @@ end
         # THEN we can just extract the argument and `fill!` the destination with it
         return fill!(dest, bc.args[1][])
     else
-        # Otherwise, fall back to the default implementation like above
-        return copyto!(dest, convert(Broadcast.Broadcasted{Nothing}, bc))
+        throw(ArgumentError("no fallback implementation has been defined outside of dest .= val."))
     end
 end
 @inline Base.copyto!(A::DataOperator{BL,BR},B::DataOperator{BL,BR}) where {BL,BR} = (copyto!(A.data,B.data); A)

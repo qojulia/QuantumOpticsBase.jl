@@ -235,8 +235,7 @@ end
         # THEN we can just extract the argument and `fill!` the destination with it
         return fill!(dest, bc.args[1][])
     else
-        # Otherwise, fall back to the default implementation like above
-        return copyto!(dest, convert(Broadcast.Broadcasted{Nothing}, bc))
+        throw(ArgumentError("no fallback implementation has been defined outside of dest .= val."))
     end
 end
 @inline Base.copyto!(dest::Ket{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:KetStyle{B2},Axes,F,Args} =
@@ -260,8 +259,7 @@ end
         # THEN we can just extract the argument and `fill!` the destination with it
         return fill!(dest, bc.args[1][])
     else
-        # Otherwise, fall back to the default implementation like above
-        return copyto!(dest, convert(Broadcast.Broadcasted{Nothing}, bc))
+        throw(ArgumentError("no fallback implementation has been defined outside of dest .= val."))
     end
 end
 @inline Base.copyto!(dest::Bra{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:BraStyle{B2},Axes,F,Args} =
