@@ -1,3 +1,4 @@
+@testitem "test_particle" begin
 using Test
 using QuantumOpticsBase
 using FFTW, LinearAlgebra, Random
@@ -408,3 +409,4 @@ bc2 = b1 ⊗ b2
 @test_throws QuantumOpticsBase.IncompatibleBases potentialoperator(bc ⊗ bc, V)
 
 end # testset
+end

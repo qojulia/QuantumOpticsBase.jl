@@ -1,3 +1,4 @@
+@testitem "test_metrics" begin
 using Test
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
@@ -141,3 +142,4 @@ CNOT_ptm = PauliTransferMatrix(CNOT)
 @test_throws MethodError avg_gate_fidelity(CNOT_chi, CNOT_ptm)
 
 end # testset
+end

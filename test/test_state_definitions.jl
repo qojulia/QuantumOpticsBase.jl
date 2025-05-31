@@ -1,3 +1,4 @@
+@testitem "test_state_definitions" begin
 using Test
 using QuantumOpticsBase
 using Random
@@ -48,3 +49,4 @@ for n in 1:5:50
 end
 
 end # testset
+end

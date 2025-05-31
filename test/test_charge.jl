@@ -1,3 +1,4 @@
+@testitem "test_charge" begin
 using Test
 using QuantumOpticsBase
 
@@ -44,3 +45,4 @@ using QuantumOpticsBase
     end
 
 end  # testset
+end

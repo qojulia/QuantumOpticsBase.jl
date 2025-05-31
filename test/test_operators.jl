@@ -1,3 +1,4 @@
+@testitem "test_operators" begin
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, SparseArrays, Random
@@ -150,3 +151,4 @@ a = destroy(FockBasis(5))
 @test convert(Base._return_type(*, Tuple{typeof(a'), typeof(a')}), a') == a'
 
 end # testset
+end

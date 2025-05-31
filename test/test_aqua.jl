@@ -1,3 +1,4 @@
+@testitem "test_aqua" tags = [:aqua] begin
 using Test
 using QuantumOpticsBase
 using Aqua
@@ -14,3 +15,4 @@ using StatsBase
     pirates = [pirate for pirate in Aqua.Piracy.hunt(QuantumOpticsBase) if pirate.name ∉ [:identityoperator,:identitysuperoperator]]
     @test isempty(pirates)
 end # testset
+end

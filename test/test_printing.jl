@@ -1,3 +1,4 @@
+@testitem "test_printing" begin
 using Test
 using QuantumOpticsBase
 
@@ -160,3 +161,4 @@ state_data_str = sprint(Base.print_array, state_data)
 
 
 end # testset
+end

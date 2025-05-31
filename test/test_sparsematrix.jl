@@ -1,3 +1,4 @@
+@testitem "test_sparsematrix" begin
 using Test
 using QuantumOpticsBase
 using SparseArrays, LinearAlgebra
@@ -33,3 +34,4 @@ R = A + B
 @test 0 ≈ norm(Matrix(kron(A_sp, B_sp)) - kron(A, B))
 
 end # testset
+end

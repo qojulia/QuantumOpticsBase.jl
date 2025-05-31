@@ -1,3 +1,4 @@
+@testitem "test_pauli" begin
 using LinearAlgebra
 using Test
 
@@ -89,3 +90,4 @@ CPHASE_ptm = PauliTransferMatrix(CPHASE)
 @test isapprox(PauliTransferMatrix(CPHASE) * PauliTransferMatrix(CNOT), PauliTransferMatrix(CPHASE * CNOT))
 
 end # testset
+end

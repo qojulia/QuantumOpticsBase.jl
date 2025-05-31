@@ -1,3 +1,4 @@
+@testitem "test_operators_lazyproduct" begin
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
@@ -226,3 +227,4 @@ for N=1:3
 end
 
 end # testset
+end

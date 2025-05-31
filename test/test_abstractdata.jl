@@ -1,3 +1,4 @@
+@testitem "test_abstractdata" begin
 using QuantumOpticsBase
 using Test
 using LinearAlgebra
@@ -524,3 +525,4 @@ QuantumOpticsBase.mul!(result,state,op,alpha,beta)
 @test D(result, alpha*state*op_ + beta*result_, 1e-9)
 
 end # testset
+end

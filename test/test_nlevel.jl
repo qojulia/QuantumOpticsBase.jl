@@ -1,3 +1,4 @@
+@testitem "test_nlevel" begin
 using Test
 using QuantumOpticsBase
 using LinearAlgebra
@@ -77,3 +78,4 @@ antikommutator(x, y) = x*y + y*x
 @test 1e-14 > D(-1im*px*py*pz, I)
 
 end # testset
+end

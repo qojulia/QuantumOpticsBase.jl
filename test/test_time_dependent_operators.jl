@@ -1,3 +1,4 @@
+@testitem "test_time_dependent_operators" begin
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
@@ -239,4 +240,5 @@ end
 
     op_stretch = time_stretch(op, 2.0)
     @test @inferred QOB.eval_coefficients(op_stretch, 5.0) == (1.0, 2.5)
+end
 end
