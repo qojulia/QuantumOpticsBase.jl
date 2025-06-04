@@ -3,11 +3,12 @@ using QuantumOpticsBase
 
 # filter for the test
 testfilter = ti -> begin
-  if get(ENV,"JET_TEST","")!="true"
-    return :jet in ti.tags
-  end
-
   exclude = Symbol[]
+  if get(ENV,"JET_TEST","")=="true"
+    return :jet in ti.tags
+  else
+    push!(exclude, :jet)
+  end
   if !(VERSION >= v"1.10")
     push!(exclude, :aqua)
     push!(exclude, :doctests)
