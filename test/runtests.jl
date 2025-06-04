@@ -9,8 +9,6 @@ testfilter = ti -> begin
   else
     push!(exclude, :jet)
   end
-
-  exclude = Symbol[]
   if !(VERSION >= v"1.10")
     push!(exclude, :aqua)
     push!(exclude, :doctests)
