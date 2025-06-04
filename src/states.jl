@@ -30,10 +30,11 @@ mutable struct Ket{B,T} <: AbstractKet{B,T}
     end
 end
 
-Base.zero(x::Bra) = Bra(x.basis, zero(x.data))
-Base.zero(x::Ket) = Ket(x.basis, zero(x.data))
-eltype(::Type{K}) where {K <: Ket{B,V}} where {B,V} = eltype(V)
-eltype(::Type{K}) where {K <: Bra{B,V}} where {B,V} = eltype(V)
+Base.zero(x::T) where {T<:Union{Bra,Ket}} = T(x.basis, zero(x.data))
+Base.eltype(::Type{K}) where {K <: Ket{B,V}} where {B,V} = eltype(V)
+Base.eltype(::Type{K}) where {K <: Bra{B,V}} where {B,V} = eltype(V)
+Base.size(x::Union{Bra,Ket}) = size(x.data)
+@inline Base.axes(x::Union{Bra,Ket}) = axes(x.data)
 
 Bra{B}(b::B, data::T) where {B,T} = Bra{B,T}(b, data)
 Ket{B}(b::B, data::T) where {B,T} = Ket{B,T}(b, data)
@@ -50,6 +51,8 @@ Bra{B}(b::B) where B = Bra{B}(ComplexF64, b)
 Ket{B}(b::B) where B = Ket{B}(ComplexF64, b)
 Bra(b::Basis) = Bra(ComplexF64, b)
 Ket(b::Basis) = Ket(ComplexF64, b)
+
+Base.copy(a::T) where {T<:Union{Bra,Ket}} = T(a.basis, copy(a.data))
 
 ==(x::Ket{B}, y::Ket{B}) where {B} = (samebases(x, y) && x.data==y.data)
 ==(x::Bra{B}, y::Bra{B}) where {B} = (samebases(x, y) && x.data==y.data)
@@ -80,6 +83,9 @@ Base.isapprox(x::Bra, y::Bra; kwargs...) = false
 /(a::Ket, b::Number) = Ket(a.basis, a.data ./ b)
 /(a::Bra, b::Number) = Bra(a.basis, a.data ./ b)
 
+-(a::T) where {T<:Union{Ket,Bra}} = T(a.basis, -a.data)
+norm(x::Union{Ket,Bra}) = norm(x.data)
+normalize!(x::Union{Ket,Bra}) = (normalize!(x.data); x)
 
 """
     dagger(x)
@@ -227,6 +233,17 @@ Base.@propagate_inbounds Base.Broadcast._broadcast_getindex(x::T, i) where {T<:U
     end
     return dest
 end
+# same implementation as Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:AbstractArrayStyle{0}}) in https://github.com/JuliaLang/julia/blob/master/base/broadcast.jl
+@inline function Base.copyto!(dest::Ket{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:Broadcast.DefaultArrayStyle{0},Axes,F,Args}
+    # Typically, we must independently execute bc for every storage location in `dest`, but:
+    # IF we're in the common no-op identity case with no nested args (like `dest .= val`),
+    if bc.f === identity && bc.args isa Tuple{Any} && Broadcast.isflat(bc)
+        # THEN we can just extract the argument and `fill!` the destination with it
+        return fill!(dest, bc.args[1][])
+    else
+        throw(ArgumentError("no fallback implementation has been defined outside of dest .= val."))
+    end
+end
 @inline Base.copyto!(dest::Ket{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:KetStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())
 
@@ -239,6 +256,17 @@ end
         dest′[I] = bc′[I]
     end
     return dest
+end
+# same implementation as Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:AbstractArrayStyle{0}}) in https://github.com/JuliaLang/julia/blob/master/base/broadcast.jl
+@inline function Base.copyto!(dest::Bra{B}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B,Style<:Broadcast.DefaultArrayStyle{0},Axes,F,Args}
+    # Typically, we must independently execute bc for every storage location in `dest`, but:
+    # IF we're in the common no-op identity case with no nested args (like `dest .= val`),
+    if bc.f === identity && bc.args isa Tuple{Any} && Broadcast.isflat(bc)
+        # THEN we can just extract the argument and `fill!` the destination with it
+        return fill!(dest, bc.args[1][])
+    else
+        throw(ArgumentError("no fallback implementation has been defined outside of dest .= val."))
+    end
 end
 @inline Base.copyto!(dest::Bra{B1}, bc::Broadcast.Broadcasted{Style,Axes,F,Args}) where {B1,B2,Style<:BraStyle{B2},Axes,F,Args} =
     throw(IncompatibleBases())

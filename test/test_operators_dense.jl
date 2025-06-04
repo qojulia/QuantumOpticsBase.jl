@@ -383,6 +383,9 @@ op1 .= op1_ .+ 3 * op1_
 bf = FockBasis(3)
 op3 = randoperator(bf)
 @test_throws QuantumOpticsBase.IncompatibleBases op1 .+ op3
+op .= 1.0
+@test op == fill!(zero(op), 1.0)
+@test_throws ArgumentError op .= 1.0 .+ 1.0
 
 # Dimension mismatches
 b1, b2, b3 = NLevelBasis.((2,3,4))  # N is not a type parameter

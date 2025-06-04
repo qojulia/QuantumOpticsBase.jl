@@ -167,6 +167,12 @@ psi_ .+= psi123
 bra_ = copy(bra123)
 bra_ .= 3*bra123
 @test bra_ == 3*dagger(psi123)
+bra .= 1.0
+ket .= 1.0
+@test bra == Bra(bf, [1.0 + 0.0im, 1.0 + 0.0im])
+@test ket == Ket(bf, [1.0 + 0.0im, 1.0 + 0.0im])
+@test_throws ArgumentError bra .= 1.0 .+ 1.0
+@test_throws ArgumentError ket .= 1.0 .+ 1.0
 
 end # testset
 

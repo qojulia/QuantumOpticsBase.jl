@@ -20,14 +20,6 @@ end
 set_printing(standard_order=false, rounding_tol=1e-17)
 
 
-function show(stream::IO, x::PositionBasis)
-    write(stream, "Position(xmin=$(x.xmin), xmax=$(x.xmax), N=$(x.N))")
-end
-
-function show(stream::IO, x::MomentumBasis)
-    write(stream, "Momentum(pmin=$(x.pmin), pmax=$(x.pmax), N=$(x.N))")
-end
-
 function show(stream::IO, x::SubspaceBasis)
     write(stream, "Subspace(superbasis=$(x.superbasis), states:$(length(x.basisstates)))")
 end
