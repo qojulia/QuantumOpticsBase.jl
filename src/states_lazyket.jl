@@ -32,7 +32,7 @@ Base.:(==)(x::LazyKet, y::LazyKet) = (x.basis == y.basis) && (x.kets == y.kets)
 Ket(ket::LazyKet) = ⊗(ket.kets...)
 
 # no lazy bras for now
-dagger(x::LazyKet) = throw(MethodError(dagger, "dagger not implemented for LazyKet: LazyBra is currently not implemented at all!"))
+dagger(x::LazyKet) = throw(MethodError(dagger, "dagger not implemented for LazyKet: LazyBra is currently not implemented at all!")) # TODO this should probably be an error hint instead
 
 # tensor with other kets
 function tensor(x::LazyKet, y::Ket)
