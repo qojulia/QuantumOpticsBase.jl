@@ -49,9 +49,9 @@ function directsum(a::DataOperator, b::DataOperator)
 end
 function directsum(a::SparseOpType, b::SparseOpType)
     dType = promote_type(eltype(a),eltype(b))
-    data = spzeros(dType, size(a,1)+size(b,1), size(a,2)+size(b,2))
-    data[1:size(a,1),1:size(a,2)] = a.data
-    data[size(a,1)+1:end, size(a,2)+1:end] = b.data
+    data = spzeros(dType, size(a,1)::Int+size(b,1)::Int, size(a,2)::Int+size(b,2)::Int)
+    data[1:size(a,1)::Int,1:size(a,2)::Int] = a.data
+    data[size(a,1)::Int+1:end, size(a,2)::Int+1:end] = b.data
     return Operator(directsum(a.basis_l, b.basis_l), directsum(a.basis_r, b.basis_r), data)
 end
 
