@@ -1,3 +1,4 @@
+@testitem "test_operators_dense" begin
 using Test
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
@@ -420,4 +421,5 @@ end # testset
     @test ((o1 ⊗ v2 ⊗ o3) * (o1 ⊗ v2' ⊗ o3)).data ≈ (o1^2 ⊗ p2 ⊗ o3^2).data
     @test ((v1 ⊗ o2 ⊗ o3) * (v1' ⊗ o2 ⊗ o3)).data ≈ (p1 ⊗ o2^2 ⊗ o3^2).data
     @test ((v1 ⊗ o2 ⊗ v3) * (v1' ⊗ o2 ⊗ v3')).data ≈ (p1 ⊗ o2^2 ⊗ p3).data
+end
 end

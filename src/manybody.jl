@@ -264,7 +264,11 @@ function manybodyoperator_2(mb::ManyBodyBasis, op::Operator)
     return result
 end
 
-function manybodyoperator_2(mb::ManyBodyBasis, op::SparseOpType)
+function manybodyoperator_2(mb::ManyBodyBasis, op::SparseOpAdjType)
+    throw(ArgumentError("`manybodyoperator_2` is not implemented for adjoint operators yet, convert your operator to not contain adjoints of matrices by collecting."))
+end
+
+function manybodyoperator_2(mb::ManyBodyBasis, op::SparseOpPureType)
     N = length(mb)
     S = length(mb.onebodybasis)
     Is = Int[]

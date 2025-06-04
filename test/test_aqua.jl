@@ -1,3 +1,4 @@
+@testitem "test_aqua" tags = [:aqua] begin
 using Test
 using QuantumOpticsBase
 using Aqua
@@ -10,7 +11,8 @@ using StatsBase
                                         StatsBase.TestStat, StatsBase.:(==) , StatsBase.sort!],),  # Due to https://github.com/JuliaStats/StatsBase.jl/issues/861
                   piracies=(broken=true,)
                   )
-    # manual piracy check to exclude identityoperator
-    pirates = [pirate for pirate in Aqua.Piracy.hunt(QuantumOpticsBase) if pirate.name ∉ [:identityoperator,:identitysuperoperator]]
+    # manual piracy check to exclude QuantumInterface functions that construct QuantumOpticsBase operators (as QOB.jl takes priority over other users of QuantumInterface)
+    pirates = [pirate for pirate in Aqua.Piracy.hunt(QuantumOpticsBase) if pirate.name ∉ [:identityoperator,:identitysuperoperator, :position]]
     @test isempty(pirates)
 end # testset
+end

@@ -1,3 +1,4 @@
+@testitem "test_states" begin
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
@@ -228,4 +229,5 @@ op_nested = rand(ComplexF64) * LazySum(op_prod, op)
 op = rand(ComplexF64) * LazyTensor(b, b, (1, 3), (op1, op3))
 @test expect(op, ψ) ≈ expect(sparse(op), Ket(ψ))
 
+end
 end

@@ -1,3 +1,4 @@
+@testitem "test_operators_lazytensor" begin
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, SparseArrays, Random
@@ -520,4 +521,5 @@ out_adj = adjoint(copy(adjoint(out1)))
 mul!(out_adj, ltM, V_MR)
 @test out_adj == out1
 
+end
 end

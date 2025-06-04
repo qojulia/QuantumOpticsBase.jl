@@ -1,3 +1,4 @@
+@testitem "test_apply" begin
 using QuantumOpticsBase
 using QuantumInterface
 using Test
@@ -51,3 +52,4 @@ st2 = coherentstate(bf1, 0.3)
 @test_broken apply!(st1⊗st2, [1], sOp1)
 
 end #testset
+end

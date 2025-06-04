@@ -1,3 +1,4 @@
+@testitem "test_operators_lazysum" begin
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
@@ -346,3 +347,4 @@ QuantumOpticsBase.mul!(result,state,zero_op,alpha,beta)
 @test 1e-12 > D(result, beta*result_)
 
 end # testset
+end

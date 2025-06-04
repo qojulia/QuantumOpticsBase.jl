@@ -1,3 +1,4 @@
+@testitem "test_manybody" begin
 using Test
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
@@ -223,3 +224,4 @@ psi = randstate(b)
 @test_throws ArgumentError onebodyexpect(X, dm(psi))
 
 end # testset
+end

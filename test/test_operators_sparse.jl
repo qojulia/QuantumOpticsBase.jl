@@ -1,3 +1,4 @@
+@testitem "test_operators_sparse" begin
 using Test
 using QuantumOpticsBase
 using Random, SparseArrays, LinearAlgebra
@@ -462,4 +463,5 @@ end # testset
     res = ((v1 ⊗ o2 ⊗ v3) * (v1' ⊗ o2 ⊗ v3'))
     @test res isa SparseOpType
     @test res.data ≈ (p1 ⊗ o2^2 ⊗ p3).data
+end
 end
