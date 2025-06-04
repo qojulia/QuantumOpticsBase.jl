@@ -8,7 +8,7 @@ testfilter = ti -> begin
     push!(exclude, :jet)
   end
   if !(VERSION >= v"1.10")
-    # TODO add doctests
+    push!(exclude, :doctests)
     push!(exclude, :aqua)
   end
 
