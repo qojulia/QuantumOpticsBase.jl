@@ -21,12 +21,6 @@ QuantumOpticsBase.jl provides the base functionality for QuantumOptics.jl. It im
 ```bash
 # Run all tests
 julia --project=. -e "using Pkg; Pkg.test()"
-
-# Run specific test file  
-julia --project=. test/runtests.jl
-
-# Run with multiple threads
-julia --project=. -t auto test/runtests.jl
 ```
 
 ### Building Documentation
@@ -79,7 +73,7 @@ Special test configurations:
 - Uses semantic versioning
 - Extensive test coverage with multiple CI platforms
 - Documentation auto-deploys on releases
-- Compatible with GPU acceleration through extensions
+- Compatible with GPU acceleration through Adapt.jl (converting main memory arrays to GPU arrays)
 
 ## Related Packages
 
@@ -93,14 +87,8 @@ Special test configurations:
 Before committing, ensure there are no trailing whitespaces in Julia files:
 
 ```bash
-# Remove trailing whitespaces from all .jl files
+# Remove trailing whitespaces from all .jl files (requires gnu tools)
 find . -type f -name '*.jl' -exec sed --in-place 's/[[:space:]]\+$//' {} \+
-
-# Alternative using sed on macOS
-find . -type f -name '*.jl' -exec sed -i '' 's/[[:space:]]*$//' {} \+
-
-# Check for trailing whitespaces
-find . -type f -name '*.jl' -exec grep -l '[[:space:]]$' {} \+
 ```
 
 ### General Formatting Guidelines
@@ -113,6 +101,7 @@ find . -type f -name '*.jl' -exec grep -l '[[:space:]]$' {} \+
 ## Contributing
 
 This package follows standard Julia development practices:
+- **Always pull latest changes first**: Before creating any new feature or starting work, ensure you have the latest version by running `git pull origin master` (or `git pull origin main`)
 - Fork and create feature branches
 - Write tests for new functionality
 - Ensure documentation builds successfully
