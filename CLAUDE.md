@@ -96,6 +96,14 @@ Before committing, ensure there are no trailing whitespaces in Julia files:
 find . -type f -name '*.jl' -exec sed --in-place 's/[[:space:]]\+$//' {} \+
 ```
 
+### Ensuring Files End with Newlines
+Ensure all Julia files end with a newline to avoid misbehaving CLI tools:
+
+```bash
+# Add newline to end of all .jl files that don't have one
+find . -type f -name '*.jl' -exec sed -i '$a\' {} \+
+```
+
 ### General Formatting Guidelines
 - Use 4 spaces for indentation (no tabs)
 - Remove trailing whitespaces from all lines
