@@ -123,3 +123,4 @@ This package follows standard Julia development practices:
 - Ensure documentation builds successfully
 - Follow code formatting guidelines above
 - All tests must pass before merging
+- **Keep PRs focused**: A PR should implement one self-contained change. Avoid mixing feature work with formatting changes to unrelated files, even for improvements like adding missing newlines. Format unrelated files in separate commits or PRs.
