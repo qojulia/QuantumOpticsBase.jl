@@ -116,6 +116,8 @@ find . -type f -name '*.jl' -exec sed -i '$a\' {} \+
 This package follows standard Julia development practices:
 - **Always pull latest changes first**: Before creating any new feature or starting work, ensure you have the latest version by running `git pull origin master` (or `git pull origin main`)
 - **Pull before continuing work**: Other maintainers might have modified the branch you are working on. Always call `git pull` before continuing work on an existing branch
+- **Push changes to remote**: Always push your local changes to the remote branch to keep the PR up to date: `git push origin <branch-name>`
+- **Run all tests before submitting**: Before creating or updating a PR, always run the full test suite to ensure nothing is broken: `julia --project=. -e "using Pkg; Pkg.test()"`
 - Fork and create feature branches
 - Write tests for new functionality
 - Ensure documentation builds successfully
