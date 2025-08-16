@@ -19,16 +19,13 @@ QuantumOpticsBase.jl provides the base functionality for QuantumOptics.jl. It im
 
 ### Running Tests
 ```bash
-# Run all tests (recommended - uses proper test environment)
+# Run all tests
 julia --project=. -e "using Pkg; Pkg.test()"
 
 # Run with specific GPU backend
 CUDA_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
 AMDGPU_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
 OpenCL_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
-
-# Alternative: Run test script directly (not recommended)
-julia --project=. test/runtests.jl
 ```
 
 ### Building Documentation
