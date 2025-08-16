@@ -20,7 +20,6 @@ else
 end
 
 using Pkg
-Pkg.add("TestItemRunner")
 CUDA_flag && Pkg.add("CUDA")
 AMDGPU_flag && Pkg.add("AMDGPU")
 OpenCL_flag && Pkg.add(["pocl_jll", "OpenCL"])

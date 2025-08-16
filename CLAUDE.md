@@ -19,8 +19,16 @@ QuantumOpticsBase.jl provides the base functionality for QuantumOptics.jl. It im
 
 ### Running Tests
 ```bash
-# Run all tests
+# Run all tests (recommended - uses proper test environment)
 julia --project=. -e "using Pkg; Pkg.test()"
+
+# Run with specific GPU backend
+CUDA_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
+AMDGPU_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
+OpenCL_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
+
+# Alternative: Run test script directly (not recommended)
+julia --project=. test/runtests.jl
 ```
 
 ### Building Documentation
@@ -102,6 +110,7 @@ find . -type f -name '*.jl' -exec sed --in-place 's/[[:space:]]\+$//' {} \+
 
 This package follows standard Julia development practices:
 - **Always pull latest changes first**: Before creating any new feature or starting work, ensure you have the latest version by running `git pull origin master` (or `git pull origin main`)
+- **Pull before continuing work**: Other maintainers might have modified the branch you are working on. Always call `git pull` before continuing work on an existing branch
 - Fork and create feature branches
 - Write tests for new functionality
 - Ensure documentation builds successfully
