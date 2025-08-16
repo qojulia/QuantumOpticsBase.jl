@@ -87,10 +87,34 @@ Special test configurations:
 - `QuantumInterface.jl` - Common interfaces
 - See the @qojulia organization for the full ecosystem
 
+## Code Formatting
+
+### Removing Trailing Whitespaces
+Before committing, ensure there are no trailing whitespaces in Julia files:
+
+```bash
+# Remove trailing whitespaces from all .jl files
+find . -type f -name '*.jl' -exec sed --in-place 's/[[:space:]]\+$//' {} \+
+
+# Alternative using sed on macOS
+find . -type f -name '*.jl' -exec sed -i '' 's/[[:space:]]*$//' {} \+
+
+# Check for trailing whitespaces
+find . -type f -name '*.jl' -exec grep -l '[[:space:]]$' {} \+
+```
+
+### General Formatting Guidelines
+- Use 4 spaces for indentation (no tabs)
+- Remove trailing whitespaces from all lines
+- Ensure files end with a single newline
+- Follow Julia standard naming conventions
+- Keep lines under 100 characters when reasonable
+
 ## Contributing
 
 This package follows standard Julia development practices:
 - Fork and create feature branches
 - Write tests for new functionality
 - Ensure documentation builds successfully
+- Follow code formatting guidelines above
 - All tests must pass before merging
