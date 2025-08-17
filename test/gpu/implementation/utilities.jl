@@ -13,8 +13,7 @@ function create_test_ket(basis, AT)
     data = rand(ComplexF64, length(basis))
     normalize!(data)
     cpu_ket = Ket(basis, data)
-    gpu_data = Adapt.adapt(AT, data)
-    gpu_ket = Ket(basis, gpu_data)
+    gpu_ket = Adapt.adapt(AT, cpu_ket)
     return cpu_ket, gpu_ket
 end
 
@@ -23,8 +22,7 @@ function create_test_bra(basis, AT)
     data = rand(ComplexF64, length(basis))
     normalize!(data)
     cpu_bra = Bra(basis, data)
-    gpu_data = Adapt.adapt(AT, data)
-    gpu_bra = Bra(basis, gpu_data)
+    gpu_bra = Adapt.adapt(AT, cpu_bra)
     return cpu_bra, gpu_bra
 end
 

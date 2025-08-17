@@ -1,6 +1,7 @@
 import Base: isequal, ==, *, /, +, -
 import SparseArrays: sparse, spzeros
 import QuantumInterface: BASES_CHECK
+import Adapt
 
 function _check_bases(basis_l, basis_r, operators)
     for o in operators
@@ -235,3 +236,6 @@ function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha
     end
     return result
 end
+
+# GPU adaptation
+Adapt.adapt_structure(to, x::LazySum) = LazySum(x.basis_l, x.basis_r, x.factors, [Adapt.adapt(to, op) for op in x.operators])

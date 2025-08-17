@@ -1,5 +1,6 @@
 import QuantumInterface: AbstractSuperOperator
 import FastExpm: fastExpm
+import Adapt
 
 """
     SuperOperator <: AbstractSuperOperator
@@ -360,4 +361,7 @@ SuperOperator(op::ChoiState) = SuperOperator(_super_choi(op.basis_l, op.basis_r,
 
 *(a::ChoiState, b::SuperOperator) = SuperOperator(a)*b
 *(a::SuperOperator, b::ChoiState) = a*SuperOperator(b)
+
+# GPU adaptation
+Adapt.adapt_structure(to, x::SuperOperator) = SuperOperator(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))
 

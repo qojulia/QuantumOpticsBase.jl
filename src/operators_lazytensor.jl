@@ -1,4 +1,5 @@
 import Base: isequal, ==, *, /, +, -
+import Adapt
 
 """
     LazyTensor(b1[, b2], indices, operators[, factor=1])
@@ -748,3 +749,6 @@ _mul_puresparse!(result::DenseOpType{B1,B3},h::LazyTensor{B1,B2,F,I,T},op::Dense
 _mul_puresparse!(result::DenseOpType{B1,B3},op::DenseOpType{B1,B2},h::LazyTensor{B2,B3,F,I,T},alpha,beta) where {B1,B2,B3,F,I,T} = (_gemm_puresparse(alpha, op.data, h, beta, result.data); result)
 _mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,beta) where {B1,B2,F,I,T} = (_gemm_puresparse(alpha, a, b.data, beta, result.data); result)
 _mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T} = (_gemm_puresparse(alpha, a.data, b, beta, result.data); result)
+
+# GPU adaptation
+Adapt.adapt_structure(to, x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, x.indices, Tuple(Adapt.adapt(to, op) for op in x.operators), x.factor)
