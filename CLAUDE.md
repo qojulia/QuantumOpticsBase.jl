@@ -22,7 +22,7 @@ QuantumOpticsBase.jl provides the base functionality for QuantumOptics.jl. It im
 # Run all tests
 julia --project=. -e "using Pkg; Pkg.test()"
 
-# Run with specific GPU backend
+# Run with only specific GPU backend tests
 CUDA_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
 AMDGPU_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
 OpenCL_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
@@ -89,7 +89,7 @@ Special test configurations:
 ## Code Formatting
 
 ### Removing Trailing Whitespaces
-Before committing, ensure there are no trailing whitespaces in Julia files:
+Before committing, ensure there are no trailing whitespaces in Julia files. Do not format files that are not part of the specific feature under development.
 
 ```bash
 # Remove trailing whitespaces from all .jl files (requires gnu tools)
@@ -97,7 +97,7 @@ find . -type f -name '*.jl' -exec sed --in-place 's/[[:space:]]\+$//' {} \+
 ```
 
 ### Ensuring Files End with Newlines
-Ensure all Julia files end with a newline to avoid misbehaving CLI tools:
+Ensure all Julia files end with a newline to avoid misbehaving CLI tools. Do not format files that are not part of the specific feature under development.
 
 ```bash
 # Add newline to end of all .jl files that don't have one
