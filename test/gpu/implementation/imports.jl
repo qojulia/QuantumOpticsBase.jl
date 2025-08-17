@@ -1,6 +1,7 @@
 # GPU backend imports
 import Adapt
 using QuantumOpticsBase
+import QuantumOpticsBase: ChoiState  # Import ChoiState for GPU tests
 using LinearAlgebra, Random, Test
 using SparseArrays
 
