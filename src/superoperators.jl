@@ -364,5 +364,4 @@ SuperOperator(op::ChoiState) = SuperOperator(_super_choi(op.basis_l, op.basis_r,
 
 # GPU adaptation
 Adapt.adapt_structure(to, x::SuperOperator) = SuperOperator(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))
-Adapt.adapt_structure(to, x::ChoiState) = ChoiState(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))
 

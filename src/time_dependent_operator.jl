@@ -1,6 +1,5 @@
 
 import Base: size, *, +, -, /, ==, isequal, adjoint, convert
-import Adapt
 
 """
     AbstractTimeDependentOperator{BL,BR} <: AbstractOperator{BL,BR}
@@ -347,6 +346,3 @@ function time_restrict(op::TimeDependentSum, t_from, t_to)
     TimeDependentSum(_restrict_coeff.(coefficients(op), t_from, t_to), copy(static_operator(op)), current_time(op))
 end
 time_restrict(op::TimeDependentSum, t_duration) = time_restrict(op, zero(t_duration), t_duration)
-
-# GPU adaptation
-Adapt.adapt_structure(to, x::TimeDependentSum) = TimeDependentSum(x.coefficients, Adapt.adapt(to, x.static_op), x.current_time)

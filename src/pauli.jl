@@ -1,6 +1,5 @@
 import Base: isapprox
 import QuantumInterface: PauliBasis
-import Adapt
 
 """
     Base class for Pauli transfer matrix classes.
@@ -264,7 +263,3 @@ ChiMatrix(ptm::DensePauliTransferMatrix) = ChiMatrix(SuperOperator(ptm))
 function isapprox(sop1::T, sop2::T; kwargs...) where T<:Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}
     return isapprox(sop1.data, sop2.data; kwargs...)
 end
-
-# GPU adaptation
-Adapt.adapt_structure(to, x::DensePauliTransferMatrix) = DensePauliTransferMatrix(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))
-Adapt.adapt_structure(to, x::DenseChiMatrix) = DenseChiMatrix(x.basis_l, x.basis_r, Adapt.adapt(to, x.data))
