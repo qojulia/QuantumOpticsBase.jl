@@ -751,4 +751,4 @@ _mul_puresparse!(result::Ket{B1},a::LazyTensor{B1,B2,F,I,T},b::Ket{B2},alpha,bet
 _mul_puresparse!(result::Bra{B2},a::Bra{B1},b::LazyTensor{B1,B2,F,I,T},alpha,beta) where {B1,B2,F,I,T} = (_gemm_puresparse(alpha, a.data, b, beta, result.data); result)
 
 # GPU adaptation
-Adapt.adapt_structure(to, x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, x.indices, Adapt.adapt(to, x.operators), x.factor)
+Adapt.adapt_structure(to, x::LazyTensor) = LazyTensor(x.basis_l, x.basis_r, x.indices, Tuple(Adapt.adapt(to, op) for op in x.operators), x.factor)

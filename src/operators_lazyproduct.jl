@@ -147,4 +147,4 @@ function mul!(result::Operator{B1,B3,T},a::Operator{B1,B2},b::LazyProduct{B2,B3}
 end
 
 # GPU adaptation  
-Adapt.adapt_structure(to, x::LazyProduct) = LazyProduct(Adapt.adapt(to, x.operators), x.factor)
+Adapt.adapt_structure(to, x::LazyProduct) = LazyProduct([Adapt.adapt(to, op) for op in x.operators], x.factor)

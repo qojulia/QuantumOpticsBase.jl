@@ -238,11 +238,4 @@ function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha
 end
 
 # GPU adaptation
-# We need to use Adapt.jl's default structural adaptation, which will recursively
-# adapt all fields including operators and factors arrays
-function Adapt.adapt_structure(to, x::LazySum)
-    # Let Adapt.jl recursively adapt the fields
-    adapted_factors = Adapt.adapt(to, x.factors)
-    adapted_operators = Adapt.adapt(to, x.operators)
-    return LazySum(x.basis_l, x.basis_r, adapted_factors, adapted_operators)
-end
+Adapt.adapt_structure(to, x::LazySum) = LazySum(x.basis_l, x.basis_r, x.factors, [Adapt.adapt(to, op) for op in x.operators])
