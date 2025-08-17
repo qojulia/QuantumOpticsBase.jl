@@ -1,4 +1,5 @@
 using QuantumInterface: SumBasis
+import Adapt
 
 """
     directsum(x::Ket, y::Ket)
@@ -245,3 +246,6 @@ function mul!(result::Bra{B2},b::Bra{B1},M::LazyDirectSum{B1,B2},alpha_,beta_) w
     end
     return result
 end
+
+# GPU adaptation
+Adapt.adapt_structure(to, x::LazyDirectSum) = LazyDirectSum(x.basis_l, x.basis_r, Adapt.adapt(to, x.operators))

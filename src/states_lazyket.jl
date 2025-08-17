@@ -1,3 +1,5 @@
+import Adapt
+
 """
     LazyKet(b, kets)
 
@@ -146,3 +148,6 @@ function mul!(y::LazyKet{BL}, op::LazyTensor{BL, BR}, x::LazyKet{BR}, alpha, bet
     rmul!(y.kets[1].data, op.factor * alpha)
     return y
 end
+
+# GPU adaptation
+Adapt.adapt_structure(to, x::LazyKet) = LazyKet(x.basis, Adapt.adapt(to, x.kets))

@@ -1,6 +1,7 @@
 import Base: ==, +, -, *, /, length, copy, eltype
 import LinearAlgebra: norm, normalize, normalize!
 import QuantumInterface: StateVector, AbstractKet, AbstractBra
+import Adapt
 
 """
     Bra(b::Basis[, data])
@@ -285,3 +286,7 @@ RecursiveArrayTools.recursivecopy!(dest::Bra{B,A},src::Bra{B,A}) where {B,A} = c
 RecursiveArrayTools.recursivecopy(x::T) where {T<:Union{Ket, Bra}} = copy(x)
 RecursiveArrayTools.recursivecopy(x::AbstractArray{T}) where {T<:Union{Ket, Bra}} = copy(x)
 RecursiveArrayTools.recursivefill!(x::T, a) where {T<:Union{Ket, Bra}} = fill!(x, a)
+
+# GPU adaptation
+Adapt.adapt_structure(to, x::Ket) = Ket(x.basis, Adapt.adapt(to, x.data))
+Adapt.adapt_structure(to, x::Bra) = Bra(x.basis, Adapt.adapt(to, x.data))

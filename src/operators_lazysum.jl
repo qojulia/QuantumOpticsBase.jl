@@ -1,6 +1,7 @@
 import Base: isequal, ==, *, /, +, -
 import SparseArrays: sparse, spzeros
 import QuantumInterface: BASES_CHECK
+import Adapt
 
 function _check_bases(basis_l, basis_r, operators)
     for o in operators
@@ -234,4 +235,14 @@ function mul!(result::Operator{B1,B3},a::Operator{B1,B2},b::LazySum{B2,B3},alpha
         end
     end
     return result
+end
+
+# GPU adaptation
+# We need to use Adapt.jl's default structural adaptation, which will recursively
+# adapt all fields including operators and factors arrays
+function Adapt.adapt_structure(to, x::LazySum)
+    # Let Adapt.jl recursively adapt the fields
+    adapted_factors = Adapt.adapt(to, x.factors)
+    adapted_operators = Adapt.adapt(to, x.operators)
+    return LazySum(x.basis_l, x.basis_r, adapted_factors, adapted_operators)
 end
