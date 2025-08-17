@@ -21,6 +21,11 @@ QuantumOpticsBase.jl provides the base functionality for QuantumOptics.jl. It im
 ```bash
 # Run all tests
 julia --project=. -e "using Pkg; Pkg.test()"
+
+# Run with only specific GPU backend tests
+CUDA_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
+AMDGPU_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
+OpenCL_TEST=true julia --project=. -e "using Pkg; Pkg.test()"
 ```
 
 ### Building Documentation
@@ -84,11 +89,19 @@ Special test configurations:
 ## Code Formatting
 
 ### Removing Trailing Whitespaces
-Before committing, ensure there are no trailing whitespaces in Julia files:
+Before committing, ensure there are no trailing whitespaces in Julia files. Do not format files that are not part of the specific feature under development.
 
 ```bash
 # Remove trailing whitespaces from all .jl files (requires gnu tools)
 find . -type f -name '*.jl' -exec sed --in-place 's/[[:space:]]\+$//' {} \+
+```
+
+### Ensuring Files End with Newlines
+Ensure all Julia files end with a newline to avoid misbehaving CLI tools. Do not format files that are not part of the specific feature under development.
+
+```bash
+# Add newline to end of all .jl files that don't have one
+find . -type f -name '*.jl' -exec sed -i '$a\' {} \+
 ```
 
 ### General Formatting Guidelines
@@ -101,8 +114,13 @@ find . -type f -name '*.jl' -exec sed --in-place 's/[[:space:]]\+$//' {} \+
 ## Contributing
 
 This package follows standard Julia development practices:
+- **Always pull latest changes first**: Before creating any new feature or starting work, ensure you have the latest version by running `git pull origin master` (or `git pull origin main`)
+- **Pull before continuing work**: Other maintainers might have modified the branch you are working on. Always call `git pull` before continuing work on an existing branch
+- **Push changes to remote**: Always push your local changes to the remote branch to keep the PR up to date: `git push origin <branch-name>`
+- **Run all tests before submitting**: Before creating or updating a PR, always run the full test suite to ensure nothing is broken: `julia --project=. -e "using Pkg; Pkg.test()"`
 - Fork and create feature branches
 - Write tests for new functionality
 - Ensure documentation builds successfully
 - Follow code formatting guidelines above
 - All tests must pass before merging
+- **Keep PRs focused**: A PR should implement one self-contained change. Avoid mixing feature work with formatting changes to unrelated files, even for improvements like adding missing newlines. Format unrelated files in separate commits or PRs.
