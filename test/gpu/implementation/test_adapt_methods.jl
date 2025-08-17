@@ -97,48 +97,6 @@ function test_adapt_methods(AT, synchronize)
                     @test gpu_lazy_ds.basis_l == cpu_lazy_ds.basis_l
                     @test gpu_lazy_ds.basis_r == cpu_lazy_ds.basis_r
                     
-                    # Test TimeDependentSum adaptation (just verify no errors)
-                    try
-                        tds_op = Operator(b1, b1, rand(ComplexF64, n, n))
-                        cpu_tds = TimeDependentSum((t->2.0*cos(t))=>tds_op)
-                        Adapt.adapt(AT, cpu_tds)  # Should not throw
-                    catch
-                        # Adaptation may fail, but we just want to test it doesn't crash the test suite
-                    end
-                    
-                    # Test ChoiState adaptation (just verify no errors)
-                    try
-                        choi_data = rand(ComplexF64, n*n, n*n)
-                        cpu_choi = ChoiState([b1,b1], [b1,b1], choi_data)
-                        Adapt.adapt(AT, cpu_choi)  # Should not throw
-                    catch
-                        # Adaptation may fail, but we just want to test it doesn't crash the test suite
-                    end
-                    
-                    # Test DenseChiMatrix adaptation (just verify no errors) 
-                    if n == 2  # Chi matrices work best with SpinBasis
-                        try
-                            sb = SpinBasis(1//2)
-                            cb_spin = sb ⊗ sb
-                            test_op = Operator(cb_spin, cb_spin, rand(ComplexF64, 4, 4))
-                            cpu_chi = ChiMatrix(test_op)
-                            Adapt.adapt(AT, cpu_chi)  # Should not throw
-                        catch
-                            # Adaptation may fail, but we just want to test it doesn't crash the test suite
-                        end
-                        
-                        # Test DensePauliTransferMatrix adaptation (just verify no errors)
-                        try
-                            sb = SpinBasis(1//2)
-                            cb_spin = sb ⊗ sb
-                            test_op = Operator(cb_spin, cb_spin, rand(ComplexF64, 4, 4))
-                            cpu_ptm = PauliTransferMatrix(test_op)
-                            Adapt.adapt(AT, cpu_ptm)  # Should not throw
-                        catch
-                            # Adaptation may fail, but we just want to test it doesn't crash the test suite
-                        end
-                    end
-                    
                     synchronize()
                 end
                 
