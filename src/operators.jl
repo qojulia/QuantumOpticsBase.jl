@@ -111,8 +111,7 @@ Expectation value of the given operator `op` for the specified `state`.
 """
 expect(op::AbstractOperator{B,B}, state::Ket{B}) where B = dot(state.data, (op * state).data)
 
-# TODO upstream this one
-# expect(op::AbstractOperator{B,B}, state::AbstractKet{B}) where B = norm(op * state) ^ 2
+expect(op::AbstractOperator{B,B}, state::AbstractKet{B}) where B = norm(op * state) ^ 2
 
 function expect(indices, op::AbstractOperator{B,B}, state::Ket{B2}) where {B,B2<:CompositeBasis}
     N = length(state.basis.shape)
@@ -170,3 +169,4 @@ end
 
 multiplicable(a::AbstractOperator, b::Ket) = multiplicable(a.basis_r, b.basis)
 multiplicable(a::Bra, b::AbstractOperator) = multiplicable(a.basis, b.basis_l)
+
