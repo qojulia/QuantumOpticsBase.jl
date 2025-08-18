@@ -21,6 +21,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #operators
                 AbstractOperator, DataOperator, expect, variance,
                 identityoperator, ptrace, reduced, embed, dense, tr, sparse,
+                _drop_singular_bases, _branch_prob, _overlap, _project_and_drop,
         #operators_dense
                 Operator, DenseOperator, DenseOpType, projector, dm,
         #operators_sparse
@@ -41,6 +42,8 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 SuperOperator, DenseSuperOperator, DenseSuperOpType,
                 SparseSuperOperator, SparseSuperOpType, spre, spost, sprepost, liouvillian,
                 identitysuperoperator,
+        #operators_lazysuperoperator
+                AbstractLazySuperOperator, LazyPrePost, LazySuperSum, LazySuperTensor,
         #fock
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
@@ -78,6 +81,7 @@ include("bases.jl")
 include("states.jl")
 include("operators.jl")
 include("operators_dense.jl")
+include("operators_project_drop.jl")
 include("sparsematrix.jl")
 include("operators_sparse.jl")
 include("operators_lazysum.jl")
@@ -86,6 +90,7 @@ include("operators_lazytensor.jl")
 include("time_dependent_operator.jl")
 include("states_lazyket.jl")
 include("superoperators.jl")
+include("operators_lazysuperoperator.jl")
 include("spin.jl")
 include("fock.jl")
 include("charge.jl")
