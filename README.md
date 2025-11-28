@@ -12,6 +12,10 @@ Specifically, **QuantumOpticsBase.jl** implements basic types such as different 
 
 For questions, support, and discussions about QuantumOpticsBase.jl, please use the [GitHub issue tracker](https://github.com/qojulia/QuantumOptics.jl/issues) for bug reports and feature requests. For general discussions and help, visit the [Julia Discourse forum under the quantum topic](https://discourse.julialang.org/c/domain/quantum/52). You can also join the `#quantum-optics` channel on the [Julia Slack](https://julialang.org/slack/) for real-time discussions.
 
+## Office Hours
+
+Office hours are held every Friday from 12:30 – 1:30 PM Eastern Time via [Zoom](https://umass-amherst.zoom.us/j/95986275946?pwd=6h7Wbai1bXIai0XQsatNRWaVbQlTDr.1). Before joining, make sure to check the [Julia community events calendar](https://julialang.org/community/#events) to confirm whether office hours are happening, rescheduled, or canceled for the week. Feel free to bring any questions or suggestions!
+
 [codecov-url]: https://codecov.io/gh/qojulia/QuantumOpticsBase.jl
 [codecov-img]: https://codecov.io/gh/qojulia/QuantumOpticsBase.jl/branch/master/graph/badge.svg
 
