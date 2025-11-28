@@ -10,14 +10,9 @@ steps:
       - JuliaCI/julia#v1:
           version: "1"
       - QuantumSavory/julia-xvfb#v1:
-      - JuliaCI/julia-test#v1: ~
+      - JuliaCI/julia-test#v1:
       - JuliaCI/julia-coverage#v1:
           codecov: true
-    command:
-      - echo "Julia depot path $${JULIA_DEPOT_PATH}"
-      - julia --project='~' -e '
-        using Pkg;
-        pkg"dev .";'
     env:
       JET_TEST: "{{matrix.JET_TEST}}"
       CUDA_TEST: "{{matrix.CUDA_TEST}}"
@@ -49,6 +44,13 @@ steps:
             AMDGPU_TEST: false
             OPENCL_TEST: false
         - with:
+            LABEL: "AMDGPU"
+            QUEUE: rocm
+            JET_TEST: false
+            CUDA_TEST: false
+            AMDGPU_TEST: true
+            OPENCL_TEST: false
+        - with:
             LABEL: "OpenCL"
             QUEUE: default
             JET_TEST: false
@@ -71,4 +73,4 @@ steps:
         Pkg.test("{{matrix.PACKAGE}}");'
     matrix:
       setup:
-        PACKAGE: ["QuantumOptics"]
+        PACKAGE: ["QuantumOptics", "WaveguideQED", "QuantumSymbolics"]
