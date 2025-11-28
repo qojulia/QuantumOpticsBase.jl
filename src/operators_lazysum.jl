@@ -158,7 +158,7 @@ function ptrace(op::LazySum, indices)
     LazySum(op.factors, map(o->ptrace(o, indices), op.operators))
 end
 
-normalize!(op::LazySum) = (op.factors /= abs(tr(op)); op)
+normalize!(op::LazySum) = (op.factors /= tr(op); op)
 
 function permutesystems(op::LazySum, perm)
     ops = map(o->permutesystems(o, perm), op.operators)

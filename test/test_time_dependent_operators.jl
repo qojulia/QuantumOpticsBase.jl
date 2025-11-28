@@ -63,7 +63,7 @@ end
 
     api_test(ls)
 
-    tdls = TimeDependentSum([1.0], ls; init_time=1.0)
+    tdls = TimeDependentSum([1.0+0im], ls; init_time=1.0)
     @test current_time(o) == 1.0
 
     api_test(tdls)
