@@ -65,8 +65,12 @@ is_const(c::Number) = true
 is_const(c::Function) = false
 
 for func in (:basis, :length, :size, :tr, :normalize, :normalize!,
-    :identityoperator, :one, :eltype, :ptrace)
+    :identityoperator, :one, :eltype)
     @eval $func(op::AbstractTimeDependentOperator) = $func(static_operator(op))
+end
+
+for func in (:ptrace)
+    @eval $func(op::AbstractTimeDependentOperator, arg) = $func(static_operator(op), arg)
 end
 
 for func in (:expect, :variance)

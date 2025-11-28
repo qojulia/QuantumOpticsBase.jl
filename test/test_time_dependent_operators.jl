@@ -3,6 +3,15 @@ using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
 
+function api_test(op)
+    for func in (basis, length, size, tr, normalize, normalize!, identityoperator, one, eltype)
+        func(op)
+    end
+    for func in (ptrace)
+        func(op, [1])
+    end
+end
+
 @testset "time-dependent operators" begin
     QOB = QuantumOpticsBase
 
@@ -21,6 +30,10 @@ using LinearAlgebra, Random
     subo = TimeDependentSum(2.0=>subop)
     @test QOB.suboperators(o)[1] == op
     @test QOB.suboperators(QOB.static_operator(o))[1] == op
+
+    api_test(op)
+    api_test(o)
+    api_test(subo)
 
     psi = randstate(basis(o))
     for f in (expect, variance)
@@ -48,8 +61,12 @@ using LinearAlgebra, Random
     set_time!(ls, 0.0)
     @test current_time(o) == 0.0
 
+    api_test(ls)
+
     tdls = TimeDependentSum([1.0], ls; init_time=1.0)
     @test current_time(o) == 1.0
+
+    api_test(tdls)
 
     o = TimeDependentSum(ComplexF64, FockBasis(2), FockBasis(3))
     @test length(QOB.suboperators(o)) == 0
