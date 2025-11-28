@@ -69,7 +69,7 @@ for func in (:basis, :length, :size, :tr, :normalize, :normalize!,
     @eval $func(op::AbstractTimeDependentOperator) = $func(static_operator(op))
 end
 
-for func in (:ptrace)
+for func in (:ptrace,)
     @eval $func(op::AbstractTimeDependentOperator, arg) = $func(static_operator(op), arg)
 end
 

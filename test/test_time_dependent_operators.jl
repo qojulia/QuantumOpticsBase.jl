@@ -7,7 +7,7 @@ function api_test(op)
     for func in (basis, length, size, tr, normalize, normalize!, identityoperator, one, eltype)
         func(op)
     end
-    for func in (ptrace)
+    for func in (ptrace,)
         func(op, [1])
     end
 end
