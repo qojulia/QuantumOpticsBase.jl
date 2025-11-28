@@ -2,15 +2,19 @@
 
 #
 
-![CI](https://github.com/qojulia/QuantumOpticsBase.jl/workflows/CI/badge.svg) [![Chat on Gitter][gitter-img]][gitter-url] [![Test coverage status on codecov][codecov-img]][codecov-url] [![Stable documentation][docs-img]][docs-url]
+![CI](https://github.com/qojulia/QuantumOpticsBase.jl/workflows/CI/badge.svg) [![Test coverage status on codecov][codecov-img]][codecov-url] [![Stable documentation][docs-img]][docs-url]
 
-**QuantumOpticsBase.jl** provides the base functionality for **QuantumOptics.jl**. For the main project, see https://github.com/qojulia/QuantumOptics.jl or the website of the @qojulia organization http://qojulia.org. Specifically, **QuantumOpticsBase** implements basic types such as different bases, states and operators defined on these bases, and fundamental operations (such as multiplication) on these states/operators.
+**QuantumOpticsBase.jl** provides the base functionality for **QuantumOptics.jl**. For the main project, see https://github.com/qojulia/QuantumOptics.jl or the website of the @qojulia organization http://qojulia.org. 
+
+Specifically, **QuantumOpticsBase.jl** implements basic types such as different bases, states and operators defined on these bases, and fundamental operations (such as multiplication) on these states/operators.
+
+## Discussion and Help
+
+For questions, support, and discussions about QuantumOpticsBase.jl, please use the [GitHub issue tracker](https://github.com/qojulia/QuantumOptics.jl/issues) for bug reports and feature requests. For general discussions and help, visit the [Julia Discourse forum under the quantum topic](https://discourse.julialang.org/c/domain/quantum/52). You can also join the `#quantum-optics` channel on the [Julia Slack](https://julialang.org/slack/) for real-time discussions.
 
 [codecov-url]: https://codecov.io/gh/qojulia/QuantumOpticsBase.jl
 [codecov-img]: https://codecov.io/gh/qojulia/QuantumOpticsBase.jl/branch/master/graph/badge.svg
 
-[gitter-url]: https://gitter.im/QuantumOptics-jl/Lobby
-[gitter-img]: https://img.shields.io/gitter/room/nwjs/nw.js.svg
 
 [docs-url]: https://qojulia.github.io/QuantumOpticsBase.jl/latest
 [docs-img]: https://img.shields.io/badge/docs-latest-blue.svg
