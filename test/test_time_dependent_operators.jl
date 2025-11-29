@@ -24,10 +24,10 @@ end
 
     op = dense(op)
 
-    o = TimeDependentSum((t->2.0*cos(t))=>op)
+    o = TimeDependentSum(ComplexF64, (t->2.0*cos(t))=>op)
     @test !QOB.is_const(o)
     @test TimeDependentSum(o) === o
-    subo = TimeDependentSum(2.0=>subop)
+    subo = TimeDependentSum(ComplexF64, 2.0=>subop)
     @test QOB.suboperators(o)[1] == op
     @test QOB.suboperators(QOB.static_operator(o))[1] == op
 
