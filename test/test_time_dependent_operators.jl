@@ -6,11 +6,11 @@ using QuantumInterface: nsubsystems
 
 function api_test(op)
     for func in (basis, length, size, tr, normalize, normalize!, identityoperator, one, eltype)
-        func(op)
+        func(copy(op))
     end
     if nsubsystems(op)>1
         for func in (ptrace,)
-            func(op, [1])
+            func(copy(op), [1])
         end
     end
 end
