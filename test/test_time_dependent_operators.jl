@@ -2,13 +2,16 @@
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
+using QuantumInterface: nsubsystems
 
 function api_test(op)
     for func in (basis, length, size, tr, normalize, normalize!, identityoperator, one, eltype)
         func(op)
     end
-    for func in (ptrace,)
-        func(op, [1])
+    if nsubsystems(op)>1
+        for func in (ptrace,)
+            func(op, [1])
+        end
     end
 end
 
