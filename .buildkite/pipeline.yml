@@ -5,87 +5,60 @@ env:
   PYCALL_DEBUG_BUILD: yes
 
 steps:
-  - label: "Package Tests"
+  - label: "QuantumOpticsBase Tests - {{matrix.LABEL}}"
     plugins:
       - JuliaCI/julia#v1:
           version: "1"
       - QuantumSavory/julia-xvfb#v1:
-      - JuliaCI/julia-test#v1: ~
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
-    command:
-      - echo "Julia depot path $${JULIA_DEPOT_PATH}"
-      - julia --project='~' -e '
-        using Pkg;
-        pkg"dev .";'
-
-  - label: "JET Tests"
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "1"
-      - QuantumSavory/julia-xvfb#v1:
-      - JuliaCI/julia-test#v1: ~
+      - JuliaCI/julia-test#v1:
       - JuliaCI/julia-coverage#v1:
           codecov: true
     env:
-      JET_TEST: true
-    command:
-      - echo "Julia depot path $${JULIA_DEPOT_PATH}"
-      - julia --project='~' -e '
-        using Pkg;
-        pkg"dev .";'
-
-  - label: "CUDA Tests"
+      JET_TEST: "{{matrix.JET_TEST}}"
+      CUDA_TEST: "{{matrix.CUDA_TEST}}"
+      AMDGPU_TEST: "{{matrix.AMDGPU_TEST}}"
+      OpenCL_TEST: "{{matrix.OPENCL_TEST}}"
     agents:
-      queue: cuda
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "1"
-      - JuliaCI/julia-test#v1: ~
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
-    env:
-      CUDA_TEST: true
-    command:
-      - echo "Julia depot path $${JULIA_DEPOT_PATH}"
-      - julia --project='~' -e '
-        using Pkg;
-        pkg"dev .";'
+      queue: "{{matrix.QUEUE}}"
+    matrix:
+      setup:
+        LABEL: ["base tests"]
+        QUEUE: ["default"]
+        JET_TEST: ["false"]
+        CUDA_TEST: ["false"]
+        AMDGPU_TEST: ["false"]
+        OPENCL_TEST: ["false"]
+      adjustments:
+        - with:
+            LABEL: "JET"
+            QUEUE: default
+            JET_TEST: true
+            CUDA_TEST: false
+            AMDGPU_TEST: false
+            OPENCL_TEST: false
+        - with:
+            LABEL: "CUDA"
+            QUEUE: cuda
+            JET_TEST: false
+            CUDA_TEST: true
+            AMDGPU_TEST: false
+            OPENCL_TEST: false
+        - with:
+            LABEL: "AMDGPU"
+            QUEUE: rocm
+            JET_TEST: false
+            CUDA_TEST: false
+            AMDGPU_TEST: true
+            OPENCL_TEST: false
+        - with:
+            LABEL: "OpenCL"
+            QUEUE: default
+            JET_TEST: false
+            CUDA_TEST: false
+            AMDGPU_TEST: false
+            OPENCL_TEST: true
 
-#  - label: "AMDGPU Tests"
-#    agents:
-#      queue: rocm
-#    plugins:
-#      - JuliaCI/julia#v1:
-#          version: "1"
-#      - JuliaCI/julia-test#v1: ~
-#      - JuliaCI/julia-coverage#v1:
-#          codecov: true
-#    env:
-#      AMDGPU_TEST: true
-#    command:
-#      - echo "Julia depot path $${JULIA_DEPOT_PATH}"
-#      - julia --project='~' -e '
-#        using Pkg;
-#        pkg"dev .";'
-
-  - label: "OpenCL Tests"
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "1"
-      - QuantumSavory/julia-xvfb#v1:
-      - JuliaCI/julia-test#v1: ~
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
-    env:
-      OpenCL_TEST: true
-    command:
-      - echo "Julia depot path $${JULIA_DEPOT_PATH}"
-      - julia --project='~' -e '
-        using Pkg;
-        pkg"dev .";'
-
-  - label: "Downstream QuantumOptics"
+  - label: "Downstream Tests - {{matrix.PACKAGE}}"
     plugins:
       - JuliaCI/julia#v1:
           version: "1"
@@ -95,6 +68,9 @@ steps:
       - julia --project=$(mktemp -d) -e '
         using Pkg;
         pkg"dev .";
-        Pkg.add("QuantumOptics");
-        Pkg.build("QuantumOptics");
-        Pkg.test("QuantumOptics");'
+        Pkg.add("{{matrix.PACKAGE}}");
+        Pkg.build("{{matrix.PACKAGE}}");
+        Pkg.test("{{matrix.PACKAGE}}");'
+    matrix:
+      setup:
+        PACKAGE: ["QuantumOptics", "WaveguideQED", "QuantumSymbolics"]
