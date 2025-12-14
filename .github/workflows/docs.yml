@@ -22,4 +22,5 @@ jobs:
       - name: Build and deploy
         env:
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # For authentication with SSH deploy key
+          ANYTHINGLLM_API_KEY: ${{ secrets.ANYTHINGLLM_API_KEY }}
         run: julia --project=docs/ docs/make.jl
