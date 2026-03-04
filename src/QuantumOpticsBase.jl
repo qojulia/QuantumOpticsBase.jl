@@ -70,7 +70,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
                 ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
-        qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
+        qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2, blochsphere
         #apply
                 apply!
 

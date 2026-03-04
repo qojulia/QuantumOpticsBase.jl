@@ -1,60 +1,101 @@
 module QuantumOpticsBaseMakieExt
+import QuantumOpticsBase
+import QuantumOpticsBase: Ket
+import Makie
+import Makie: convert_arguments
+using Makie: Figure, @recipe, Attributes, Axis3, mesh!, arrows3d!, hidexdecorations!, hideydecorations!, hidezdecorations!
+using GeometryBasics: Point3f, Vec3f, Sphere
 
-import QuantumOpticsBase: blochsphere, Ket
-using Makie
-using GeometryBasics
-using LinearAlgebra: normalize
-
-# Configure axis visibility safely
-function configure_axis!(ax, showaxes::Bool)
-    if !showaxes
-        hidexdecorations!(ax)
-        hideydecorations!(ax)
-        hidezdecorations!(ax)
-    end
+@recipe(BlochSpherePlot, state) do scene
+    Attributes(
+        arrowcolor  = :red,
+        spherealpha = 0.30,
+        showaxes    = true,
+        title       = "Bloch Sphere",
+        shaftradius = 0.018,
+        tipradius   = 0.050,
+        tiplength   = 0.10,
+        lim         = 1.2,
+    )
 end
 
-function blochsphere(state::Ket; arrowcolor=:red, spherealpha=0.35, showaxes=true)
-    length(state.data) == 2 || error("Bloch sphere only supports spin-1/2 states")
+function convert_arguments(::Type{<:Makie.Plot{blochsphereplot}}, state::Ket)
+    return (state,)
+end
 
-    # Compute Bloch vector
-    α, β = state.data
-    x = 2 * real(conj(α) * β)
-    y = 2 * imag(conj(α) * β)
-    z = abs2(α) - abs2(β)
-    blochvec = Vec3f(x, y, z)
 
-    origin = Point3f(0,0,0)
+# Walk up the parent chain until we find an Axis3 (or give up).
+function _parent_axis3(x)
+    cur = x
+    for _ in 1:10
+        cur isa Axis3 && return cur
+        cur = Makie.parent(cur)
+        cur === nothing && break
+    end
+    return nothing
+end
 
-    # Axes + state vector
-    dirs = [
-        Vec3f(1,0,0),
-        Vec3f(0,1,0),
-        Vec3f(0,0,1),
-        blochvec
-    ]
-    tips = [Point3f(origin .+ d) for d in dirs]
+function Makie.plot!(p::BlochSpherePlot)
+    state_obs = p[1]  # Observable{Ket}
 
-    # Figure & axis
-    f = Figure()
-    ax = Axis3(f[1,1]; title="Bloch Sphere", aspect=:data)
-    configure_axis!(ax, showaxes)
+    origin = Point3f(0, 0, 0)
+
+    # Bloch vector as an Observable (reactive)
+    blochvec = Makie.@lift begin
+        s = $state_obs
+        length(s.data) == 2 || error("BlochSphere only supports spin-1/2 states (2 amplitudes)")
+        α, β = s.data
+        x = 2 * real(conj(α) * β)
+        y = 2 * imag(conj(α) * β)
+        z = abs2(α) - abs2(β)
+        Vec3f(x, y, z)
+    end
 
     # Sphere
-    mesh!(ax, Sphere(origin, 1f0); color=:white, alpha=spherealpha, transparency=true)
+    mesh!(p, Sphere(origin, 1f0);
+        color = :white,
+        alpha = p[:spherealpha],
+        transparency = true,
+        shading = true
+    )
 
-    # Draw arrows
-    for (tail, tip) in zip(fill(origin, length(dirs)), tips)
-        arrows3d!(ax, [tail], [tip];
-                  shaftradius=0.02,
-                  tipradius=0.06,
-                  tiplength=0.1,
-                  color = tip == tips[end] ? arrowcolor : :black)
+    # Axes + state vector arrows (dirs/colors reactive where needed)
+    dirs = Makie.@lift Vec3f[Vec3f(1,0,0), Vec3f(0,1,0), Vec3f(0,0,1), $blochvec]
+    tails = fill(origin, 4)
+
+    colors = Makie.@lift Any[:black, :black, :black, $(p[:arrowcolor])]
+
+    arrows3d!(p, tails, dirs;
+        shaftradius = p[:shaftradius],
+        tipradius   = p[:tipradius],
+        tiplength   = p[:tiplength],
+        color       = colors
+    )
+
+    ax = _parent_axis3(p)
+    if ax !== nothing 
+        ax.aspect = (1,1,1)
+        lim = p[:lim][]
+        Makie.limits!(ax, -lim, lim, -lim, lim, -lim, lim)
+        ax.title = p[:title][]
+
+        if !p[:showaxes][]
+            hidexdecorations!(ax)
+            hideydecorations!(ax)
+            hidezdecorations!(ax)
+        end
     end
 
-    limits!(ax, -1.2,1.2,-1.2,1.2,-1.2,1.2)
-
-    return f
+    return p
+end
+function QuantumOpticsBase.blochsphere(state::Ket; kwargs...)
+    fig = Figure(size = (700, 700))
+    ax  = Axis3(fig[1,1];
+        aspect   = :data,
+        viewmode = :fit
+    )
+    blochsphereplot!(ax, state; kwargs...)
+    return fig
 end
 
-end # module
+end

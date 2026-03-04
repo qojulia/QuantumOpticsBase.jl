@@ -4,6 +4,7 @@ version = "0.5.9"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FastExpm = "7868e603-8603-432e-a1a1-694bd70b01f2"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
@@ -19,19 +20,17 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Strided = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
 UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
-[weakdeps]
-CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-
 [extensions]
-QuantumOpticsBaseMakieExt = ["Makie"]
+QuantumOpticsBaseMakieExt = ["Makie", "GeometryBasics"]
 
 [compat]
 Adapt = "1, 2, 3.3, 4"
+CairoMakie = "0.15.8"
 FFTW = "1.2"
 FastExpm = "1.1.0"
 FastGaussQuadrature = "0.5, 1"
 FillArrays = "0.13, 1"
+GeometryBasics = "0.5.10"
 LRUCache = "1"
 LinearAlgebra = "1"
 Makie = "0.24.7"
