@@ -70,9 +70,17 @@ export Basis, GenericBasis, CompositeBasis, basis,
         PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
                 ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
-        qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
+        qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2, blochsphere
         #apply
                 apply!
+
+                ###########  Bloch Sphere API Stub  ###########
+
+function blochsphere(state)
+error("Blochsphere visualization requires a Makie extension.\n" *
+      "Load QuantumOpticsBase together with CairoMakie or GLMakie.")
+end
+
 
 include("bases.jl")
 include("states.jl")
