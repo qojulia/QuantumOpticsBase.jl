@@ -23,7 +23,7 @@ steps:
     matrix:
       setup:
         LABEL: ["base tests"]
-        QUEUE: ["default"]
+        QUEUE: ["default-queue"]
         JET_TEST: ["false"]
         CUDA_TEST: ["false"]
         AMDGPU_TEST: ["false"]
