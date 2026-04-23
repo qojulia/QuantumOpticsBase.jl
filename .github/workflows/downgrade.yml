@@ -31,7 +31,7 @@ jobs:
           version: ${{ matrix.version }}
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
-          skip: Pkg,TOML,InteractiveUtils,Random,LinearAlgebra
+          skip: Pkg,TOML,InteractiveUtils,Random,LinearAlgebra,SparseArrays
           mode: 'forcedeps'
           julia_version: ${{ matrix.version }}
       - uses: julia-actions/cache@v3
