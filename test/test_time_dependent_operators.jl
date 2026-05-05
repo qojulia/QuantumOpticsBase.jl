@@ -2,6 +2,18 @@
 using Test
 using QuantumOpticsBase
 using LinearAlgebra, Random
+using QuantumInterface: nsubsystems
+
+function api_test(op)
+    for func in (basis, length, size, tr, normalize, normalize!, identityoperator, one, eltype)
+        func(copy(op))
+    end
+    if nsubsystems(op)>1
+        for func in (ptrace,)
+            func(copy(op), [1])
+        end
+    end
+end
 
 @testset "time-dependent operators" begin
     QOB = QuantumOpticsBase
@@ -15,12 +27,16 @@ using LinearAlgebra, Random
 
     op = dense(op)
 
-    o = TimeDependentSum((t->2.0*cos(t))=>op)
+    o = TimeDependentSum(ComplexF64, (t->2.0*cos(t))=>op)
     @test !QOB.is_const(o)
     @test TimeDependentSum(o) === o
-    subo = TimeDependentSum(2.0=>subop)
+    subo = TimeDependentSum(ComplexF64, 2.0=>subop)
     @test QOB.suboperators(o)[1] == op
     @test QOB.suboperators(QOB.static_operator(o))[1] == op
+
+    api_test(op)
+    api_test(o)
+    api_test(subo)
 
     psi = randstate(basis(o))
     for f in (expect, variance)
@@ -48,8 +64,12 @@ using LinearAlgebra, Random
     set_time!(ls, 0.0)
     @test current_time(o) == 0.0
 
-    tdls = TimeDependentSum([1.0], ls; init_time=1.0)
+    api_test(ls)
+
+    tdls = TimeDependentSum([1.0+0im], ls; init_time=1.0)
     @test current_time(o) == 1.0
+
+    api_test(tdls)
 
     o = TimeDependentSum(ComplexF64, FockBasis(2), FockBasis(3))
     @test length(QOB.suboperators(o)) == 0
