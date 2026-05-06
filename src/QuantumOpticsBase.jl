@@ -74,12 +74,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #apply
                 apply!
 
-                ###########  Bloch Sphere API Stub  ###########
-
-function blochsphere(state)
-error("Blochsphere visualization requires a Makie extension.\n" *
-      "Load QuantumOpticsBase together with CairoMakie or GLMakie.")
-end
+        #visualizations
 
 
 include("bases.jl")
@@ -109,5 +104,6 @@ include("spinors.jl")
 include("phasespace.jl")
 include("printing.jl")
 include("apply.jl")
+include("visualization.jl")
 
 end # module
