@@ -72,7 +72,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
         qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2,
         #apply
-                apply!
+                apply!,
 
         #visualizations
                 blochsphere
