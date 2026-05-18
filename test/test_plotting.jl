@@ -1,7 +1,7 @@
 @testitem "Bloch Sphere Plotting" tags=[:plotting] begin
     using QuantumOpticsBase
-    using CairoMakie
-    import Makie
+    using CairoMakie   # re-exports all of Makie's exported names, including AbstractPlot
+    
 
     b = SpinBasis(1//2)
 
@@ -10,7 +10,7 @@
         fig, ax, plt = blochsphere(spinup(b))
         @test fig isa Figure
         @test ax  isa Axis3
-        @test plt isa Makie.Plot
+        @test plt isa AbstractPlot
     end
 
     # ── Render test ───────────────────────────────────────────────────────────
