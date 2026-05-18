@@ -5,7 +5,7 @@ import QuantumOpticsBase: Ket
 import Makie
 using Makie: Figure, @recipe, Attributes, Axis3
 using Makie: surface!, arrows3d!, lines!, text!, meshscatter!
-using Makie: Point3f, Vec3f   
+using Makie: Point3f, Vec3f
 
 export blochsphereplot, blochsphereplot!
 
@@ -14,11 +14,11 @@ export blochsphereplot, blochsphereplot!
 @recipe(BlochSpherePlot, state) do scene
     Attributes(
         arrowcolor    = :red,
-        spherecolor   = :lightblue,  
-        spherealpha   = 0.15,        
-        showwireframe = true,        
-        showaxes      = true,        
-        showlabels    = true,        
+        spherecolor   = :lightblue,
+        spherealpha   = 0.15,
+        showwireframe = true,
+        showaxes      = true,
+        showlabels    = true,
         labelsize     = 18,
         shaftradius   = 0.018,
         tipradius     = 0.050,
@@ -29,7 +29,7 @@ end
 
 
 function Makie.plot!(p::BlochSpherePlot)
-    state_obs = p[1]   
+    state_obs = p[1]
 
     blochvec = Makie.@lift begin
         s = $state_obs
@@ -51,7 +51,7 @@ function Makie.plot!(p::BlochSpherePlot)
         zs = Float32[cos(q)          for _  in θ, q in φ]
         c  = Makie.to_color(p[:spherecolor][])
         α  = Float32(p[:spherealpha][])
-        rgba = Makie.RGBAf(Makie.red(c), Makie.green(c), Makie.blue(c), α)
+        rgba = Makie.RGBAf(c.r, c.g, c.b, α)
         surface!(p, xs, ys, zs;
             color        = fill(rgba, npts, npts),
             transparency = true,
@@ -63,9 +63,9 @@ function Makie.plot!(p::BlochSpherePlot)
         ncirc = 120
         θc = LinRange(0f0, 2f0π, ncirc)
         for pts in (
-            [Point3f( cos(t),  sin(t), 0f0) for t in θc],   
-            [Point3f( cos(t), 0f0, sin(t)) for t in θc],    
-            [Point3f(0f0, cos(t), sin(t)) for t in θc],     
+            [Point3f( cos(t),  sin(t), 0f0) for t in θc],
+            [Point3f( cos(t), 0f0, sin(t)) for t in θc],
+            [Point3f(0f0, cos(t), sin(t)) for t in θc],
         )
             lines!(p, pts; color = (:black, 0.70), linewidth = 1.2)
         end
@@ -99,7 +99,7 @@ function Makie.plot!(p::BlochSpherePlot)
 
     if p[:showlabels][]
         ls  = p[:labelsize][]
-        off = 1.40f0   
+        off = 1.40f0
         for (pos, lbl, align) in (
             (Point3f( 0f0,   0f0,  off), "|0⟩",  (:center, :bottom)),
             (Point3f( 0f0,   0f0, -off), "|1⟩",  (:center, :top   )),
@@ -116,7 +116,7 @@ function Makie.plot!(p::BlochSpherePlot)
 end
 
 
-function QuantumOpticsBase.blochsphere(state::Ket; kwargs...)
+function QuantumOpticsBase.blochsphere(state::Ket; limits=1.6, kwargs...)
     fig = Figure(size = (700, 700))
     ax  = Axis3(fig[1, 1];
         aspect   = :data,
@@ -140,10 +140,10 @@ function QuantumOpticsBase.blochsphere(state::Ket; kwargs...)
         xzpanelvisible     = false,
         yzpanelvisible     = false,
     )
-    lim = Float32(get(kwargs, :limits, 1.6))
+    lim = Float32(limits)
     Makie.limits!(ax, -lim, lim, -lim, lim, -lim, lim)
     plt = blochsphereplot!(ax, state; kwargs...)
     return fig, ax, plt
 end
 
-end 
+end
