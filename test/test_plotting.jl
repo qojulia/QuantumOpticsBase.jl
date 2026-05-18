@@ -2,7 +2,6 @@
     using QuantumOpticsBase
     using CairoMakie   # re-exports all of Makie's exported names, including AbstractPlot
     
-
     b = SpinBasis(1//2)
 
     # ── Return types ──────────────────────────────────────────────────────────
