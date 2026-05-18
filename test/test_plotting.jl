@@ -1,6 +1,7 @@
 @testitem "Bloch Sphere Plotting" tags=[:plotting] begin
     using QuantumOpticsBase
     using CairoMakie
+    import Makie
 
     b = SpinBasis(1//2)
 
