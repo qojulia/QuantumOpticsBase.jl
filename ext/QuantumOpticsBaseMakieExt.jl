@@ -1,15 +1,11 @@
 module QuantumOpticsBaseMakieExt
 
 import QuantumOpticsBase
-import QuantumOpticsBase: Ket
+import QuantumOpticsBase: Ket, blochsphereplot, blochsphereplot!, blochsphereplot_axis
 import Makie
 using Makie: Figure, @recipe, Attributes, Axis3
 using Makie: surface!, arrows3d!, lines!, text!, meshscatter!
 using Makie: Point3f, Vec3f
-
-export blochsphereplot, blochsphereplot!
-
-
 
 @recipe(BlochSpherePlot, state) do scene
     Attributes(
@@ -25,8 +21,6 @@ export blochsphereplot, blochsphereplot!
         tiplength     = 0.10,
     )
 end
-
-
 
 function Makie.plot!(p::BlochSpherePlot)
     state_obs = p[1]
@@ -55,7 +49,6 @@ function Makie.plot!(p::BlochSpherePlot)
         surface!(p, xs, ys, zs;
             color        = fill(rgba, npts, npts),
             transparency = true,
-
         )
     end
 
@@ -116,7 +109,13 @@ function Makie.plot!(p::BlochSpherePlot)
 end
 
 
-function QuantumOpticsBase.blochsphere(state::Ket; limits=1.6, kwargs...)
+function QuantumOpticsBase.blochsphereplot_axis(ax::Makie.AbstractAxis, state::Ket; limits=1.6, kwargs...)
+    lim = Float32(limits)
+    Makie.limits!(ax, -lim, lim, -lim, lim, -lim, lim)
+    blochsphereplot!(ax, state; kwargs...)
+end
+
+function QuantumOpticsBase.blochsphereplot_axis(state::Ket; limits=1.6, kwargs...)
     fig = Figure(size = (700, 700))
     ax  = Axis3(fig[1, 1];
         aspect   = :data,
@@ -140,10 +139,8 @@ function QuantumOpticsBase.blochsphere(state::Ket; limits=1.6, kwargs...)
         xzpanelvisible     = false,
         yzpanelvisible     = false,
     )
-    lim = Float32(limits)
-    Makie.limits!(ax, -lim, lim, -lim, lim, -lim, lim)
-    plt = blochsphereplot!(ax, state; kwargs...)
+    plt = QuantumOpticsBase.blochsphereplot_axis(ax, state; limits, kwargs...)
     return fig, ax, plt
 end
 
-end
+end # module

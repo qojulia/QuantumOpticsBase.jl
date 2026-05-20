@@ -75,7 +75,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 apply!,
 
         #visualizations
-                blochsphere
+                blochsphereplot, blochsphereplot!, blochsphereplot_axis
 
 
 include("bases.jl")
