@@ -109,17 +109,19 @@ function Makie.plot!(p::BlochSpherePlot)
 end
 
 
-function QuantumOpticsBase.blochsphereplot_axis(ax::Makie.AbstractAxis, state::Ket; limits=1.6, kwargs...)
+function QuantumOpticsBase.blochsphereplot_axis(ax::Makie.AbstractAxis, state; limits=1.6, kwargs...)
+    ax.perspectiveness = 0f0
     lim = Float32(limits)
     Makie.limits!(ax, -lim, lim, -lim, lim, -lim, lim)
     blochsphereplot!(ax, state; kwargs...)
 end
 
-function QuantumOpticsBase.blochsphereplot_axis(state::Ket; limits=1.6, kwargs...)
+function QuantumOpticsBase.blochsphereplot_axis(state; limits=1.6, kwargs...)
     fig = Figure(size = (700, 700))
     ax  = Axis3(fig[1, 1];
         aspect   = :data,
         viewmode = :fit,
+        perspectiveness = 0f0,
         xticksvisible      = false,
         yticksvisible      = false,
         zticksvisible      = false,

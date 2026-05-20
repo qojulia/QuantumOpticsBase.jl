@@ -54,9 +54,7 @@
     @testset "Observable state updates reactively" begin
         using Makie: Observable
         state_obs = Observable(spinup(b))
-        fig = Figure(size = (700, 700))
-        ax  = Axis3(fig[1, 1])
-        blochsphereplot!(ax, state_obs)
+        fig, ax, _ = blochsphereplot_axis(state_obs)
         state_obs[] = spindown(b)
         save("test_bloch_observable.png", fig)
         @test isfile("test_bloch_observable.png")
