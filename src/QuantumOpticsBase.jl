@@ -70,9 +70,13 @@ export Basis, GenericBasis, CompositeBasis, basis,
         PauliBasis, PauliTransferMatrix, DensePauliTransferMatrix,
                 ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
-        qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2
+        qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2,
         #apply
-                apply!
+                apply!,
+
+        #visualizations
+                blochsphereplot, blochsphereplot!, blochsphereplot_axis
+
 
 include("bases.jl")
 include("states.jl")
@@ -101,5 +105,6 @@ include("spinors.jl")
 include("phasespace.jl")
 include("printing.jl")
 include("apply.jl")
+include("visualization.jl")
 
 end # module
