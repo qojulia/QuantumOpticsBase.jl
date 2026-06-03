@@ -17,6 +17,12 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Strided = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
 UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
+[weakdeps]
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+
+[extensions]
+QuantumOpticsBaseMakieExt = ["Makie"]
+
 [compat]
 Adapt = "1, 2, 3.3, 4"
 FFTW = "1.2"
@@ -32,3 +38,4 @@ SparseArrays = "1"
 Strided = "1, 2"
 UnsafeArrays = "1"
 julia = "1.10"
+Makie = "0.24"
