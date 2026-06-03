@@ -1,5 +1,6 @@
 @testitem "Wigner Plot" tags=[:plotting] begin
     using QuantumOpticsBase
+    using QuantumOptics
     using CairoMakie
  
     b = FockBasis(10)   # truncated Fock space — adequate for coherent α≤2, Fock n≤3
@@ -9,7 +10,7 @@
         ψ = coherentstate(b, 1.0)
         fig, ax, plt = wignerplot_axis(ψ)
         @test fig isa Figure
-        @test ax  isa Axis3
+        @test ax  isa Axis
         @test plt isa AbstractPlot
     end
  

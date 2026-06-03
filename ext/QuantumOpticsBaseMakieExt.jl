@@ -3,8 +3,6 @@ module QuantumOpticsBaseMakieExt
 import QuantumOpticsBase
 import QuantumOpticsBase: Ket, wigner, wignerplot, wignerplot!, wignerplot_axis
 using Makie
-using GeometryBasics
-using LinearAlgebra: normalize
 
 @recipe(WignerPlot, state) do scene
     Attributes(
