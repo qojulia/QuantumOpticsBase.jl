@@ -1,60 +1,70 @@
 module QuantumOpticsBaseMakieExt
 
-import QuantumOpticsBase: blochsphere, Ket
+import QuantumOpticsBase
+import QuantumOpticsBase: Ket, wigner, wignerplot, wignerplot!, wignerplot_axis
 using Makie
 using GeometryBasics
 using LinearAlgebra: normalize
 
-# Configure axis visibility safely
-function configure_axis!(ax, showaxes::Bool)
-    if !showaxes
-        hidexdecorations!(ax)
-        hideydecorations!(ax)
-        hidezdecorations!(ax)
-    end
+@recipe(WignerPlot, state) do scene
+    Attributes(
+        xrange   = (-5.0, 5.0),
+        prange   = (-5.0, 5.0),
+        npoints  = 100,
+        colormap = :RdBu,
+    )
 end
 
-function blochsphere(state::Ket; arrowcolor=:red, spherealpha=0.35, showaxes=true)
-    length(state.data) == 2 || error("Bloch sphere only supports spin-1/2 states")
+function Makie.plot!(p::WignerPlot)
+    state_obs = p[1]
 
-    # Compute Bloch vector
-    α, β = state.data
-    x = 2 * real(conj(α) * β)
-    y = 2 * imag(conj(α) * β)
-    z = abs2(α) - abs2(β)
-    blochvec = Vec3f(x, y, z)
-
-    origin = Point3f(0,0,0)
-
-    # Axes + state vector
-    dirs = [
-        Vec3f(1,0,0),
-        Vec3f(0,1,0),
-        Vec3f(0,0,1),
-        blochvec
-    ]
-    tips = [Point3f(origin .+ d) for d in dirs]
-
-    # Figure & axis
-    f = Figure()
-    ax = Axis3(f[1,1]; title="Bloch Sphere", aspect=:data)
-    configure_axis!(ax, showaxes)
-
-    # Sphere
-    mesh!(ax, Sphere(origin, 1f0); color=:white, alpha=spherealpha, transparency=true)
-
-    # Draw arrows
-    for (tail, tip) in zip(fill(origin, length(dirs)), tips)
-        arrows3d!(ax, [tail], [tip];
-                  shaftradius=0.02,
-                  tipradius=0.06,
-                  tiplength=0.1,
-                  color = tip == tips[end] ? arrowcolor : :black)
+    grid = @lift begin
+        s            = $state_obs
+        xmin, xmax   = p[:xrange][]
+        pmin, pmax   = p[:prange][]
+        n            = p[:npoints][]
+        xvec         = collect(LinRange(Float64(xmin), Float64(xmax), n))
+        pvec         = collect(LinRange(Float64(pmin), Float64(pmax), n))
+        W            = wigner(s, xvec, pvec)
+        mx           = max(abs(minimum(W)), abs(maximum(W)))
+        (xvec, pvec, W, mx)
     end
 
-    limits!(ax, -1.2,1.2,-1.2,1.2,-1.2,1.2)
+    xs   = @lift $grid[1]
+    pvs  = @lift $grid[2]
+    Ws   = @lift $grid[3]
+    clim = @lift (-$grid[4], $grid[4])
 
-    return f
+    heatmap!(p, xs, pvs, Ws;
+        colormap   = p[:colormap],
+        colorrange = clim,
+    )
+
+    return p
+end
+
+function QuantumOpticsBase.wignerplot_axis(ax, state; kwargs...)
+    wignerplot!(ax, state; kwargs...)
+end
+
+function QuantumOpticsBase.wignerplot_axis(state; kwargs...)
+    fig = Figure(size = (600, 500))
+    ax = Axis(fig[1, 1];
+    xlabel          = "x",
+    ylabel          = "p",
+    aspect          = DataAspect(),
+    xgridvisible    = false,
+    ygridvisible    = false,
+    backgroundcolor = :white,
+    )
+    plt = wignerplot_axis(ax, state; kwargs...)
+
+    Colorbar(fig[1, 2], plt;
+        label = "W(x,p)",
+        width = 15,
+    )
+
+    return fig, ax, plt
 end
 
 end # module
