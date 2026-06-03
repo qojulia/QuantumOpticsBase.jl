@@ -73,7 +73,11 @@ export Basis, GenericBasis, CompositeBasis, basis,
         qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2,
                 wignerplot, wignerplot!, wignerplot_axis
         #apply
-                apply!
+                apply!,
+
+        #visualizations
+                blochsphereplot, blochsphereplot!, blochsphereplot_axis
+
 
 
 include("bases.jl")
