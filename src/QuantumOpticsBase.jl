@@ -71,13 +71,12 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 ChiMatrix, DenseChiMatrix, avg_gate_fidelity,
         SumBasis, directsum, ⊕, LazyDirectSum, getblock, setblock!,
         qfunc, wigner, coherentspinstate, qfuncsu2, wignersu2,
-                wignerplot, wignerplot!, wignerplot_axis,
         #apply
                 apply!,
 
         #visualizations
+                wignerplot, wignerplot!, wignerplot_axis,
                 blochsphereplot, blochsphereplot!, blochsphereplot_axis
-
 
 
 include("bases.jl")
