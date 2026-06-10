@@ -27,12 +27,14 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 SparseOperator, diagonaloperator, SparseOpType, EyeOpType,
         #operators_lazysum
                 LazySum,
-        #operators_lazyproduct
+                #operators_lazyproduct
                 LazyProduct,
-        #operators_lazytensor
+                #operators_lazytensor
                 LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
                 lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
-        #states_lazyket
+                # SciML prototype
+                sciml_lazy_operator,
+                #states_lazyket
                 LazyKet,
         #time_dependent_operators
                 AbstractTimeDependentOperator, TimeDependentSum, set_time!,
@@ -106,5 +108,7 @@ include("phasespace.jl")
 include("printing.jl")
 include("apply.jl")
 include("visualization.jl")
+
+function sciml_lazy_operator end
 
 end # module

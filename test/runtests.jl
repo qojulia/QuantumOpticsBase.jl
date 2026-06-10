@@ -71,4 +71,6 @@ testfilter = ti -> begin
 end
 println("Starting tests with $(Threads.nthreads()) threads out of `Sys.CPU_THREADS = $(Sys.CPU_THREADS)`...")
 
+include("test_sciml_lazyoperators.jl")
+
 @run_package_tests filter=testfilter
