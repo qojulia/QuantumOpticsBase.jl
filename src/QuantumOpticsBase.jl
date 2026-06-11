@@ -107,4 +107,11 @@ include("printing.jl")
 include("apply.jl")
 include("visualization.jl")
 
+# SciMLOperators extension — stub declarations so these symbols live in the
+# QuantumOpticsBase namespace and are accessible via `using QuantumOpticsBase`.
+# Methods are added by QuantumOpticsBaseSciMLOperatorsExt when SciMLOperators loads.
+function sciml_lazy_operator end
+function cache_sciml_lazy_operator end
+export sciml_lazy_operator, cache_sciml_lazy_operator
+
 end # module
