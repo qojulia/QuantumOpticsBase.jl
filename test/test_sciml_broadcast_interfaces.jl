@@ -1,7 +1,8 @@
 @testitem "test_sciml_broadcast_interfaces" begin
 using Test
 using QuantumOptics
-using OrdinaryDiffEq
+using SciMLBase
+using OrdinaryDiffEqLowOrderRK: DP5
 
 @testset "sciml interface" begin
 
@@ -22,7 +23,7 @@ prob_data! = ODEProblem(schrod_data!, u0, (t₀, t₁))
 sol = solve(prob!, DP5(); reltol = 1.0e-8, abstol = 1.0e-10, save_everystep=false)
 sol_data = solve(prob_data!, DP5(); reltol = 1.0e-8, abstol = 1.0e-10, save_everystep=false)
 
-@test sol[end].data ≈ sol_data[end] 
+@test sol.u[end].data ≈ sol_data.u[end]
 
 # dense operator ODE problem
 σ₋ = sigmam(ℋ)
@@ -59,7 +60,7 @@ prob_data! = ODEProblem(lind_data!, m0, (t₀, t₁))
 sol = solve(prob!, DP5(); reltol = 1.0e-8, abstol = 1.0e-10, save_everystep=false)
 sol_data = solve(prob_data!, DP5(); reltol = 1.0e-8, abstol = 1.0e-10, save_everystep=false)
 
-@test sol[end].data ≈ sol_data[end]
+@test sol.u[end].data ≈ sol_data.u[end]
 
 end
 end

@@ -1,7 +1,10 @@
-# GPU test flags
+# Optional test flags
+JET_flag = get(ENV, "JET_TEST", "") == "true"
 CUDA_flag = false
 AMDGPU_flag = false
 OpenCL_flag = false
+
+JET_flag && @info "Running with JET tests."
 
 if Sys.iswindows()
     @info "Skipping GPU tests -- only executed on *NIX platforms."
@@ -20,6 +23,7 @@ else
 end
 
 using Pkg
+JET_flag && Pkg.add("JET")
 CUDA_flag && Pkg.add("CUDA")
 AMDGPU_flag && Pkg.add("AMDGPU")
 OpenCL_flag && Pkg.add(["pocl_jll", "OpenCL"])
@@ -34,7 +38,7 @@ using QuantumOpticsBase
 testfilter = ti -> begin
   exclude = Symbol[]
   
-  if get(ENV,"JET_TEST","")=="true"
+  if JET_flag
     return :jet in ti.tags
   else
     push!(exclude, :jet)
