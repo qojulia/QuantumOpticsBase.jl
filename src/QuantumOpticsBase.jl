@@ -32,6 +32,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
         #operators_lazytensor
                 LazyTensor, lazytensor_use_cache, lazytensor_clear_cache,
                 lazytensor_cachesize, lazytensor_disable_cache, lazytensor_enable_cache,
+                sciml_lazy_operator, cache_sciml_lazy_operator,
         #states_lazyket
                 LazyKet,
         #time_dependent_operators
@@ -106,5 +107,13 @@ include("phasespace.jl")
 include("printing.jl")
 include("apply.jl")
 include("visualization.jl")
+
+function sciml_lazy_operator(args...; kwargs...)
+    throw(ArgumentError("SciMLOperators-backed lazy operators require SciMLOperators.jl. Load it with `using SciMLOperators` before calling `sciml_lazy_operator`."))
+end
+
+function cache_sciml_lazy_operator(args...; kwargs...)
+    throw(ArgumentError("SciMLOperators-backed lazy operators require SciMLOperators.jl. Load it with `using SciMLOperators` before calling `cache_sciml_lazy_operator`."))
+end
 
 end # module
