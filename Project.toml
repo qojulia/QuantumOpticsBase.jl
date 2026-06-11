@@ -19,10 +19,12 @@ UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
- 
+SciMLOperators = "c0aeaf25-5076-4817-a8d5-81caf7dfa961"
+
 [extensions]
 QuantumOpticsBaseMakieExt = ["Makie"]
- 
+QuantumOpticsBaseSciMLOperatorsExt = "SciMLOperators"
+
 [compat]
 Adapt = "3.3, 4"
 FFTW = "1.2"
@@ -35,6 +37,7 @@ Makie = "0.24"
 QuantumInterface = "0.4"
 Random = "1"
 RecursiveArrayTools = "3.1, 4"
+SciMLOperators = "1.20"
 SparseArrays = "1"
 Strided = "1, 2"
 UnsafeArrays = "1"

@@ -67,10 +67,13 @@ steps:
       - echo "Julia depot path $${JULIA_DEPOT_PATH}"
       - julia --project=$(mktemp -d) -e '
         using Pkg;
-        pkg"dev .";
+        Pkg.develop(PackageSpec(path=pwd()));
         Pkg.add("{{matrix.PACKAGE}}");
         Pkg.build("{{matrix.PACKAGE}}");
-        Pkg.test("{{matrix.PACKAGE}}");'
+        Pkg.test("{{matrix.PACKAGE}}"; test_fn=() -> begin
+            Pkg.add(PackageSpec(name="LoweredCodeUtils", version="3.5.3"));
+            Pkg.pin("LoweredCodeUtils");
+        end);'
     matrix:
       setup:
         PACKAGE: ["QuantumOptics", "WaveguideQED", "QuantumSymbolics"]

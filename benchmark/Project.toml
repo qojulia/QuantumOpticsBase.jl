@@ -1,0 +1,9 @@
+name = "QuantumOpticsBaseBenchmarks"
+uuid = "729dd8e0-ae36-4b43-9a76-c0170d3614b7"
+
+[deps]
+BenchmarkTools = "6e4b80f9-dd1a-5c18-9360-3c73fbc0a7c0"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+QuantumOpticsBase = "4f57444f-1401-5e15-980d-4471b28d5678"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SciMLOperators = "c0aeaf25-5076-4817-a8d5-81caf7dfa961"
