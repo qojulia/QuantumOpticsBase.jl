@@ -168,6 +168,8 @@ function Makie.plot!(p::WignerPlot)
 
     grid = Makie.@lift begin
         s            = $state_obs
+        s.basis isa QuantumOpticsBase.FockBasis ||
+            error("wignerplot requires a FockBasis state, got $(typeof(s.basis))")
         xmin, xmax   = p[:xrange][]
         pmin, pmax   = p[:prange][]
         n            = p[:npoints][]

@@ -64,6 +64,6 @@
         # wigner is only defined for FockBasis states
         b_spin = SpinBasis(1//2)
         ψ_spin = spinup(b_spin)
-        @test_throws Exception wignerplot_axis(ψ_spin)
+        @test_throws "FockBasis" wignerplot_axis(ψ_spin)
     end
 end
