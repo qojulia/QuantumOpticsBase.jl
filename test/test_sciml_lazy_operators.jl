@@ -195,7 +195,8 @@ end
     H  = LazySum(LazyTensor(b4,1,sx), LazyTensor(b4,3,sz))
     w  = sciml_lazy_operator(H)
     wc = cache_sciml_lazy_operator(w, psi.data)
-    @test wc isa SciMLOperatorWrapper
+    @test wc isa AbstractOperator
+    @test hasproperty(wc, :sciml_op)
     @test wc * psi ≈ w * psi
 end
 
