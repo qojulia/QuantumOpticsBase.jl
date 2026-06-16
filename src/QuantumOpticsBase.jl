@@ -20,7 +20,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 dagger, normalize, normalize!,
         #operators
                 AbstractOperator, DataOperator, expect, variance,
-                identityoperator, ptrace, reduced, embed, dense, tr, sparse,
+                identityoperator, ptrace, reduced, embed, embed_lazy, dense, tr, sparse,
         #operators_dense
                 Operator, DenseOperator, DenseOpType, projector, dm,
         #operators_sparse
