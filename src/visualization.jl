@@ -1,5 +1,3 @@
-const _MAKIE_HINT = "requires a Makie backend (e.g. `using CairoMakie`). Load one before calling this function."
-
 """
     wignerplot(state; kwargs...)
 
@@ -26,9 +24,7 @@ creating a new Figure and Axis or plotting onto an existing one.
 
 Requires a Makie backend be already imported.
 """
-function wignerplot_axis(args...; kwargs...)
-    error("wignerplot_axis " * _MAKIE_HINT)
-end
+function wignerplot_axis end
 
 """
     blochsphereplot(state::Ket; kwargs...)
@@ -56,6 +52,4 @@ or plotting onto an existing one.
 
 Requires a Makie backend be already imported.
 """
-function blochsphereplot_axis(args...; kwargs...)
-    error("blochsphereplot_axis " * _MAKIE_HINT)
-end
+function blochsphereplot_axis end
