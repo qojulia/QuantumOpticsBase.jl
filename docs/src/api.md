@@ -647,6 +647,14 @@ ChiMatrix
 DenseChiMatrix
 ```
 
+## [Visualization](@id API: Visualization)
+
+```@docs
+blochsphereplot
+blochsphereplot!
+blochsphereplot_axis
+```
+
 ## [Printing](@id API: Printing)
 
 ```@docs
