@@ -3,6 +3,7 @@ module QuantumOpticsBase
 using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
+import WeakDepHelpers: WeakDepCache, @declare_method_is_in_extension, register_weakdep_cache
 
 import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
         permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, AbstractSuperOperator
@@ -79,6 +80,8 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 blochsphereplot, blochsphereplot!, blochsphereplot_axis
 
 
+const WEAKDEP_METHOD_ERROR_HINTS = WeakDepCache()
+
 include("bases.jl")
 include("states.jl")
 include("operators.jl")
@@ -109,14 +112,7 @@ include("apply.jl")
 include("visualization.jl")
 
 function __init__()
-        if isdefined(Base.Experimental, :register_error_hint)
-            Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
-                if exc.f in (wignerplot, wignerplot!, wignerplot_axis,
-                             blochsphereplot, blochsphereplot!, blochsphereplot_axis)
-                    print(io, "\nThis function requires a Makie backend (e.g. `using CairoMakie`). Load one before calling this function.")
-                end
-            end
-        end
+        register_weakdep_cache(WEAKDEP_METHOD_ERROR_HINTS)
     end
 
 end # module

@@ -14,28 +14,38 @@ QuantumInterface = "5717a53b-5d69-4fa3-b976-0bf2f97ca1e5"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Strided = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
 UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
+WeakDepHelpers = "7869a13a-7328-4bcf-a489-0f4bb64497c7"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
- 
+MKL_jll = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
+SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
+SciMLOperators = "c0aeaf25-5076-4817-a8d5-81caf7dfa961"
+
 [extensions]
 QuantumOpticsBaseMakieExt = ["Makie"]
- 
+
 [compat]
-Adapt = "3.3, 4"
-FFTW = "1.2"
+Adapt = "4.1"
+FFTW = "1.3.2"
 FastExpm = "1.1.0"
 FastGaussQuadrature = "0.5, 1"
 FillArrays = "1.9"
 LRUCache = "1"
 LinearAlgebra = "1"
 Makie = "0.24"
+MKL_jll = "2021.1.1"
 QuantumInterface = "0.4"
 Random = "1"
-RecursiveArrayTools = "3.1, 4"
+RecursiveArrayTools = "3.36, 4"
+SciMLBase = "2.102.1, 3"
+SciMLOperators = "1.9"
 SparseArrays = "1"
+SpecialFunctions = "2.1.4"
 Strided = "1, 2"
 UnsafeArrays = "1"
+WeakDepHelpers = "0.1"
 julia = "1.10"
