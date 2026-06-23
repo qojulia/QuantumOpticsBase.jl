@@ -26,34 +26,31 @@ Requires a Makie backend be already imported.
 """
 function blochsphereplot_axis end
 
-"""
+@declare_method_is_in_extension WEAKDEP_METHOD_ERROR_HINTS fockdistributionplot (:Makie,) """
     fockdistributionplot(state; kwargs...)
- 
+
 Visualize the Fock-state (number-state) distribution of a quantum state as a
 bar chart of occupation probabilities P(n).
- 
+
 For a `Ket` the probabilities are `|⟨n|ψ⟩|²`; for a density operator they are the
 real diagonal entries `⟨n|ρ|n⟩`.
- 
+
 Requires a Makie backend be already imported.
 """
-function fockdistributionplot end
- 
-"""
+
+@declare_method_is_in_extension WEAKDEP_METHOD_ERROR_HINTS fockdistributionplot! (:Makie,) """
     fockdistributionplot!(ax, state; kwargs...)
- 
+
 In-place version of [`fockdistributionplot`](@ref). Plots onto an existing Makie axis.
- 
+
 Requires a Makie backend be already imported.
 """
-function fockdistributionplot! end
- 
-"""
+
+@declare_method_is_in_extension WEAKDEP_METHOD_ERROR_HINTS fockdistributionplot_axis (:Makie,) """
     fockdistributionplot_axis([ax,] state; kwargs...) -> (Figure, Axis, Plot)
- 
+
 Visualize the Fock-state distribution of a quantum state, creating a new Figure
 and Axis or plotting onto an existing one.
- 
+
 Requires a Makie backend be already imported.
 """
-function fockdistributionplot_axis end

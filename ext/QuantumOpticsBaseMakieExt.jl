@@ -155,11 +155,7 @@ _fock_probabilities(state::Ket) = abs2.(state.data)
 _fock_probabilities(state)      = real.(diag(state.data))
  
 @recipe(FockDistributionPlot, state) do scene
-    Attributes(
-        color = :green,
-        alpha = 0.6,
-        width = 0.8,
-    )
+    Attributes()
 end
  
 function Makie.plot!(p::FockDistributionPlot)
@@ -169,11 +165,7 @@ function Makie.plot!(p::FockDistributionPlot)
     xs    = Makie.@lift Float32.(0:(length($probs) - 1))
     ys    = Makie.@lift Float32.($probs)
  
-    barplot!(p, xs, ys;
-        color = p[:color],
-        alpha = p[:alpha],
-        width = p[:width],
-    )
+    barplot!(p, xs, ys)
  
     return p
 end
@@ -181,7 +173,7 @@ end
 function QuantumOpticsBase.fockdistributionplot_axis(ax::Makie.AbstractAxis, state;
                                                      unit_y_range=true, kwargs...)
     plt = fockdistributionplot!(ax, state; kwargs...)
-    N = length(_fock_probabilities(state))
+    N = length(_fock_probabilities(Makie.to_value(state)))
     Makie.xlims!(ax, -0.5, N)
     unit_y_range && Makie.ylims!(ax, 0, 1)
     return plt

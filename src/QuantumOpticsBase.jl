@@ -3,6 +3,7 @@ module QuantumOpticsBase
 using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
 import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
+using WeakDepHelpers: WeakDepCache, register_weakdep_cache, @declare_method_is_in_extension
 
 import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
         permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, AbstractSuperOperator
@@ -79,6 +80,10 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 fockdistributionplot, fockdistributionplot!, fockdistributionplot_axis
 
 
+# Cache of weak-dependency method-error hints, populated by
+# `@declare_method_is_in_extension` in visualization.jl and hooked up in __init__.
+const WEAKDEP_METHOD_ERROR_HINTS = WeakDepCache()
+
 include("bases.jl")
 include("states.jl")
 include("operators.jl")
@@ -109,13 +114,7 @@ include("apply.jl")
 include("visualization.jl")
 
 function __init__()
-        if isdefined(Base.Experimental, :register_error_hint)
-            Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
-                if exc.f in (fockdistributionplot, fockdistributionplot!, fockdistributionplot_axis)
-                    print(io, "\nThis function requires a Makie backend (e.g. `using CairoMakie`). Load one before calling this function.")
-                end
-            end
-        end
+        register_weakdep_cache(WEAKDEP_METHOD_ERROR_HINTS)
     end
 
 end # module
