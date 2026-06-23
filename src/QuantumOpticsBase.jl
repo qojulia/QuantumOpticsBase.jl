@@ -75,7 +75,8 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 apply!,
 
         #visualizations
-                blochsphereplot, blochsphereplot!, blochsphereplot_axis
+                blochsphereplot, blochsphereplot!, blochsphereplot_axis, 
+                fockdistributionplot, fockdistributionplot!, fockdistributionplot_axis
 
 
 include("bases.jl")
@@ -106,5 +107,15 @@ include("phasespace.jl")
 include("printing.jl")
 include("apply.jl")
 include("visualization.jl")
+
+function __init__()
+        if isdefined(Base.Experimental, :register_error_hint)
+            Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
+                if exc.f in (fockdistributionplot, fockdistributionplot!, fockdistributionplot_axis)
+                    print(io, "\nThis function requires a Makie backend (e.g. `using CairoMakie`). Load one before calling this function.")
+                end
+            end
+        end
+    end
 
 end # module
