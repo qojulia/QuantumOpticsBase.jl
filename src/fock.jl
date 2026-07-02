@@ -179,18 +179,14 @@ function coherentstate!(ket::Ket, b::FockBasis, alpha::Number)
     T = real(C)
     alpha = C(alpha)
     data = ket.data
-    data[1] = exp(-abs2(alpha)/2)
-
-    # Compute coefficient up to offset
+    λ = abs2(alpha)
+    ϕ = angle(alpha)
     offset = b.offset
-    @inbounds for n=1:offset
-        data[1] *= alpha/sqrt(T(n))
+    display(b.N)
+    @inbounds for n=offset:b.N
+        i=n-offset+1
+        data[i] = sqrt(poisson(n,λ))*exp(1im*ϕ*n)
     end
-
-    # Write coefficients to state
-    @inbounds for n=1:b.N-offset
-        data[n+1] = data[n]*alpha/sqrt(T(n+offset))
-    end
-
     return ket
 end
+poisson(k,λ) = exp(k*log(λ) - λ - loggamma(k+1))
