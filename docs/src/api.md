@@ -653,6 +653,9 @@ DenseChiMatrix
 blochsphereplot
 blochsphereplot!
 blochsphereplot_axis
+fockdistributionplot
+fockdistributionplot!
+fockdistributionplot_axis
 ```
 
 ## [Printing](@id API: Printing)
