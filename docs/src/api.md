@@ -646,6 +646,19 @@ ChiMatrix
 ```@docs
 DenseChiMatrix
 ```
+## [Visualization](@id API: Visualization)
+
+```@docs
+blochsphereplot
+blochsphereplot!
+blochsphereplot_axis
+```
+
+```@docs
+wignerplot
+wignerplot!
+wignerplot_axis
+```
 
 ## [Printing](@id API: Printing)
 
