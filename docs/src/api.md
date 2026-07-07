@@ -660,14 +660,6 @@ wignerplot!
 wignerplot_axis
 ```
 
-## [Visualization](@id API: Visualization)
-
-```@docs
-blochsphereplot
-blochsphereplot!
-blochsphereplot_axis
-```
-
 ## [Printing](@id API: Printing)
 
 ```@docs
