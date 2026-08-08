@@ -36,6 +36,7 @@ Base.eltype(::Type{K}) where {K <: Ket{B,V}} where {B,V} = eltype(V)
 Base.eltype(::Type{K}) where {K <: Bra{B,V}} where {B,V} = eltype(V)
 Base.size(x::Union{Bra,Ket}) = size(x.data)
 @inline Base.axes(x::Union{Bra,Ket}) = axes(x.data)
+Base.isempty(x::Union{Bra,Ket}) = isempty(x.data)
 
 Bra{B}(b::B, data::T) where {B,T} = Bra{B,T}(b, data)
 Ket{B}(b::B, data::T) where {B,T} = Ket{B,T}(b, data)

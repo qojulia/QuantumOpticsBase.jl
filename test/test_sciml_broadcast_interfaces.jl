@@ -9,6 +9,8 @@ using OrdinaryDiffEqLowOrderRK: DP5
 # ket ODE problem
 ℋ = SpinBasis(1//2)
 ↓ = spindown(ℋ)
+@test !isempty(↓)
+@test !isempty(adjoint(↓))
 t₀, t₁ = (0.0, pi)
 σx = sigmax(ℋ)
 iσx = im*σx
