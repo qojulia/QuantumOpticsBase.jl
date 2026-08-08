@@ -655,6 +655,12 @@ blochsphereplot!
 blochsphereplot_axis
 ```
 
+```@docs
+wavefunctionplot
+wavefunctionplot!
+wavefunctionplot_axis
+```
+
 ## [Printing](@id API: Printing)
 
 ```@docs
