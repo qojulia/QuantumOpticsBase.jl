@@ -219,6 +219,132 @@ end
 
 identityoperator(::Type{<:LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where {T<:Number} = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
+"""
+    embed_lazy(basis[, basis_r], indices, op)
+    embed_lazy(basis[, basis_r], indices, operators)
+
+Embed an operator into a larger composite basis without materializing the full matrix.
+
+Returns a [`LazyTensor`](@ref) for local [`DataOperator`](@ref) terms, preserves
+[`LazySum`](@ref) structure, and re-embeds existing [`LazyTensor`](@ref) objects.
+
+Unlike [`embed`](@ref), dense and sparse operators are not converted to large embedded
+sparse matrices. Unlike directly calling [`LazyTensor`](@ref), this function follows
+[`embed`](@ref) index semantics (including basis compatibility checks) and also handles
+[`LazySum`](@ref) and [`TimeDependentSum`](@ref).
+
+Note that `sx + 0.5*sz` on a shared basis returns an eager [`Operator`](@ref), not a
+[`LazySum`](@ref); pass an explicit `LazySum` if you need a `LazySum` of embedded terms.
+
+[`LazyProduct`](@ref) is not supported. A single operator acting jointly on multiple
+subsystems cannot be embedded lazily; use [`embed`](@ref) or pass local operators /
+a [`LazyTensor`](@ref) with explicit structure instead.
+
+# Examples
+```jldoctest
+julia> using QuantumOpticsBase
+
+julia> b0 = SpinBasis(1//2);
+
+julia> b = tensor(b0, b0, b0);
+
+julia> sx = sigmax(b0);
+
+julia> op_lazy = embed_lazy(b, 2, sx);
+
+julia> op_lazy isa LazyTensor
+true
+
+julia> dense(op_lazy) == dense(embed(b, 2, sx))
+true
+
+julia> embed_lazy(b, 2, LazySum(sx, 0.5 * sigmaz(b0))) isa LazySum
+true
+```
+"""
+embed_lazy(basis::CompositeBasis, indices, op) = embed_lazy(basis, basis, indices, op)
+embed_lazy(basis::CompositeBasis, indices, operators::AbstractVector{<:AbstractOperator}) =
+    embed_lazy(basis, basis, indices, operators)
+
+function _embed_lazy_check_composite(basis_l::CompositeBasis, basis_r::CompositeBasis)
+    N = length(basis_l.bases)
+    @assert N == length(basis_r.bases)
+    return N
+end
+
+function _embed_lazy_check_single(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::AbstractOperator)
+    N = _embed_lazy_check_composite(basis_l, basis_r)
+    basis_l.bases[index] == op.basis_l || throw(IncompatibleBases())
+    basis_r.bases[index] == op.basis_r || throw(IncompatibleBases())
+    check_indices(N, index)
+end
+
+function _embed_lazy_check_target_indices(N::Integer, target_indices)
+    check_sortedindices(N, target_indices)
+end
+
+function _embed_lazy_ops(basis_l, basis_r, indices, ops::Tuple)
+    Tuple(embed_lazy(basis_l, basis_r, indices, o) for o in ops)
+end
+function _embed_lazy_ops(basis_l, basis_r, indices, ops)
+    [embed_lazy(basis_l, basis_r, indices, o) for o in ops]
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::LazySum)
+    LazySum(basis_l, basis_r, op.factors, _embed_lazy_ops(basis_l, basis_r, index, op.operators))
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis,
+                    indices::AbstractVector, op::LazySum)
+    LazySum(basis_l, basis_r, op.factors, _embed_lazy_ops(basis_l, basis_r, indices, op.operators))
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis, target_indices, op::LazyTensor)
+    target_indices = collect(target_indices)
+    N = _embed_lazy_check_composite(basis_l, basis_r)
+    length(target_indices) == length(op.basis_l.bases) ||
+        throw(ArgumentError("embed_lazy target indices must match the number of subsystems of the LazyTensor"))
+    _embed_lazy_check_target_indices(N, target_indices)
+    sub_bl = reduce(tensor, basis_l.bases[target_indices])
+    sub_br = reduce(tensor, basis_r.bases[target_indices])
+    sub_bl == op.basis_l || throw(IncompatibleBases())
+    sub_br == op.basis_r || throw(IncompatibleBases())
+    global_indices = [target_indices[i] for i in op.indices]
+    LazyTensor(basis_l, basis_r, global_indices, op.operators, op.factor)
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::LazyTensor)
+    length(op.basis_l.bases) == 1 || throw(ArgumentError("cannot embed_lazy a multi-subsystem LazyTensor at a single index"))
+    subop = only(op.operators)
+    _embed_lazy_check_single(basis_l, basis_r, index, subop)
+    LazyTensor(basis_l, basis_r, index, subop, op.factor)
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis,
+                    indices::AbstractVector{<:Integer}, operators::AbstractVector{<:AbstractOperator})
+    N = _embed_lazy_check_composite(basis_l, basis_r)
+    length(indices) == length(operators) ||
+        throw(ArgumentError("Must have length(indices) == length(operators) in embed_lazy"))
+    _embed_lazy_check_target_indices(N, indices)
+    for (idx, o) in zip(indices, operators)
+        basis_l.bases[idx] == o.basis_l || throw(IncompatibleBases())
+        basis_r.bases[idx] == o.basis_r || throw(IncompatibleBases())
+    end
+    LazyTensor(basis_l, basis_r, collect(indices), Tuple(operators))
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, op::DataOperator)
+    _embed_lazy_check_single(basis_l, basis_r, index, op)
+    LazyTensor(basis_l, basis_r, index, op)
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis,
+                    indices::AbstractVector{<:Integer}, op::DataOperator)
+    length(indices) == 1 ||
+        throw(ArgumentError("embed_lazy cannot lazily embed a joint operator on multiple subsystems; use embed, pass a vector of local operators, or use a LazyTensor/LazySum with explicit structure"))
+    embed_lazy(basis_l, basis_r, only(indices), op)
+end
+
 ## LazyTensor global cache
 
 function lazytensor_default_cache_size()
