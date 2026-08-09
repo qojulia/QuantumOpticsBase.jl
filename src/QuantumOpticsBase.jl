@@ -1,6 +1,6 @@
 module QuantumOpticsBase
 
-using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays
+using SparseArrays, LinearAlgebra, LRUCache, Strided, UnsafeArrays, FillArrays, SpecialFunctions
 import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
 
