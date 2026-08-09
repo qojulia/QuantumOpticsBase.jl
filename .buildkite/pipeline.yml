@@ -11,8 +11,7 @@ steps:
           version: "1"
       - QuantumSavory/julia-xvfb#v1:
       - JuliaCI/julia-test#v1:
-      - JuliaCI/julia-coverage#v1:
-          codecov: true
+      - JuliaCI/julia-coverage#v1: ~
     env:
       JET_TEST: "{{matrix.JET_TEST}}"
       CUDA_TEST: "{{matrix.CUDA_TEST}}"
@@ -32,31 +31,31 @@ steps:
         - with:
             LABEL: "JET"
             QUEUE: default-queue
-            JET_TEST: true
-            CUDA_TEST: false
-            AMDGPU_TEST: false
-            OPENCL_TEST: false
+            JET_TEST: "true"
+            CUDA_TEST: "false"
+            AMDGPU_TEST: "false"
+            OPENCL_TEST: "false"
         - with:
             LABEL: "CUDA"
             QUEUE: cuda
-            JET_TEST: false
-            CUDA_TEST: true
-            AMDGPU_TEST: false
-            OPENCL_TEST: false
+            JET_TEST: "false"
+            CUDA_TEST: "true"
+            AMDGPU_TEST: "false"
+            OPENCL_TEST: "false"
         - with:
             LABEL: "AMDGPU"
             QUEUE: rocm
-            JET_TEST: false
-            CUDA_TEST: false
-            AMDGPU_TEST: true
-            OPENCL_TEST: false
+            JET_TEST: "false"
+            CUDA_TEST: "false"
+            AMDGPU_TEST: "true"
+            OPENCL_TEST: "false"
         - with:
             LABEL: "OpenCL"
             QUEUE: default-queue
-            JET_TEST: false
-            CUDA_TEST: false
-            AMDGPU_TEST: false
-            OPENCL_TEST: true
+            JET_TEST: "false"
+            CUDA_TEST: "false"
+            AMDGPU_TEST: "false"
+            OPENCL_TEST: "true"
 
   - label: "Downstream Tests - {{matrix.PACKAGE}}"
     plugins:
