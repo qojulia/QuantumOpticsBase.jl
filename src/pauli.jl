@@ -257,9 +257,9 @@ ChiMatrix(ptm::DensePauliTransferMatrix) = ChiMatrix(SuperOperator(ptm))
 
 """Equality for all varieties of superoperators."""
 ==(sop1::T, sop2::T) where T<:Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix} = sop1.data == sop2.data
-==(sop1::Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}, sop2::Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}) = false
+==(sop1::Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}, sop2::Union{DensePauliTransferMatrix, DenseChiMatrix}) = false
 
 """Approximate equality for all varieties of superoperators."""
-function isapprox(sop1::T, sop2::T; kwargs...) where T<:Union{DensePauliTransferMatrix, DenseSuperOpType, DenseChiMatrix}
+function isapprox(sop1::T, sop2::T; kwargs...) where T<:Union{DensePauliTransferMatrix, DenseChiMatrix}
     return isapprox(sop1.data, sop2.data; kwargs...)
 end

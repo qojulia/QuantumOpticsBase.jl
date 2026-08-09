@@ -39,8 +39,10 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 current_time, time_shift, time_stretch, time_restrict, static_operator,
         #superoperators
                 SuperOperator, DenseSuperOperator, DenseSuperOpType,
-                SparseSuperOperator, SparseSuperOpType, spre, spost, sprepost, liouvillian,
-                identitysuperoperator,
+                SparseSuperOperator, SparseSuperOpType, ChoiState, KrausOperators,
+                canonicalize, orthogonalize, make_trace_preserving, is_cptp, is_cptni,
+                is_completely_positive, is_trace_preserving, is_trace_nonincreasing,
+                spre, spost, sprepost, liouvillian, identitysuperoperator,
         #fock
                 FockBasis, number, destroy, create,
                 fockstate, coherentstate, coherentstate!,
