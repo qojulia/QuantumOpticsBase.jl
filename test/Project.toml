@@ -21,4 +21,4 @@ UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
 
 [compat]
 Aqua = "0.8.14"
-TestItemRunner = "0.2.1, 1"
+TestItemRunner = "1.1.5"
