@@ -4,6 +4,6 @@ using QuantumOpticsBase
 using JET
 
 @testset "jet" begin
-    JET.test_package(QuantumOpticsBase, target_defined_modules = true)
+    JET.test_package(QuantumOpticsBase, target_modules = (QuantumOpticsBase,))
 end # testset
 end
