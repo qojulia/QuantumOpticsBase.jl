@@ -71,4 +71,5 @@ testfilter = ti -> begin
 end
 println("Starting tests with $(Threads.nthreads()) threads out of `Sys.CPU_THREADS = $(Sys.CPU_THREADS)`...")
 
+include("test_embed_lazy.jl")
 @run_package_tests filter=testfilter
