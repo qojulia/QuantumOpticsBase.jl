@@ -112,7 +112,7 @@ include("apply.jl")
 include("visualization.jl")
 
 function __init__()
-        register_weakdep_cache(WEAKDEP_METHOD_ERROR_HINTS)
-    end
+    register_weakdep_cache(WEAKDEP_METHOD_ERROR_HINTS)
+end
 
 end # module
