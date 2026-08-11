@@ -1,11 +1,12 @@
 module QuantumOpticsBaseMakieExt
 
 import QuantumOpticsBase
-import QuantumOpticsBase: Ket, blochsphereplot, blochsphereplot!, blochsphereplot_axis
+import QuantumOpticsBase: Ket, blochsphereplot, blochsphereplot!, blochsphereplot_axis, fockdistributionplot, fockdistributionplot!, fockdistributionplot_axis
 import Makie
 using Makie: Figure, @recipe, Attributes, Axis3
-using Makie: surface!, arrows3d!, lines!, text!, meshscatter!
+using Makie: surface!, arrows3d!, lines!, text!, meshscatter!, barplot!
 using Makie: Point3f, Vec3f
+using LinearAlgebra: diag
 
 @recipe(BlochSpherePlot, state) do scene
     Attributes(
@@ -142,6 +143,47 @@ function QuantumOpticsBase.blochsphereplot_axis(state; limits=1.6, kwargs...)
         yzpanelvisible     = false,
     )
     plt = QuantumOpticsBase.blochsphereplot_axis(ax, state; limits, kwargs...)
+    return fig, ax, plt
+end
+
+# ---------------------------------------------------------------------------
+# Fock-state distribution
+# ---------------------------------------------------------------------------
+
+# Occupation probabilities P(n): |⟨n|ψ⟩|² for a Ket, ⟨n|ρ|n⟩ for a density operator.
+_fock_probabilities(state::Ket) = abs2.(state.data)
+_fock_probabilities(state)      = real.(diag(state.data))
+
+@recipe(FockDistributionPlot, state) do scene
+    Attributes()
+end
+
+function Makie.plot!(p::FockDistributionPlot)
+    state_obs = p[1]
+
+    probs = Makie.@lift _fock_probabilities($state_obs)
+    xs    = Makie.@lift Float32.(0:(length($probs) - 1))
+    ys    = Makie.@lift Float32.($probs)
+
+    barplot!(p, xs, ys)
+
+    return p
+end
+
+function QuantumOpticsBase.fockdistributionplot_axis(ax::Makie.AbstractAxis, state; kwargs...)
+    plt = fockdistributionplot!(ax, state; kwargs...)
+    N = length(_fock_probabilities(Makie.to_value(state)))
+    Makie.xlims!(ax, -0.5, N)
+    return plt
+end
+
+function QuantumOpticsBase.fockdistributionplot_axis(state; kwargs...)
+    fig = Figure(size = (700, 500))
+    ax  = Makie.Axis(fig[1, 1];
+        xlabel = "Fock number",
+        ylabel = "Occupation probability",
+    )
+    plt = QuantumOpticsBase.fockdistributionplot_axis(ax, state; kwargs...)
     return fig, ax, plt
 end
 

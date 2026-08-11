@@ -17,6 +17,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Strided = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
 UnsafeArrays = "c4a57d5a-5b31-53a6-b365-19f8c011fbd6"
+WeakDepHelpers = "7869a13a-7328-4bcf-a489-0f4bb64497c7"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
@@ -46,4 +47,5 @@ SparseArrays = "1"
 SpecialFunctions = "2.1.4"
 Strided = "1, 2"
 UnsafeArrays = "1"
+WeakDepHelpers = "0.1.2"
 julia = "1.10"
