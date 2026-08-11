@@ -1,11 +1,17 @@
 module QuantumOpticsBaseMakieExt
 
 import QuantumOpticsBase
-import QuantumOpticsBase: Ket, blochsphereplot, blochsphereplot!, blochsphereplot_axis
+import QuantumOpticsBase: Ket, wigner,
+    blochsphereplot, blochsphereplot!, blochsphereplot_axis,
+    wignerplot, wignerplot!, wignerplot_axis
 import Makie
-using Makie: Figure, @recipe, Attributes, Axis3
-using Makie: surface!, arrows3d!, lines!, text!, meshscatter!
+using Makie: Figure, @recipe, Attributes, Axis, Axis3, Colorbar, DataAspect
+using Makie: surface!, arrows3d!, lines!, text!, meshscatter!, heatmap!
 using Makie: Point3f, Vec3f
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Bloch sphere recipe
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @recipe(BlochSpherePlot, state) do scene
     Attributes(
@@ -108,7 +114,6 @@ function Makie.plot!(p::BlochSpherePlot)
     return p
 end
 
-
 function QuantumOpticsBase.blochsphereplot_axis(ax::Makie.AbstractAxis, state; limits=1.6, kwargs...)
     ax.perspectiveness = 0f0
     lim = Float32(limits)
@@ -142,6 +147,73 @@ function QuantumOpticsBase.blochsphereplot_axis(state; limits=1.6, kwargs...)
         yzpanelvisible     = false,
     )
     plt = QuantumOpticsBase.blochsphereplot_axis(ax, state; limits, kwargs...)
+    return fig, ax, plt
+end
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Wigner plot recipe
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@recipe(WignerPlot, state) do scene
+    Attributes(
+        xrange   = (-5.0, 5.0),
+        prange   = (-5.0, 5.0),
+        npoints  = 100,
+        colormap = :RdBu,
+    )
+end
+
+function Makie.plot!(p::WignerPlot)
+    state_obs = p[1]
+
+    grid = Makie.@lift begin
+        s            = $state_obs
+        s.basis isa QuantumOpticsBase.FockBasis ||
+            error("wignerplot requires a FockBasis state, got $(typeof(s.basis))")
+        xmin, xmax   = p[:xrange][]
+        pmin, pmax   = p[:prange][]
+        n            = p[:npoints][]
+        xvec         = collect(LinRange(Float64(xmin), Float64(xmax), n))
+        pvec         = collect(LinRange(Float64(pmin), Float64(pmax), n))
+        W            = wigner(s, xvec, pvec)
+        mx           = max(abs(minimum(W)), abs(maximum(W)))
+        (xvec, pvec, W, mx)
+    end
+
+    xs   = Makie.@lift $grid[1]
+    pvs  = Makie.@lift $grid[2]
+    Ws   = Makie.@lift $grid[3]
+    clim = Makie.@lift (-$grid[4], $grid[4])
+
+    heatmap!(p, xs, pvs, Ws;
+        colormap   = p[:colormap],
+        colorrange = clim,
+    )
+
+    return p
+end
+
+function QuantumOpticsBase.wignerplot_axis(ax, state; kwargs...)
+    wignerplot!(ax, state; kwargs...)
+end
+
+function QuantumOpticsBase.wignerplot_axis(state; kwargs...)
+    fig = Figure(size = (600, 500))
+    ax = Axis(fig[1, 1];
+        xlabel          = "x",
+        ylabel          = "p",
+        aspect          = DataAspect(),
+        xgridvisible    = false,
+        ygridvisible    = false,
+        backgroundcolor = :white,
+    )
+    plt = wignerplot_axis(ax, state; kwargs...)
+
+    Colorbar(fig[1, 2], plt;
+        label = "W(x,p)",
+        width = 15,
+    )
+
     return fig, ax, plt
 end
 
