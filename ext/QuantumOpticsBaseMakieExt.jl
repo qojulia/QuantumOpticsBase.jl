@@ -149,36 +149,34 @@ end
 # ---------------------------------------------------------------------------
 # Fock-state distribution
 # ---------------------------------------------------------------------------
- 
+
 # Occupation probabilities P(n): |⟨n|ψ⟩|² for a Ket, ⟨n|ρ|n⟩ for a density operator.
 _fock_probabilities(state::Ket) = abs2.(state.data)
 _fock_probabilities(state)      = real.(diag(state.data))
- 
+
 @recipe(FockDistributionPlot, state) do scene
     Attributes()
 end
- 
+
 function Makie.plot!(p::FockDistributionPlot)
     state_obs = p[1]
- 
+
     probs = Makie.@lift _fock_probabilities($state_obs)
     xs    = Makie.@lift Float32.(0:(length($probs) - 1))
     ys    = Makie.@lift Float32.($probs)
- 
+
     barplot!(p, xs, ys)
- 
+
     return p
 end
- 
-function QuantumOpticsBase.fockdistributionplot_axis(ax::Makie.AbstractAxis, state;
-                                                     unit_y_range=true, kwargs...)
+
+function QuantumOpticsBase.fockdistributionplot_axis(ax::Makie.AbstractAxis, state; kwargs...)
     plt = fockdistributionplot!(ax, state; kwargs...)
     N = length(_fock_probabilities(Makie.to_value(state)))
     Makie.xlims!(ax, -0.5, N)
-    unit_y_range && Makie.ylims!(ax, 0, 1)
     return plt
 end
- 
+
 function QuantumOpticsBase.fockdistributionplot_axis(state; kwargs...)
     fig = Figure(size = (700, 500))
     ax  = Makie.Axis(fig[1, 1];
@@ -188,5 +186,5 @@ function QuantumOpticsBase.fockdistributionplot_axis(state; kwargs...)
     plt = QuantumOpticsBase.fockdistributionplot_axis(ax, state; kwargs...)
     return fig, ax, plt
 end
- 
+
 end # module

@@ -76,12 +76,9 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 apply!,
 
         #visualizations
-                blochsphereplot, blochsphereplot!, blochsphereplot_axis, 
+                blochsphereplot, blochsphereplot!, blochsphereplot_axis,
                 fockdistributionplot, fockdistributionplot!, fockdistributionplot_axis
 
-
-# Cache of weak-dependency method-error hints, populated by
-# `@declare_method_is_in_extension` in visualization.jl and hooked up in __init__.
 const WEAKDEP_METHOD_ERROR_HINTS = WeakDepCache()
 
 include("bases.jl")
@@ -114,7 +111,7 @@ include("apply.jl")
 include("visualization.jl")
 
 function __init__()
-        register_weakdep_cache(WEAKDEP_METHOD_ERROR_HINTS)
-    end
+    register_weakdep_cache(WEAKDEP_METHOD_ERROR_HINTS)
+end
 
 end # module
