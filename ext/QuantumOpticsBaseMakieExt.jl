@@ -1,7 +1,9 @@
 module QuantumOpticsBaseMakieExt
 
 import QuantumOpticsBase
-import QuantumOpticsBase: Ket, blochsphereplot, blochsphereplot!, blochsphereplot_axis
+import QuantumOpticsBase: Ket, PositionBasis, MomentumBasis, samplepoints, spacing,
+    blochsphereplot, blochsphereplot!, blochsphereplot_axis,
+    wavefunctionplot, wavefunctionplot!, wavefunctionplot_axis
 import Makie
 using Makie: Figure, @recipe, Attributes, Axis3
 using Makie: surface!, arrows3d!, lines!, text!, meshscatter!
@@ -142,6 +144,73 @@ function QuantumOpticsBase.blochsphereplot_axis(state; limits=1.6, kwargs...)
         yzpanelvisible     = false,
     )
     plt = QuantumOpticsBase.blochsphereplot_axis(ax, state; limits, kwargs...)
+    return fig, ax, plt
+end
+
+# ---------------------------------------------------------------------------
+# Wave function
+# ---------------------------------------------------------------------------
+
+# A wave function is only defined for a pure state in a particle basis.
+_wavefunction_basis(state::Ket) = state.basis
+_wavefunction_basis(state) =
+    error("wavefunctionplot requires a Ket; a mixed state has no wave function")
+
+function _wavefunction_points(state)
+    b = _wavefunction_basis(state)
+    b isa PositionBasis || b isa MomentumBasis ||
+        error("wavefunctionplot requires a PositionBasis or MomentumBasis state, got $(typeof(b))")
+    return samplepoints(b), state.data ./ sqrt(spacing(b))
+end
+
+function _wavefunction_part(ψ, part)
+    part === :abs2 && return abs2.(ψ)
+    part === :abs  && return abs.(ψ)
+    part === :real && return real.(ψ)
+    part === :imag && return imag.(ψ)
+    error("unknown part $(part); expected one of :abs2, :abs, :real, :imag")
+end
+
+function _wavefunction_label(part, b)
+    v = b isa MomentumBasis ? "p" : "x"
+    part === :abs2 && return "|ψ($v)|²"
+    part === :abs  && return "|ψ($v)|"
+    part === :real && return "Re ψ($v)"
+    part === :imag && return "Im ψ($v)"
+    return "ψ($v)"
+end
+
+@recipe(WaveFunctionPlot, state) do scene
+    Attributes(
+        part = :abs2,
+    )
+end
+
+function Makie.plot!(p::WaveFunctionPlot)
+    state_obs = p[1]
+    part_obs  = p[:part]
+
+    points = Makie.@lift _wavefunction_points($state_obs)
+    xs     = Makie.@lift $points[1]
+    ys     = Makie.@lift _wavefunction_part($points[2], $part_obs)
+
+    lines!(p, xs, ys)
+
+    return p
+end
+
+function QuantumOpticsBase.wavefunctionplot_axis(ax::Makie.AbstractAxis, state; kwargs...)
+    wavefunctionplot!(ax, state; kwargs...)
+end
+
+function QuantumOpticsBase.wavefunctionplot_axis(state; part=:abs2, kwargs...)
+    b   = _wavefunction_basis(Makie.to_value(state))
+    fig = Figure(size = (700, 500))
+    ax  = Makie.Axis(fig[1, 1];
+        xlabel = b isa MomentumBasis ? "p" : "x",
+        ylabel = _wavefunction_label(part, b),
+    )
+    plt = QuantumOpticsBase.wavefunctionplot_axis(ax, state; part, kwargs...)
     return fig, ax, plt
 end
 
