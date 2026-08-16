@@ -79,6 +79,40 @@ project_has_bootstrap_precompiletools() {
     ' "$1"
 }
 
+project_without_unsafearrays() {
+    awk '
+        /^\[/ { section = $0 }
+        section == "" && /^version = / { next }
+        section == "[deps]" && $0 == "UnsafeArrays = \"c4a57d5a-5b31-53a6-b365-19f8c011fbd6\"" { next }
+        section == "[compat]" && $0 == "UnsafeArrays = \"1\"" { next }
+        { print }
+    ' "$1"
+}
+
+project_has_exact_unsafearrays() {
+    awk '
+        /^\[/ { section = $0 }
+        section == "[deps]" && /^[[:space:]]*UnsafeArrays[[:space:]]*=/ {
+            dependency_entries += 1
+            $0 == "UnsafeArrays = \"c4a57d5a-5b31-53a6-b365-19f8c011fbd6\"" && exact_dependency_entries += 1
+        }
+        section == "[compat]" && /^[[:space:]]*UnsafeArrays[[:space:]]*=/ {
+            compat_entries += 1
+            $0 == "UnsafeArrays = \"1\"" && exact_compat_entries += 1
+        }
+        END { exit !(dependency_entries == 1 && exact_dependency_entries == 1 && compat_entries == 1 && exact_compat_entries == 1) }
+    ' "$1"
+}
+
+project_lacks_unsafearrays() {
+    awk '
+        /^\[/ { section = $0 }
+        (section == "[deps]" || section == "[compat]") &&
+            /^[[:space:]]*UnsafeArrays[[:space:]]*=/ { entries += 1 }
+        END { exit !(entries == 0) }
+    ' "$1"
+}
+
 [[ $# -ge 3 ]] || usage
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
@@ -383,10 +417,17 @@ verify_checkout() {
 
 bootstrap_project_difference=false
 bootstrap_seed_index=
+unsafearrays_project_difference=false
+unsafearrays_seed_index=
 if project_has_bootstrap_precompiletools "${checkouts[0]}/Project.toml"; then
     baseline_has_bootstrap_precompiletools=true
 else
     baseline_has_bootstrap_precompiletools=false
+fi
+if project_has_exact_unsafearrays "${checkouts[0]}/Project.toml"; then
+    baseline_has_exact_unsafearrays=true
+else
+    baseline_has_exact_unsafearrays=false
 fi
 for index in "${!checkouts[@]}"; do
     ((index > 0)) || continue
@@ -396,24 +437,41 @@ for index in "${!checkouts[@]}"; do
         <(project_without_version "$checkout/Project.toml"); then
         continue
     fi
-    cmp -s -- \
+    if cmp -s -- \
         <(project_without_bootstrap_precompiletools "${checkouts[0]}/Project.toml") \
-        <(project_without_bootstrap_precompiletools "$checkout/Project.toml") || {
-        echo "all variants must use identical Project.toml dependency metadata, apart from the PrecompileTools bootstrap" >&2
-        exit 1
-    }
-    if project_has_bootstrap_precompiletools "$checkout/Project.toml"; then
-        candidate_has_bootstrap_precompiletools=true
-    else
-        candidate_has_bootstrap_precompiletools=false
+        <(project_without_bootstrap_precompiletools "$checkout/Project.toml"); then
+        if project_has_bootstrap_precompiletools "$checkout/Project.toml"; then
+            candidate_has_bootstrap_precompiletools=true
+        else
+            candidate_has_bootstrap_precompiletools=false
+        fi
+        [[ $baseline_has_bootstrap_precompiletools == false && $candidate_has_bootstrap_precompiletools == true ]] || {
+            echo "the PrecompileTools bootstrap exception permits only the exact dependency and compatibility entries added to a candidate" >&2
+            exit 1
+        }
+        bootstrap_project_difference=true
+        bootstrap_seed_index=$index
+        continue
     fi
-    [[ $baseline_has_bootstrap_precompiletools == false && $candidate_has_bootstrap_precompiletools == true ]] || {
-        echo "the PrecompileTools bootstrap exception permits only the exact dependency and compatibility entries added to a candidate" >&2
-        exit 1
-    }
-    bootstrap_project_difference=true
-    bootstrap_seed_index=$index
+    if cmp -s -- \
+        <(project_without_unsafearrays "${checkouts[0]}/Project.toml") \
+        <(project_without_unsafearrays "$checkout/Project.toml"); then
+        [[ $baseline_has_exact_unsafearrays == true ]] &&
+            project_lacks_unsafearrays "$checkout/Project.toml" || {
+            echo "the UnsafeArrays removal exception requires the exact baseline entries and no candidate entries" >&2
+            exit 1
+        }
+        unsafearrays_project_difference=true
+        unsafearrays_seed_index=0
+        continue
+    fi
+    echo "all variants must use identical Project.toml dependency metadata, apart from a supported exact exception" >&2
+    exit 1
 done
+[[ $bootstrap_project_difference == false || $unsafearrays_project_difference == false ]] || {
+    echo "the PrecompileTools bootstrap and UnsafeArrays removal exceptions cannot be combined" >&2
+    exit 1
+}
 for extra_label in "${extra_scenario_labels[@]}"; do
     known_label=false
     for label in "${labels[@]}"; do
@@ -537,10 +595,12 @@ cp -- "$script_dir/summarize.jl" "$summarize_script"
 chmod 0444 "$scenario_script" "$summarize_script"
 verify_harness_snapshots
 # Seed dependency caches through separate inodes so setup cannot page-warm a measured checkout.
-# The last variant normally supplies the dependency graph. A one-time
-# PrecompileTools bootstrap comparison uses a verified dependency-superset variant.
+# The last variant normally supplies the dependency graph. Exact metadata
+# exceptions use a verified dependency-superset variant.
 if [[ $bootstrap_project_difference == true ]]; then
     seed_index=$bootstrap_seed_index
+elif [[ $unsafearrays_project_difference == true ]]; then
+    seed_index=$unsafearrays_seed_index
 else
     seed_index=$((${#labels[@]} - 1))
 fi
@@ -730,6 +790,7 @@ non_reportable_reasons=()
 [[ $builds -ge 5 ]] || non_reportable_reasons+=(fewer_than_five_builds)
 [[ $samples -ge 4 ]] || non_reportable_reasons+=(fewer_than_four_samples_per_build)
 [[ $bootstrap_project_difference == false ]] || non_reportable_reasons+=(precompiletools_bootstrap_metadata_difference)
+[[ $unsafearrays_project_difference == false ]] || non_reportable_reasons+=(unsafearrays_removal_metadata_difference)
 [[ ",${scenario_list}," == *,fock,* ]] || non_reportable_reasons+=(missing_fock_headline)
 [[ ",${scenario_list}," == *,composite,* ]] || non_reportable_reasons+=(missing_composite_headline)
 if [[ ${#non_reportable_reasons[@]} -eq 0 ]]; then

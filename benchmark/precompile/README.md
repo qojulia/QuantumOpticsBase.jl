@@ -15,15 +15,16 @@ benchmark/precompile/run.sh /tmp/quantumopticsbase-precompile-results \
 
 The first variant is the default baseline. Each variant must be a clean,
 committed checkout, and all variants must have identical `Project.toml` files
-apart from the top-level package version. The one bootstrap exception permits
-only the exact `PrecompileTools` dependency and compatibility entries added by
-the CI setup PR. A run that uses this exception is non-reportable.
+apart from the top-level package version. Exact exceptions permit only the
+`PrecompileTools` dependency and compatibility entries added by the CI setup PR,
+or the `UnsafeArrays` entries removed after its final use was deleted. A run that
+uses either exception is non-reportable.
 The output directory must be outside every measured checkout. The harness
 refuses to overwrite existing result files. By default, it resolves one
 consumer Manifest from the last variant and points it at each checkout in turn.
-For the one-time bootstrap comparison, it instead selects a variant with the
-added `PrecompileTools` entries so the older baseline loads through the
-dependency-superset Manifest. It creates one seed
+For an exact metadata exception, it instead selects the variant with the
+dependency superset, so both variants load through the same resolved Manifest.
+It creates one seed
 depot with dependency caches and a new writable depot for every QuantumOpticsBase
 package-cache build. Dependency setup may access package servers. After setup,
 cache builds and samples run with package offline mode enabled. For reportable
@@ -121,10 +122,10 @@ setting `QOB_PRECOMPILE_ALLOW_JULIA_MISMATCH=1` or
 version matches or the checkout is clean. A run also records
 `reportable=false` when it uses fewer than five builds, fewer than four samples
 per build, omits either `fock` or `composite` from the common scenarios, or
-uses the `PrecompileTools` bootstrap metadata exception.
+uses either exact package-metadata exception.
 Thus the small default run and the descriptive pull-request workflow are
 explicitly non-reportable. A run that satisfies these repetition and headline
-requirements without an override or bootstrap difference records
+requirements without an override or package-metadata difference records
 `reportable=true` and an empty
 `nonreportable_reasons` list.
 
