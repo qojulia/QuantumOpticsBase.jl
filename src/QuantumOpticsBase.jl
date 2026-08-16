@@ -107,5 +107,6 @@ include("printing.jl")
 include("apply.jl")
 include("visualization.jl")
 include("precompile.jl")
+include("precompile_statements.jl")
 
 end # module
