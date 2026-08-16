@@ -362,10 +362,14 @@ Base.@propagate_inbounds Base.getindex(on::OccupationNumbers, i::Int) = on.occup
 Base.@propagate_inbounds Base.setindex!(on::OccupationNumbers, value, i::Int) =
     setindex!(on.occupations, value, i)
 Base.IndexStyle(::Type{<:OccupationNumbers}) = Base.IndexLinear()
-Base.similar(occ::OccupationNumbers, ::Type{T}, dims::Dims) where {T} =
-    OccupationNumbers(occ.statistics, similar(occ.occupations, T, dims))
-Base.similar(::Type{OccupationNumbers{StatisticsT,T}}, dims::Dims) where {StatisticsT,T} =
-    OccupationNumbers(StatisticsT(), similar(Vector{T}, dims))
+function Base.similar(occ::OccupationNumbers, ::Type{T}, dims::Dims) where {T}
+    data = similar(occ.occupations, T, dims)
+    return length(dims) == 1 ? OccupationNumbers(occ.statistics, data) : data
+end
+function Base.similar(::Type{OccupationNumbers{StatisticsT,T}}, dims::Dims) where {StatisticsT,T}
+    data = Array{T}(undef, dims)
+    return length(dims) == 1 ? OccupationNumbers(StatisticsT(), data) : data
+end
 Base.isless(occ1::OccupationNumbers, occ2::OccupationNumbers) = occ1.occupations < occ2.occupations
 Base.copyto!(dest::OccupationNumbers, src::OccupationNumbers) = copyto!(dest.occupations, src.occupations)
 Base.convert(::Type{OccupationNumbers{StatisticsT,T}}, occ::AbstractVector) where {StatisticsT,T} =

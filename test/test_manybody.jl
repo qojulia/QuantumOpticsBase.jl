@@ -50,7 +50,14 @@ expected_occupations = collect(occupations)
     expected_occupations[2]
 @test collect(occupations[1:2]) == expected_occupations[1:2]
 @test collect(occupations[:]) == expected_occupations
-@test collect(occupations[[3, 1]]) == expected_occupations[[3, 1]]
+gathered_occupations = occupations[[3, 1]]
+@test gathered_occupations isa typeof(occupations)
+@test collect(gathered_occupations) == expected_occupations[[3, 1]]
+matrix_indices = reshape([1, 3], 1, 2)
+@test occupations[matrix_indices] == expected_occupations[matrix_indices]
+@test similar(occupations, (1, 2)) isa Matrix{Int}
+@test similar(typeof(occupations), (2,)) isa typeof(occupations)
+@test similar(typeof(occupations), (1, 2)) isa Matrix{Int}
 buffer = similar(occupations)
 copyto!(buffer, occupations)
 buffer[CartesianIndex(2)] = 7
