@@ -187,27 +187,31 @@ scenario = get(SCENARIOS, scenario_name, nothing)
 isnothing(scenario) && error("unknown precompile scenario: $(scenario_name)")
 
 trace_mode = get(ENV, "QOB_PRECOMPILE_TRACE", "")
-first_result = if trace_mode == "compile"
-    @timed Base.@trace_compile scenario()
-elseif trace_mode == "dispatch"
-    @timed Base.@trace_dispatch scenario()
-elseif isempty(trace_mode)
+first_result = if isempty(trace_mode)
     @timed scenario()
+elseif trace_mode == "compile" || trace_mode == "dispatch"
+    VERSION >= v"1.12" || error("QOB_PRECOMPILE_TRACE requires Julia 1.12 or later")
+    Core.eval(
+        @__MODULE__,
+        Meta.parse("@timed Base.@trace_$(trace_mode) $(scenario_name)()"),
+    )
 else
     error("QOB_PRECOMPILE_TRACE must be empty, compile, or dispatch")
 end
 total_seconds = (time_ns() - total_started_ns) / 1.0e9
 warm_result = @timed scenario()
+compile_time(result) = hasproperty(result, :compile_time) ? result.compile_time : 0.0
+recompile_time(result) = hasproperty(result, :recompile_time) ? result.recompile_time : 0.0
 
 println(join((
     "RESULT",
     scenario_name,
     import_seconds,
     first_result.time,
-    first_result.compile_time,
-    first_result.recompile_time,
+    compile_time(first_result),
+    recompile_time(first_result),
     total_seconds,
     warm_result.time,
-    warm_result.compile_time,
-    warm_result.recompile_time,
+    compile_time(warm_result),
+    recompile_time(warm_result),
 ), '\t'))
