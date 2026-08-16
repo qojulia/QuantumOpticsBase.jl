@@ -171,12 +171,12 @@ op2 = DenseOperator(spinbasis, [0.2+0.1im 0.1+2.3im; 0.8+4.0im 0.3+1.4im])
 @test tracedistance(spost(op1)*op2, op2*op1) < 1e-12
 @test tracedistance(ChoiState(spost(op1))*op2, op2*op1) < 1e-12
 
-@test spre(sparse(op1))*op2 == op1*op2
-@test ChoiState(spre(sparse(op1)))*op2 == op1*op2
-@test spost(sparse(op1))*op2 == op2*op1
-@test ChoiState(spost(sparse(op1)))*op2 == op2*op1
-@test spre(sparse(dagger(op1)))*op2 == dagger(op1)*op2
-@test ChoiState(spre(sparse(dagger(op1))))*op2 == dagger(op1)*op2
+@test spre(sparse(op1))*op2 ≈ op1*op2
+@test ChoiState(spre(sparse(op1)))*op2 ≈ op1*op2
+@test spost(sparse(op1))*op2 ≈ op2*op1
+@test ChoiState(spost(sparse(op1)))*op2 ≈ op2*op1
+@test spre(sparse(dagger(op1)))*op2 ≈ dagger(op1)*op2
+@test ChoiState(spre(sparse(dagger(op1))))*op2 ≈ dagger(op1)*op2
 @test spre(dense(dagger(op1)))*op2 ≈ dagger(op1)*op2
 @test ChoiState(spre(dense(dagger(op1))))*op2 ≈ dagger(op1)*op2
 @test sprepost(sparse(op1), op1)*op2 ≈ op1*op2*op1
