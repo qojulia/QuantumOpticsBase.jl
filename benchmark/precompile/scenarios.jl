@@ -68,20 +68,20 @@ function particle()
 end
 
 function manybody()
-    one_body_basis = GenericBasis(3)
+    one_body_basis = NLevelBasis(2)
     many_body_basis = ManyBodyBasis(
         one_body_basis,
         bosonstates(one_body_basis, [0, 1, 2, 3]),
     )
-    state = basisstate(many_body_basis, [1, 1, 0])
-    total_number = number(many_body_basis)
-    first_mode = dm(basisstate(one_body_basis, 1))
-    raised_state = create(many_body_basis, 3) * state
+    one_body_hamiltonian = diagonaloperator(one_body_basis, [0.0, 1.0])
+    many_body_hamiltonian = manybodyoperator(many_body_basis, one_body_hamiltonian)
+    state = basisstate(many_body_basis, [1, 2])
+    transferred = transition(many_body_basis, 1, 2) * state
+    expected = 2 * basisstate(many_body_basis, [2, 1])
 
-    check(isapprox(expect(total_number, state), 2; atol=1e-12), "many-body particle number is incorrect")
-    check(isapprox(onebodyexpect(first_mode, state), 1; atol=1e-12), "one-body expectation is incorrect")
-    check(isapprox(norm(raised_state), 1; atol=1e-12), "many-body creation operator returned the wrong norm")
-    return real(expect(total_number, state))
+    check(isapprox(expect(many_body_hamiltonian, state), 2; atol=1e-12), "many-body energy is incorrect")
+    check(norm(transferred - expected) < 1e-12, "many-body transition returned the wrong state")
+    return real(expect(many_body_hamiltonian, state))
 end
 
 function superoperator()
@@ -108,7 +108,7 @@ function metrics()
     check(isapprox(tr(reduced_spin), 1; atol=1e-12), "reduced spin state is not normalized")
     check(isapprox(entropy_vn(reduced_spin), log(2); atol=1e-12), "spin entropy is incorrect")
     check(isapprox(negativity(density, 1), 0.5; atol=1e-12), "spin negativity is incorrect")
-    check(isapprox(fidelity(density, density), 1; atol=1e-7), "self-fidelity is incorrect")
+    check(isapprox(real(fidelity(reduced_spin, reduced_spin)), 1; atol=1e-12), "self-fidelity is incorrect")
     return real(entropy_vn(reduced_spin))
 end
 
@@ -139,17 +139,17 @@ function charge()
 end
 
 function time_dependent()
-    basis = FockBasis(4)
-    annihilation = destroy(basis)
-    photon_number = number(basis)
-    operator = TimeDependentSum([1.0im, time -> 3time], [annihilation, photon_number])
-    set_time!(operator, 0.5)
-    state = coherentstate(basis, 0.2)
+    basis = SpinBasis(1 // 2)
+    sx = sigmax(basis)
+    sz = sigmaz(basis)
+    operator = TimeDependentSum(cos => sx, sin => sz)
+    set_time!(operator, 0.25)
+    state = spinup(basis)
     result = operator * state
+    expected = (cos(0.25) * sx + sin(0.25) * sz) * state
 
-    check(current_time(operator) == 0.5, "time-dependent operator has the wrong time")
-    check(isfinite(norm(result)), "time-dependent operator returned a non-finite result")
-    check(static_operator(operator) * state ≈ result, "static operator does not match the timed operator")
+    check(current_time(operator) == 0.25, "time-dependent operator has the wrong time")
+    check(norm(result - expected) < 1e-12, "time-dependent operator returned the wrong state")
     return norm(result)
 end
 
