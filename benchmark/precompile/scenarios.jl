@@ -142,7 +142,7 @@ function time_dependent()
     basis = SpinBasis(1 // 2)
     sx = sigmax(basis)
     sz = sigmaz(basis)
-    operator = TimeDependentSum(cos => sx, sin => sz)
+    operator = TimeDependentSum((cos, sin), (sx, sz))
     set_time!(operator, 0.25)
     state = spinup(basis)
     result = operator * state

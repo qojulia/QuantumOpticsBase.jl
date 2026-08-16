@@ -5,6 +5,7 @@ on:
     paths:
       - src/QuantumOpticsBase.jl
       - src/precompile.jl
+      - src/precompile_statements.jl
       - benchmark/precompile/**
       - .github/workflows/precompile.yml
       - Project.toml

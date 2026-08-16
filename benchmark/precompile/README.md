@@ -1,8 +1,8 @@
 # Cold-start benchmark
 
-This harness compares package-cache build, import, and first-use latency. It is
-separate from the BenchmarkTools and AirspeedVelocity suite, which measures
-steady-state operations after QuantumOpticsBase is loaded.
+This harness compares package-cache build, import, and first-use latency. It
+measures cold-start behavior rather than steady-state operations after
+QuantumOpticsBase is loaded.
 
 From the repository root, give the harness a new output directory plus two or
 more `label=checkout` variants:
@@ -21,16 +21,17 @@ the CI setup PR. A run that uses this exception is non-reportable.
 The output directory must be outside every measured checkout. The harness
 refuses to overwrite existing result files. By default, it resolves one
 consumer Manifest from the last variant and points it at each checkout in turn.
-Using the last variant lets the bootstrap comparison load the older baseline
-through the candidate's dependency-superset Manifest. It creates one seed
+For the one-time bootstrap comparison, it instead selects a variant with the
+added `PrecompileTools` entries so the older baseline loads through the
+dependency-superset Manifest. It creates one seed
 depot with dependency caches and a new writable depot for every QuantumOpticsBase
 package-cache build. Dependency setup may access package servers. After setup,
 cache builds and samples run with package offline mode enabled. For reportable
-runs, seed setup loads the last QuantumOpticsBase variant from a detached Git archive with separate
-source-file inodes, then deletes that package cache. It therefore does not
-page-warm a measured checkout. A non-reportable run with a dirty seed variant uses
-a detached copy of that fixed working state so setup and measurement still use
-the same source.
+runs, seed setup loads the selected QuantumOpticsBase variant from a detached
+Git archive with separate source-file inodes, then deletes that package cache.
+It therefore does not page-warm a measured checkout. A non-reportable run with
+a dirty seed variant uses a detached copy of that fixed working state so setup
+and measurement still use the same source.
 Before timing, every measured variant gets one discarded QuantumOpticsBase cache
 build in a fresh overlay depot through the same stable checkout link. Each
 discarded build must emit cache bytes. The harness orders these builds by a

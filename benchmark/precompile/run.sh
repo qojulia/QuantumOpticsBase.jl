@@ -70,6 +70,15 @@ project_without_bootstrap_precompiletools() {
     ' "$1"
 }
 
+project_has_bootstrap_precompiletools() {
+    awk '
+        /^\[/ { section = $0 }
+        section == "[deps]" && $0 == "PrecompileTools = \"aea7be01-6a6a-4083-8856-8a6e6704d82a\"" { dependency_entries += 1 }
+        section == "[compat]" && $0 == "PrecompileTools = \"1.2.1\"" { compat_entries += 1 }
+        END { exit !(dependency_entries == 1 && compat_entries == 1) }
+    ' "$1"
+}
+
 [[ $# -ge 3 ]] || usage
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
@@ -373,7 +382,15 @@ verify_checkout() {
 }
 
 bootstrap_project_difference=false
-for checkout in "${checkouts[@]:1}"; do
+bootstrap_seed_index=
+if project_has_bootstrap_precompiletools "${checkouts[0]}/Project.toml"; then
+    baseline_has_bootstrap_precompiletools=true
+else
+    baseline_has_bootstrap_precompiletools=false
+fi
+for index in "${!checkouts[@]}"; do
+    ((index > 0)) || continue
+    checkout=${checkouts[$index]}
     if cmp -s -- \
         <(project_without_version "${checkouts[0]}/Project.toml") \
         <(project_without_version "$checkout/Project.toml"); then
@@ -385,7 +402,17 @@ for checkout in "${checkouts[@]:1}"; do
         echo "all variants must use identical Project.toml dependency metadata, apart from the PrecompileTools bootstrap" >&2
         exit 1
     }
+    if project_has_bootstrap_precompiletools "$checkout/Project.toml"; then
+        candidate_has_bootstrap_precompiletools=true
+    else
+        candidate_has_bootstrap_precompiletools=false
+    fi
+    [[ $baseline_has_bootstrap_precompiletools == false && $candidate_has_bootstrap_precompiletools == true ]] || {
+        echo "the PrecompileTools bootstrap exception permits only the exact dependency and compatibility entries added to a candidate" >&2
+        exit 1
+    }
     bootstrap_project_difference=true
+    bootstrap_seed_index=$index
 done
 for extra_label in "${extra_scenario_labels[@]}"; do
     known_label=false
@@ -510,9 +537,13 @@ cp -- "$script_dir/summarize.jl" "$summarize_script"
 chmod 0444 "$scenario_script" "$summarize_script"
 verify_harness_snapshots
 # Seed dependency caches through separate inodes so setup cannot page-warm a measured checkout.
-# The last variant supplies the dependency graph so the one-time PrecompileTools bootstrap
-# comparison can also build the older baseline with that harmless extra dependency edge.
-seed_index=$((${#labels[@]} - 1))
+# The last variant normally supplies the dependency graph. A one-time
+# PrecompileTools bootstrap comparison uses a verified dependency-superset variant.
+if [[ $bootstrap_project_difference == true ]]; then
+    seed_index=$bootstrap_seed_index
+else
+    seed_index=$((${#labels[@]} - 1))
+fi
 verify_checkout "$seed_index"
 if [[ ${checkout_initial_dirty[$seed_index]} == true ]]; then
     seed_checkout_mode=dirty_working_tree_copy
