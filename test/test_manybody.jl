@@ -43,6 +43,21 @@ b2 = GenericBasis(130)
 @test collect(fermionstates(FermionBitstring{BigInt}, b2, 2)) ==
     convert.(FermionBitstring{BigInt}, fermionstates(b2, 2))
 
+# Test the AbstractVector indexing interface used by occupation states
+occupations = first(bosonstates(GenericBasis(3), 2))
+expected_occupations = collect(occupations)
+@test occupations[CartesianIndex(2)] == occupations[2, CartesianIndex()] ==
+    expected_occupations[2]
+@test collect(occupations[1:2]) == expected_occupations[1:2]
+@test collect(occupations[:]) == expected_occupations
+@test collect(occupations[[3, 1]]) == expected_occupations[[3, 1]]
+buffer = similar(occupations)
+copyto!(buffer, occupations)
+buffer[CartesianIndex(2)] = 7
+buffer[1, CartesianIndex()] = 8
+buffer[1:2] = [4, 5]
+@test collect(buffer)[1:2] == [4, 5]
+
 # Test basisstate
 b_mb = ManyBodyBasis(b, bosonstates(b, 2))
 psi_mb = basisstate(b_mb, [2, 0, 0, 0, 0])

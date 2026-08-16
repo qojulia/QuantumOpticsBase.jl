@@ -358,9 +358,9 @@ struct OccupationNumbers{StatisticsT,T} <: AbstractVector{T}
     occupations::Vector{T}
 end
 Base.size(on::OccupationNumbers) = size(on.occupations)
-Base.@propagate_inbounds Base.getindex(on::OccupationNumbers, v...) = getindex(on.occupations, v...)
-Base.@propagate_inbounds Base.setindex!(on::OccupationNumbers, value, v...) =
-    setindex!(on.occupations, value, v...)
+Base.@propagate_inbounds Base.getindex(on::OccupationNumbers, i::Int) = on.occupations[i]
+Base.@propagate_inbounds Base.setindex!(on::OccupationNumbers, value, i::Int) =
+    setindex!(on.occupations, value, i)
 Base.IndexStyle(::Type{<:OccupationNumbers}) = Base.IndexLinear()
 Base.similar(occ::OccupationNumbers, ::Type{T}, dims::Dims) where {T} =
     OccupationNumbers(occ.statistics, similar(occ.occupations, T, dims))
