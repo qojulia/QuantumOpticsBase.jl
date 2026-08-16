@@ -106,5 +106,6 @@ include("phasespace.jl")
 include("printing.jl")
 include("apply.jl")
 include("visualization.jl")
+include("precompile.jl")
 
 end # module
