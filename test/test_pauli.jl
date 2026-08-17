@@ -32,8 +32,12 @@ CZ_ptm = PauliTransferMatrix(CZ_sop)
 # Test construction of non-symmetric unitary.
 CNOT = DenseOperator(q2, q2, diagm(0 => [1,1,0,0], 1 => [0,0,1], -1 => [0,0,1]))
 CNOT_sop = SuperOperator(CNOT)
-CNOT_chi = ChiMatrix(CNOT)
-CNOT_ptm = PauliTransferMatrix(CNOT)
+CNOT_chi = @inferred ChiMatrix(CNOT)
+CNOT_ptm = @inferred PauliTransferMatrix(CNOT)
+
+pauli_vectors = @inferred QuantumOpticsBase.pauli_basis_vectors(2)
+@test pauli_vectors' * pauli_vectors ≈ 4I
+@test_throws ArgumentError QuantumOpticsBase.pauli_basis_vectors(0)
 
 @test CNOT_sop.basis_l == CNOT_sop.basis_r == (q2, q2)
 @test CNOT_chi.basis_l == CNOT_chi.basis_r == (q2, q2)
