@@ -136,12 +136,12 @@ function TimeDependentSum(coeffs::C, operators::O; init_time::T=0.0)  where {C<:
     TimeDependentSum(Tf, coeffs, operators; init_time)
 end
 
-function TimeDependentSum(::Type{Tf}, args::Vararg{Pair}; init_time::T=0.0) where {Tf<:Number,T<:Number}
+function TimeDependentSum(::Type{Tf}, args::Vararg{Pair,N}; init_time::T=0.0) where {Tf<:Number,T<:Number,N}
     cs, ops = zip(args...)
     TimeDependentSum(Tf, [cs...], [ops...]; init_time)
 end
 
-function TimeDependentSum(args::Vararg{Pair}; init_time::T=0.0) where {T<:Number}
+function TimeDependentSum(args::Vararg{Pair,N}; init_time::T=0.0) where {T<:Number,N}
     cs, _ = zip(args...)
     Tf = mapreduce(typeof, promote_type, eval_coefficients(cs, init_time))
     TimeDependentSum(Tf, args...; init_time)
