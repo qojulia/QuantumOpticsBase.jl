@@ -23,6 +23,13 @@ Embed operator acting on a joint Hilbert space where missing indices are filled 
 """
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
                indices, op::T) where T<:DataOperator
+    _embed_dataoperator(basis_l, basis_r, indices, op)
+end
+
+# Compatibility fallback for downstream DataOperator subtypes and unsupported
+# Operator storage. Keep reconstruction through the downstream type wrapper.
+function _embed_dataoperator(basis_l::CompositeBasis, basis_r::CompositeBasis,
+                             indices, op::T) where T<:DataOperator
     N = length(basis_l.bases)
     @assert length(basis_r.bases) == N
 

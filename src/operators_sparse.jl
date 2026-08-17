@@ -72,6 +72,92 @@ const EyeOpPureType{BL,BR} = Operator{BL,BR,<:Eye}
 const EyeOpAdjType{BL,BR} = Operator{BL,BR,<:Adjoint{<:Number,<:Eye}}
 const EyeOpType{BL,BR} = Union{EyeOpPureType{BL,BR},EyeOpAdjType{BL,BR}}
 
+const _EmbedOpType{BL,BR} = Union{DenseOpType{BL,BR},SparseOpType{BL,BR},EyeOpType{BL,BR}}
+
+function _embed_strides(dimensions::Vector{Int})
+    strides = Vector{Int}(undef, length(dimensions))
+    total = 1
+    for i in eachindex(dimensions)
+        strides[i] = total
+        total *= dimensions[i]
+    end
+    return strides, total
+end
+
+function _embed_offsets(dimensions::Vector{Int}, strides::Vector{Int}, indices::Vector{Int})
+    offsets = Vector{Int}(undef, prod(dimensions))
+    for linear_index in eachindex(offsets)
+        coordinate = linear_index - 1
+        offset = 0
+        for i in eachindex(indices)
+            coordinate, digit = divrem(coordinate, dimensions[i])
+            offset += digit * strides[indices[i]]
+        end
+        offsets[linear_index] = offset
+    end
+    return offsets
+end
+
+function _embed_basis_match(
+    full::CompositeBasis, indices::Vector{Int}, selected::B
+) where B<:Basis
+    candidate = reduced(full, indices)
+    candidate isa B && return (candidate::B) == selected
+    return (candidate == selected)::Bool
+end
+
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
+               indices::AbstractVector{<:Integer}, op::T) where T<:_EmbedOpType
+    N = length(basis_l.bases)
+    @assert length(basis_r.bases) == N
+    check_indices(N, indices)
+
+    indices_int = Int[index for index in indices]
+    _embed_basis_match(basis_l, indices_int, op.basis_l) || throw(IncompatibleBases())
+    _embed_basis_match(basis_r, indices_int, op.basis_r) || throw(IncompatibleBases())
+
+    dimensions_l = Int[dimension for dimension in basis_l.shape]
+    dimensions_r = Int[dimension for dimension in basis_r.shape]
+    strides_l, total_l = _embed_strides(dimensions_l)
+    strides_r, total_r = _embed_strides(dimensions_r)
+
+    selected = falses(N)
+    for index in indices_int
+        selected[index] = true
+    end
+    complement_indices = Int[index for index in 1:N if !selected[index]]
+
+    selected_rows = _embed_offsets(dimensions_l[indices_int], strides_l, indices_int)
+    selected_columns = _embed_offsets(dimensions_r[indices_int], strides_r, indices_int)
+    identity_dimensions = min.(dimensions_l[complement_indices], dimensions_r[complement_indices])
+    identity_rows = _embed_offsets(identity_dimensions, strides_l, complement_indices)
+    identity_columns = _embed_offsets(identity_dimensions, strides_r, complement_indices)
+
+    data = SparseMatrixCSC{eltype(op),Int}(op.data)
+    entry_count = count(!iszero, data.nzval) * length(identity_rows)
+    rows = Vector{Int}(undef, entry_count)
+    columns = Vector{Int}(undef, entry_count)
+    values = Vector{eltype(op)}(undef, entry_count)
+
+    entry = 1
+    for column in axes(data, 2)
+        for position in nzrange(data, column)
+            value = data.nzval[position]
+            iszero(value) && continue
+            row_offset = selected_rows[data.rowval[position]]
+            column_offset = selected_columns[column]
+            for identity_index in eachindex(identity_rows)
+                rows[entry] = row_offset + identity_rows[identity_index] + 1
+                columns[entry] = column_offset + identity_columns[identity_index] + 1
+                values[entry] = value
+                entry += 1
+            end
+        end
+    end
+
+    return Operator(basis_l, basis_r, sparse(rows, columns, values, total_l, total_r))
+end
+
 identityoperator(::Type{T}, ::Type{S}, b1::Basis, b2::Basis) where {T<:DataOperator,S<:Number} =
     Operator(b1, b2, Eye{S}(length(b1), length(b2)))
 identityoperator(::Type{T}, ::Type{S}, b::Basis) where {T<:DataOperator,S<:Number} =
