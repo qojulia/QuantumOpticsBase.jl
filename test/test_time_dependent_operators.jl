@@ -130,7 +130,7 @@ end
         @test (@allocated set_time!(o_t_tup, t)) == 0
     end
 
-    o_t2 = TimeDependentSum(f1=>a, f2=>n)
+    o_t2 = @inferred TimeDependentSum(f1=>a, f2=>n)
     @test o_t(t) == o_t2(t)
 
     o_t_ = dense(o_t)

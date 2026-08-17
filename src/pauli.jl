@@ -153,9 +153,28 @@ Generate a matrix of basis vectors in the Pauli representation given a number
 of qubits.
 """
 function pauli_basis_vectors(num_qubits::Integer)
-    po = pauli_operators(num_qubits)
+    num_qubits > 0 || throw(ArgumentError("Number of qubits must be positive."))
+
+    basis = SpinBasis(1//2)
+    paulis = (
+        identityoperator(SparseOpType, ComplexF64, basis).data,
+        sigmax(basis).data,
+        sigmay(basis).data,
+        sigmaz(basis).data,
+    )
     sop_dim = 4 ^ num_qubits
-    return mapreduce(x -> sparse(reshape(x.data, sop_dim)), (x, y) -> [x y], po)
+    columns = Vector{SparseVector{ComplexF64,Int}}(undef, sop_dim)
+    for column in eachindex(columns)
+        code = column - 1
+        data = paulis[mod(code, 4) + 1]
+        code = div(code, 4)
+        for _ in 2:num_qubits
+            data = kron(paulis[mod(code, 4) + 1], data)
+            code = div(code, 4)
+        end
+        columns[column] = sparse(reshape(data, sop_dim))
+    end
+    return reduce(hcat, columns)
 end
 
 """
