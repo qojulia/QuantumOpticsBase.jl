@@ -59,7 +59,9 @@ Use five cache builds and four recorded samples for reportable candidate
 measurements. The default of one build and two samples is intended only for
 smoke tests. Supported scenarios are `fock`, `composite`, `particle`,
 `manybody`, `superoperator`, `metrics`, `nlevel`, `charge`,
-`time_dependent`, and `pauli`.
+`time_dependent`, `pauli`, and `embed_noncontiguous`. The
+`embed_noncontiguous` scenario embeds a joint operator into the first and third
+of four heterogeneous subsystems.
 
 For a multi-candidate experiment, use `QOB_PRECOMPILE_EXTRA_SCENARIOS` to run a
 motivating scenario only for its named variant and for the baseline. This keeps
