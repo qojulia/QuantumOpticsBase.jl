@@ -59,32 +59,37 @@ end
 ChiMatrix(chi_matrix::DenseChiMatrix) = chi_matrix
 
 """
-A dictionary that represents the Pauli algebra - for a pair of Pauli operators
-σᵢσⱼ information about their product is given under the key "ij". The first
-element of the dictionary value is the Pauli operator, and the second is the
-scalar multiplier. For example, σ₀σ₁ = σ₁, and `"01" => ("1", 1)`.
+The phase of a one-qubit Pauli product, indexed by
+`4left_digit + right_digit + 1`.
 """
-const pauli_multiplication_dict = Dict(
-  "00" => ("0", 1.0+0.0im),
-  "23" => ("1", 0.0+1.0im),
-  "30" => ("3", 1.0+0.0im),
-  "22" => ("0", 1.0+0.0im),
-  "21" => ("3", -0.0-1.0im),
-  "10" => ("1", 1.0+0.0im),
-  "31" => ("2", 0.0+1.0im),
-  "20" => ("2", 1.0+0.0im),
-  "01" => ("1", 1.0+0.0im),
-  "33" => ("0", 1.0+0.0im),
-  "13" => ("2", -0.0-1.0im),
-  "32" => ("1", -0.0-1.0im),
-  "11" => ("0", 1.0+0.0im),
-  "03" => ("3", 1.0+0.0im),
-  "12" => ("3", 0.0+1.0im),
-  "02" => ("2", 1.0+0.0im),
+const pauli_multiplication_phases = (
+    1.0 + 0.0im, 1.0 + 0.0im, 1.0 + 0.0im, 1.0 + 0.0im,
+    1.0 + 0.0im, 1.0 + 0.0im, 0.0 + 1.0im, 0.0 - 1.0im,
+    1.0 + 0.0im, 0.0 - 1.0im, 1.0 + 0.0im, 0.0 + 1.0im,
+    1.0 + 0.0im, 0.0 + 1.0im, 0.0 - 1.0im, 1.0 + 0.0im,
 )
 
+const ASCII_ZERO = UInt8('0')
+const ASCII_THREE = UInt8('3')
+
+@inline function base4_digit(digit::UInt8)
+    ASCII_ZERO <= digit <= ASCII_THREE ||
+        throw(ArgumentError("Pauli strings must contain only base-4 digits from 0 to 3."))
+    return Int(digit - ASCII_ZERO)
+end
+
+@inline function pauli_multiplication_phase(left::Int, right::Int, num_qubits::Int)::ComplexF64
+    phase = one(ComplexF64)
+    for _ in 1:num_qubits
+        left, left_digit = divrem(left, 4)
+        right, right_digit = divrem(right, 4)
+        phase *= pauli_multiplication_phases[4left_digit + right_digit + 1]
+    end
+    return phase
+end
+
 """
-    multiply_pauli_matirices(i4::String, j4::String)
+    multiply_pauli_matrices(i4::String, j4::String)
 
 A function to algebraically determine result of multiplying two
 (N-qubit) Pauli matrices. Each Pauli matrix is represented by a string
@@ -92,24 +97,36 @@ in base 4. For example, σ₃⊗σ₀⊗σ₂ would be "302". The product of any
 Pauli matrices will itself be a Pauli matrix multiplied by any of the 1/4 roots
 of 1.
 """
-cache_multiply_pauli_matrices() = begin
-    local pauli_multiplication_cache = Dict()
-    function _multiply_pauli_matirices(i4, j4)
-        if (i4, j4) ∉ keys(pauli_multiplication_cache)
-            pauli_multiplication_cache[(i4, j4)] = mapreduce(x -> pauli_multiplication_dict[prod(x)],
-                                                             (x,y) -> (x[1] * y[1], x[2] * y[2]),
-                                                             zip(i4, j4))
-        end
-        return pauli_multiplication_cache[(i4, j4)]
+function multiply_pauli_matrices(i4::String, j4::String)
+    i4_digits = codeunits(i4)
+    j4_digits = codeunits(j4)
+    isempty(i4_digits) && throw(ArgumentError("Pauli strings must be nonempty."))
+    length(i4_digits) == length(j4_digits) ||
+        throw(ArgumentError("Pauli strings must have equal lengths."))
+
+    product = Vector{UInt8}(undef, length(i4_digits))
+    phase = one(ComplexF64)
+    for index in eachindex(i4_digits, j4_digits)
+        left_digit = base4_digit(i4_digits[index])
+        right_digit = base4_digit(j4_digits[index])
+        product[index] = ASCII_ZERO + xor(left_digit, right_digit)
+        phase *= pauli_multiplication_phases[4left_digit + right_digit + 1]
     end
+    return String(product), phase
 end
-multiply_pauli_matirices = cache_multiply_pauli_matrices()
+
+const multiply_pauli_matirices = multiply_pauli_matrices
 
 function *(chi_matrix0::DenseChiMatrix{B, B},chi_matrix1::DenseChiMatrix{B, B}) where B
 
     num_qubits = length(chi_matrix0.basis_l[1].shape)
-    sop_dim = 2 ^ prod(chi_matrix0.basis_l[1].shape)
+    sop_dim = 4 ^ num_qubits
     ret = zeros(ComplexF64, (sop_dim, sop_dim))
+
+    phase_lookup = Matrix{ComplexF64}(undef, sop_dim, sop_dim)
+    for right in 0:(sop_dim-1), left in 0:(sop_dim-1)
+        phase_lookup[left+1, right+1] = pauli_multiplication_phase(left, right, num_qubits)
+    end
 
     for ijkl in Iterators.product(0:(sop_dim-1),
                                   0:(sop_dim-1),
@@ -117,13 +134,7 @@ function *(chi_matrix0::DenseChiMatrix{B, B},chi_matrix1::DenseChiMatrix{B, B}) 
                                   0:(sop_dim-1))
         i, j, k, l = ijkl
         if (chi_matrix0.data[i+1, j+1] != 0.0) & (chi_matrix1.data[k+1, l+1] != 0.0)
-            i4, j4, k4, l4 = map(x -> string(x, base=4, pad=2), ijkl)
-
-            pauli_product_ik = multiply_pauli_matirices(i4, k4)
-            pauli_product_lj = multiply_pauli_matirices(l4, j4)
-
-            ret[parse(Int, pauli_product_ik[1], base=4)+1,
-                parse(Int, pauli_product_lj[1], base=4)+1] += (pauli_product_ik[2] * pauli_product_lj[2] * chi_matrix0.data[i+1, j+1] * chi_matrix1.data[k+1, l+1])
+            ret[xor(i, k)+1, xor(l, j)+1] += (phase_lookup[i+1, k+1] * phase_lookup[l+1, j+1] * chi_matrix0.data[i+1, j+1] * chi_matrix1.data[k+1, l+1])
         end
     end
     return DenseChiMatrix(chi_matrix0.basis_l, chi_matrix0.basis_r, ret / 2^num_qubits)
