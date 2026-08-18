@@ -57,9 +57,8 @@ measurements. The default of one build and two samples is intended only for
 smoke tests. `PRECOMPILE_BENCHMARKS` in `scenarios.jl` is the single ordered
 registry of benchmarks. The harness discovers and runs every registry entry on
 every variant in a separate Julia process. The registered benchmarks are
-`fock`, `composite`, `particle`,
-`manybody`, `superoperator`, `metrics`, `nlevel`, `charge`,
-`time_dependent`, `pauli`, and `embed_noncontiguous`. The
+`fock`, `composite`, `embed_noncontiguous`, `particle`, `manybody`,
+`superoperator`, `metrics`, `nlevel`, `charge`, `time_dependent`, and `pauli`. The
 `embed_noncontiguous` scenario embeds a joint operator into the first and third
 of four heterogeneous subsystems.
 
