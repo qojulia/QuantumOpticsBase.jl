@@ -84,6 +84,10 @@ function _embed_strides(dimensions::Vector{Int})
     return strides, total
 end
 
+# Map column-major coordinates for a subsystem subset to zero-based offsets in
+# the full tensor product. Keeping `indices` in caller order handles reordered
+# embeddings. A final matrix coordinate is a selected-operator offset plus the
+# corresponding offset for the omitted identity subsystems.
 function _embed_offsets(dimensions::Vector{Int}, strides::Vector{Int}, indices::Vector{Int})
     offsets = Vector{Int}(undef, prod(dimensions))
     for linear_index in eachindex(offsets)
