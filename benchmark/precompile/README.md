@@ -39,48 +39,37 @@ SHA-256 value derived from the commit and initial checkout-state hash,
 independent of baseline/candidate role. Identical source states retain argument
 order because their filesystem exposure is equivalent.
 
-Variant labels and scenario names must start with an ASCII letter or digit and
+Variant labels and benchmark names must start with an ASCII letter or digit and
 contain only ASCII letters, digits, dots, underscores, or hyphens. This keeps
-the comma-separated controls, TSV output, metadata keys, and Markdown output
-unambiguous.
+the TSV output, metadata keys, and Markdown output unambiguous.
 
-Use environment variables to select the amount of work and the comma-separated
-scenario list:
+Use environment variables to select the amount of work:
 
 ```sh
-QOB_PRECOMPILE_BUILDS=5 \
-QOB_PRECOMPILE_SAMPLES=4 \
-QOB_PRECOMPILE_SCENARIOS=fock,composite \
+PRECOMPILE_BENCHMARK_BUILDS=5 \
+PRECOMPILE_BENCHMARK_SAMPLES=4 \
 benchmark/precompile/run.sh /tmp/quantumopticsbase-precompile-results \
     base=/path/to/base head=/path/to/head
 ```
 
 Use five cache builds and four recorded samples for reportable candidate
 measurements. The default of one build and two samples is intended only for
-smoke tests. Supported scenarios are `fock`, `composite`, `particle`,
+smoke tests. `PRECOMPILE_BENCHMARKS` in `scenarios.jl` is the single ordered
+registry of benchmarks. The harness discovers and runs every registry entry on
+every variant in a separate Julia process. The registered benchmarks are
+`fock`, `composite`, `particle`,
 `manybody`, `superoperator`, `metrics`, `nlevel`, `charge`,
 `time_dependent`, `pauli`, and `embed_noncontiguous`. The
 `embed_noncontiguous` scenario embeds a joint operator into the first and third
 of four heterogeneous subsystems.
 
-For a multi-candidate experiment, use `QOB_PRECOMPILE_EXTRA_SCENARIOS` to run a
-motivating scenario only for its named variant and for the baseline. This keeps
-the common headline scenarios on every variant:
-
-```sh
-QOB_PRECOMPILE_SCENARIOS=fock,composite \
-QOB_PRECOMPILE_EXTRA_SCENARIOS=particle=particle,metrics=metrics \
-benchmark/precompile/run.sh /tmp/quantumopticsbase-precompile-results \
-    base=/path/to/base particle=/path/to/particle metrics=/path/to/metrics
-```
-
 By default, the first variant is the baseline for every candidate. Use
-`QOB_PRECOMPILE_BASELINES` when candidates need different baselines, such as a
+`PRECOMPILE_BENCHMARK_BASELINES` when candidates need different baselines, such as a
 cumulative experiment in which every stage is compared with the preceding
 stage:
 
 ```sh
-QOB_PRECOMPILE_BASELINES=stage2=stage1,stage3=stage2 \
+PRECOMPILE_BENCHMARK_BASELINES=stage2=stage1,stage3=stage2 \
 benchmark/precompile/run.sh /tmp/quantumopticsbase-precompile-results \
     base=/path/to/base \
     stage1=/path/to/stage1 \
@@ -92,8 +81,8 @@ To keep exact dependency versions across separate harness invocations, reuse
 the normalized consumer files from the first result directory:
 
 ```sh
-QOB_PRECOMPILE_CONSUMER_PROJECT=/path/to/first-results/consumer-Project.toml \
-QOB_PRECOMPILE_CONSUMER_MANIFEST=/path/to/first-results/consumer-Manifest.toml \
+PRECOMPILE_BENCHMARK_CONSUMER_PROJECT=/path/to/first-results/consumer-Project.toml \
+PRECOMPILE_BENCHMARK_CONSUMER_MANIFEST=/path/to/first-results/consumer-Manifest.toml \
 benchmark/precompile/run.sh /tmp/quantumopticsbase-precompile-later-results \
     base=/path/to/base \
     head=/path/to/head
@@ -110,23 +99,22 @@ mode to require a Manifest resolved from that Project, then runs only
 update dependencies. The copied consumer files in the new result directory
 must remain byte-identical to the inputs or the harness fails.
 
-The default scenarios are `fock` and `composite`. Each scenario also gets one
+Each registered benchmark gets one
 discarded filesystem warm-up per build. The harness fixes Julia,
 package-precompile, BLAS, and OpenMP thread counts to one; disables startup and
 history files; uses `JULIA_LOAD_PATH=@:@stdlib`; and clears inherited Julia CPU
 target, project, and depot overrides. It requires GNU/Linux and Julia 1.12.6.
 Set `JULIA` to select that Julia executable. A different Julia
 version or a dirty checkout is allowed only for a non-reportable smoke run by
-setting `QOB_PRECOMPILE_ALLOW_JULIA_MISMATCH=1` or
-`QOB_PRECOMPILE_ALLOW_DIRTY=1`, respectively. Enabling either override records
+setting `PRECOMPILE_BENCHMARK_ALLOW_JULIA_MISMATCH=1` or
+`PRECOMPILE_BENCHMARK_ALLOW_DIRTY=1`, respectively. Enabling either override records
 `reportable=false` and a reason in `metadata.txt`, even when the current Julia
 version matches or the checkout is clean. A run also records
 `reportable=false` when it uses fewer than five builds, fewer than four samples
-per build, omits either `fock` or `composite` from the common scenarios, or
-uses the `PrecompileTools` bootstrap metadata exception.
+per build, or uses the `PrecompileTools` bootstrap metadata exception.
 Thus the small default run and the descriptive pull-request workflow are
-explicitly non-reportable. A run that satisfies these repetition and headline
-requirements without an override or bootstrap difference records
+explicitly non-reportable. A run that satisfies these repetition requirements
+without an override or bootstrap difference records
 `reportable=true` and an empty
 `nonreportable_reasons` list.
 

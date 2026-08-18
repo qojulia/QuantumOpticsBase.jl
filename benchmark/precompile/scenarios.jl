@@ -187,36 +187,41 @@ function pauli()
     return real(avg_gate_fidelity(transfer_gate, transfer_gate))
 end
 
-const SCENARIOS = Dict(
-    "fock" => fock,
-    "composite" => composite,
-    "embed_noncontiguous" => embed_noncontiguous,
-    "particle" => particle,
-    "manybody" => manybody,
-    "superoperator" => superoperator,
-    "metrics" => metrics,
-    "nlevel" => nlevel,
-    "charge" => charge,
-    "time_dependent" => time_dependent,
-    "pauli" => pauli,
+const PRECOMPILE_BENCHMARKS = (
+    fock=fock,
+    composite=composite,
+    embed_noncontiguous=embed_noncontiguous,
+    particle=particle,
+    manybody=manybody,
+    superoperator=superoperator,
+    metrics=metrics,
+    nlevel=nlevel,
+    charge=charge,
+    time_dependent=time_dependent,
+    pauli=pauli,
 )
 
-length(ARGS) == 1 || error("usage: scenarios.jl SCENARIO")
+if isempty(ARGS)
+    foreach(name -> println(String(name)), keys(PRECOMPILE_BENCHMARKS))
+    exit()
+end
+length(ARGS) == 1 || error("usage: scenarios.jl [SCENARIO]")
 scenario_name = only(ARGS)
-scenario = get(SCENARIOS, scenario_name, nothing)
-isnothing(scenario) && error("unknown precompile scenario: $(scenario_name)")
+scenario_key = Symbol(scenario_name)
+haskey(PRECOMPILE_BENCHMARKS, scenario_key) || error("unknown precompile scenario: $(scenario_name)")
+scenario = PRECOMPILE_BENCHMARKS[scenario_key]
 
-trace_mode = get(ENV, "QOB_PRECOMPILE_TRACE", "")
+trace_mode = get(ENV, "PRECOMPILE_BENCHMARK_TRACE", "")
 first_result = if isempty(trace_mode)
     @timed scenario()
 elseif trace_mode == "compile" || trace_mode == "dispatch"
-    VERSION >= v"1.12" || error("QOB_PRECOMPILE_TRACE requires Julia 1.12 or later")
+    VERSION >= v"1.12" || error("PRECOMPILE_BENCHMARK_TRACE requires Julia 1.12 or later")
     Core.eval(
         @__MODULE__,
         Meta.parse("@timed Base.@trace_$(trace_mode) $(scenario_name)()"),
     )
 else
-    error("QOB_PRECOMPILE_TRACE must be empty, compile, or dispatch")
+    error("PRECOMPILE_BENCHMARK_TRACE must be empty, compile, or dispatch")
 end
 total_seconds = (time_ns() - total_started_ns) / 1.0e9
 warm_result = @timed scenario()
