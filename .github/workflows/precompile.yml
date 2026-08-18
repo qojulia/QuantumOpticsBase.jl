@@ -22,8 +22,4 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: QuantumSavory/julia-precompile-benchmark@v1
-        with:
-          environment-prefix: QOB
-          scenarios: fock,composite
-          extra-scenarios: head=embed_noncontiguous
+      - uses: QuantumSavory/julia-precompile-benchmark@v2
