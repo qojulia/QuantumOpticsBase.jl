@@ -46,6 +46,25 @@ function composite()
     return norm(derivative)
 end
 
+function embed_noncontiguous()
+    nlevel_basis = NLevelBasis(3)
+    spin_basis = SpinBasis(1 // 2)
+    fock_basis = FockBasis(4)
+    auxiliary_basis = GenericBasis(2)
+    basis = nlevel_basis ⊗ spin_basis ⊗ fock_basis ⊗ auxiliary_basis
+
+    nlevel_operator = dense(paulix(nlevel_basis))
+    fock_operator = dense(number(fock_basis))
+    selected_operator = nlevel_operator ⊗ fock_operator
+    embedded = embed(basis, [1, 3], selected_operator)
+    expected =
+        nlevel_operator ⊗ identityoperator(spin_basis) ⊗
+        fock_operator ⊗ identityoperator(auxiliary_basis)
+
+    check(embedded == expected, "noncontiguous embedding returned the wrong operator")
+    return length(embedded.data.nzval)
+end
+
 function particle()
     position_basis = PositionBasis(-10, 10, 200)
     momentum_basis = MomentumBasis(position_basis)
@@ -171,6 +190,7 @@ end
 const SCENARIOS = Dict(
     "fock" => fock,
     "composite" => composite,
+    "embed_noncontiguous" => embed_noncontiguous,
     "particle" => particle,
     "manybody" => manybody,
     "superoperator" => superoperator,
