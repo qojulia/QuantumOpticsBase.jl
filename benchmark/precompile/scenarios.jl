@@ -1,10 +1,3 @@
-const total_started_ns = time_ns()
-const import_started_ns = total_started_ns
-using QuantumOpticsBase
-const import_seconds = (time_ns() - import_started_ns) / 1.0e9
-
-check(condition, message) = condition || error(message)
-
 function fock()
     basis = FockBasis(20)
     alpha = 1.2
@@ -187,51 +180,16 @@ function pauli()
     return real(avg_gate_fidelity(transfer_gate, transfer_gate))
 end
 
-const SCENARIOS = Dict(
-    "fock" => fock,
-    "composite" => composite,
-    "embed_noncontiguous" => embed_noncontiguous,
-    "particle" => particle,
-    "manybody" => manybody,
-    "superoperator" => superoperator,
-    "metrics" => metrics,
-    "nlevel" => nlevel,
-    "charge" => charge,
-    "time_dependent" => time_dependent,
-    "pauli" => pauli,
+const PRECOMPILE_BENCHMARKS = (
+    fock=fock,
+    composite=composite,
+    embed_noncontiguous=embed_noncontiguous,
+    particle=particle,
+    manybody=manybody,
+    superoperator=superoperator,
+    metrics=metrics,
+    nlevel=nlevel,
+    charge=charge,
+    time_dependent=time_dependent,
+    pauli=pauli,
 )
-
-length(ARGS) == 1 || error("usage: scenarios.jl SCENARIO")
-scenario_name = only(ARGS)
-scenario = get(SCENARIOS, scenario_name, nothing)
-isnothing(scenario) && error("unknown precompile scenario: $(scenario_name)")
-
-trace_mode = get(ENV, "QOB_PRECOMPILE_TRACE", "")
-first_result = if isempty(trace_mode)
-    @timed scenario()
-elseif trace_mode == "compile" || trace_mode == "dispatch"
-    VERSION >= v"1.12" || error("QOB_PRECOMPILE_TRACE requires Julia 1.12 or later")
-    Core.eval(
-        @__MODULE__,
-        Meta.parse("@timed Base.@trace_$(trace_mode) $(scenario_name)()"),
-    )
-else
-    error("QOB_PRECOMPILE_TRACE must be empty, compile, or dispatch")
-end
-total_seconds = (time_ns() - total_started_ns) / 1.0e9
-warm_result = @timed scenario()
-compile_time(result) = hasproperty(result, :compile_time) ? result.compile_time : 0.0
-recompile_time(result) = hasproperty(result, :recompile_time) ? result.recompile_time : 0.0
-
-println(join((
-    "RESULT",
-    scenario_name,
-    import_seconds,
-    first_result.time,
-    compile_time(first_result),
-    recompile_time(first_result),
-    total_seconds,
-    warm_result.time,
-    compile_time(warm_result),
-    recompile_time(warm_result),
-), '\t'))
