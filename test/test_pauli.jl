@@ -10,6 +10,47 @@ b = SpinBasis(1//2)
 # Test conversion of unitary matrices to superoperators.
 q2 = b^2
 q3 = b^3
+
+@testset "Pauli multiplication helper" begin
+    paulis = (
+        ComplexF64[1 0; 0 1],
+        ComplexF64[0 1; 1 0],
+        ComplexF64[0 -im; im 0],
+        ComplexF64[1 0; 0 -1],
+    )
+    for left in 0:3, right in 0:3
+        product, phase = @inferred QuantumOpticsBase.multiply_pauli_matrices(
+            string(left), string(right),
+        )
+        product_digit = xor(left, right)
+        @test product == string(product_digit)
+        @test phase * paulis[product_digit+1] == paulis[left+1] * paulis[right+1]
+    end
+
+    @test QuantumOpticsBase.multiply_pauli_matrices("010", "023") == ("033", 1im)
+    @test QuantumOpticsBase.multiply_pauli_matirices("010", "023") == ("033", 1im)
+    @test_throws ArgumentError QuantumOpticsBase.multiply_pauli_matrices("", "")
+    @test_throws ArgumentError QuantumOpticsBase.multiply_pauli_matrices("0", "00")
+    @test_throws ArgumentError QuantumOpticsBase.multiply_pauli_matrices("4", "0")
+    @test_throws ArgumentError QuantumOpticsBase.multiply_pauli_matrices("0", "x")
+end
+
+@testset "Concurrent Chi-matrix composition" begin
+    left_data = reshape(ComplexF64.(1:16), 4, 4)
+    right_data = reshape(ComplexF64.(16:-1:1), 4, 4)
+    left = DenseChiMatrix((b, b), (b, b), left_data)
+    right = DenseChiMatrix((b, b), (b, b), right_data)
+    left_before = copy(left.data)
+    right_before = copy(right.data)
+    num_compositions = max(8, 4 * min(Threads.nthreads(), 8))
+    tasks = [Threads.@spawn(left * right) for _ in 1:num_compositions]
+    results = fetch.(tasks)
+
+    @test all(result -> result == first(results), results)
+    @test left.data == left_before
+    @test right.data == right_before
+end
+
 CZ = DenseOperator(q2, q2, diagm(0 => [1,1,1,-1]))
 CZ_sop = SuperOperator(CZ)
 
@@ -90,8 +131,40 @@ CPHASE_ptm = PauliTransferMatrix(CPHASE)
 @test isapprox(PauliTransferMatrix(CPHASE_chi), CPHASE_ptm)
 
 # Test composition.
-@test isapprox(ChiMatrix(CPHASE) * ChiMatrix(CNOT), ChiMatrix(CPHASE * CNOT))
+one_qubit_left_data = zeros(ComplexF64, 4, 4)
+one_qubit_left_data[2, 2] = 2
+one_qubit_right_data = zeros(ComplexF64, 4, 4)
+one_qubit_right_data[3, 3] = 2
+one_qubit_expected_data = zeros(ComplexF64, 4, 4)
+one_qubit_expected_data[4, 4] = 2
+one_qubit_left = DenseChiMatrix((b, b), (b, b), one_qubit_left_data)
+one_qubit_right = DenseChiMatrix((b, b), (b, b), one_qubit_right_data)
+one_qubit_expected = DenseChiMatrix((b, b), (b, b), one_qubit_expected_data)
+one_qubit_left_before = copy(one_qubit_left.data)
+one_qubit_right_before = copy(one_qubit_right.data)
+one_qubit_composition = @inferred(one_qubit_left * one_qubit_right)
+@test one_qubit_composition == one_qubit_expected
+@test one_qubit_left.data == one_qubit_left_before
+@test one_qubit_right.data == one_qubit_right_before
+
+two_qubit_composition = @inferred(CPHASE_chi * CNOT_chi)
+@test isapprox(two_qubit_composition, ChiMatrix(CPHASE * CNOT))
 @test isapprox(PauliTransferMatrix(CPHASE) * PauliTransferMatrix(CNOT), PauliTransferMatrix(CPHASE * CNOT))
+
+@testset "Three-qubit Chi-matrix composition" begin
+    left_pauli = dense(sigmax(b)) ⊗ dense(sigmay(b)) ⊗ dense(sigmaz(b))
+    right_pauli = dense(sigmaz(b)) ⊗ dense(identityoperator(b)) ⊗ dense(sigmax(b))
+    left_chi = ChiMatrix(left_pauli)
+    right_chi = ChiMatrix(right_pauli)
+    @test count(x -> !iszero(x), left_chi.data) == 1
+    @test count(x -> !iszero(x), right_chi.data) == 1
+
+    composition = left_chi * right_chi
+    @test size(composition.data) == (64, 64)
+    @test composition.basis_l == left_chi.basis_l
+    @test composition.basis_r == left_chi.basis_r
+    @test isapprox(composition, ChiMatrix(left_pauli * right_pauli))
+end
 
 end # testset
 end

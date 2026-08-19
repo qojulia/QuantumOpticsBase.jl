@@ -180,6 +180,28 @@ function pauli()
     return real(avg_gate_fidelity(transfer_gate, transfer_gate))
 end
 
+function chi_multiply()
+    spin_basis = SpinBasis(1 // 2)
+    basis = spin_basis^2
+    chi_basis = (basis, basis)
+    left_data = zeros(ComplexF64, 16, 16)
+    right_data = zeros(ComplexF64, 16, 16)
+    left_data[2, 1] = 2
+    right_data[3, 1] = 2
+    left = DenseChiMatrix(chi_basis, chi_basis, left_data)
+    right = DenseChiMatrix(chi_basis, chi_basis, right_data)
+
+    result = left * right
+    expected = zeros(ComplexF64, 16, 16)
+    expected[4, 1] = 1im
+    check(
+        result.basis_l == chi_basis && result.basis_r == chi_basis,
+        "Chi multiplication changed the bases",
+    )
+    check(result.data == expected, "Chi multiplication returned the wrong matrix")
+    return abs2(result.data[4, 1])
+end
+
 const PRECOMPILE_BENCHMARKS = (
     fock=fock,
     composite=composite,
@@ -192,4 +214,5 @@ const PRECOMPILE_BENCHMARKS = (
     charge=charge,
     time_dependent=time_dependent,
     pauli=pauli,
+    chi_multiply=chi_multiply,
 )
