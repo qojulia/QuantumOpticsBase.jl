@@ -19,17 +19,15 @@ mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: LazyOperator{BL,BR}
     ket_l::KTL
     bra_r::BTR
     function LazyProduct{BL,BR,F,T,KTL,BTR}(operators::T, ket_l::KTL, bra_r::BTR, factor::F=1) where {BL,BR,F,T,KTL,BTR}
-        for i = 2:length(operators)
-            check_multiplicable(operators[i-1], operators[i])
-        end
+        foreach(check_multiplicable, Base.front(operators), Base.tail(operators))
         new(operators[1].basis_l, operators[end].basis_r, factor, operators,ket_l,bra_r)
     end
 end
 function LazyProduct(operators::T, factor::F=1) where {T,F}
     BL = typeof(operators[1].basis_l)
     BR = typeof(operators[end].basis_r)
-    ket_l=Tuple(Ket(operators[i].basis_l) for i in 2:length(operators))
-    bra_r=Tuple(Bra(operators[i].basis_r) for i in 1:length(operators)-1)
+    ket_l=map(operator -> Ket(operator.basis_l), Base.tail(operators))
+    bra_r=map(operator -> Bra(operator.basis_r), Base.front(operators))
     KTL = typeof(ket_l)
     BTR = typeof(bra_r)
     LazyProduct{BL,BR,F,T,KTL,BTR}(operators, ket_l, bra_r, factor)
