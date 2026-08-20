@@ -13,3 +13,28 @@ operator = TimeDependentSum(cos => sx, sin => sz)
 @test QuantumOpticsBase.coefficients(operator) == (cos, sin)
 JET.@test_opt target_modules=(QuantumOpticsBase,) set_time!(operator, 0.25)
 end
+
+@testitem "LazyProduct constructor inference" tags = [:jet] begin
+using Test
+using QuantumOpticsBase
+using JET
+using LinearAlgebra
+
+basis_1 = SpinBasis(1 // 2)
+basis_2 = FockBasis(1)
+basis_3 = NLevelBasis(2)
+basis_4 = GenericBasis(2)
+data = Matrix{ComplexF64}(I, 2, 2)
+
+operator_1 = DenseOperator(basis_1, basis_2, data)
+operator_2 = DenseOperator(basis_2, basis_3, data)
+operator_3 = DenseOperator(basis_3, basis_4, data)
+operator_4 = DenseOperator(basis_4, basis_1, data)
+
+JET.@test_opt target_modules=(QuantumOpticsBase,) LazyProduct(
+    operator_1,
+    operator_2,
+    operator_3,
+    operator_4,
+)
+end
