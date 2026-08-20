@@ -131,7 +131,8 @@ end
     end
 
     o_t2 = @inferred TimeDependentSum(f1=>a, f2=>n)
-    @test o_t(t) == o_t2(t)
+    @test QOB.coefficients(o_t2) == (f1, f2)
+    @test dense(QOB.static_operator(o_t(t))) == dense(QOB.static_operator(o_t2(t)))
 
     o_t_ = dense(o_t)
     @test all(isa(o, DenseOpType) for o in QOB.suboperators(o_t_))

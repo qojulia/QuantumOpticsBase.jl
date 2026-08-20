@@ -138,7 +138,7 @@ end
 
 function TimeDependentSum(::Type{Tf}, args::Vararg{Pair,N}; init_time::T=0.0) where {Tf<:Number,T<:Number,N}
     cs, ops = zip(args...)
-    TimeDependentSum(Tf, [cs...], [ops...]; init_time)
+    TimeDependentSum(Tf, cs, ops; init_time)
 end
 
 function TimeDependentSum(args::Vararg{Pair,N}; init_time::T=0.0) where {T<:Number,N}
