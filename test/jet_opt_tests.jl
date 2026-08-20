@@ -38,3 +38,18 @@ JET.@test_opt target_modules=(QuantumOpticsBase,) LazyProduct(
     operator_4,
 )
 end
+
+@testitem "JET optimization: partial transpose metrics" tags = [:jet] begin
+using Test
+using QuantumOpticsBase
+using JET
+
+basis = SpinBasis(1 // 2)
+up = spinup(basis)
+down = spindown(basis)
+state = (up ⊗ down - down ⊗ up) / sqrt(2)
+rho = dm(state)
+
+JET.@test_opt target_modules=(QuantumOpticsBase,) ptranspose(rho, [1])
+JET.@test_opt target_modules=(QuantumOpticsBase,) negativity(rho, 1)
+end
