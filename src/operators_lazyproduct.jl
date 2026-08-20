@@ -1,6 +1,25 @@
 import Base: isequal, ==, *, /, +, -
 import Adapt
 
+function _lazyproduct_check_multiplicable(operators)
+    for i = 2:length(operators)
+        check_multiplicable(operators[i-1], operators[i])
+    end
+end
+_lazyproduct_check_multiplicable(operators::Tuple) =
+    foreach(check_multiplicable, Base.front(operators), Base.tail(operators))
+
+function _lazyproduct_buffers(operators)
+    ket_l=Tuple(Ket(operators[i].basis_l) for i in 2:length(operators))
+    bra_r=Tuple(Bra(operators[i].basis_r) for i in 1:length(operators)-1)
+    return ket_l, bra_r
+end
+function _lazyproduct_buffers(operators::Tuple)
+    ket_l=map(operator -> Ket(operator.basis_l), Base.tail(operators))
+    bra_r=map(operator -> Bra(operator.basis_r), Base.front(operators))
+    return ket_l, bra_r
+end
+
 """
     LazyProduct(operators[, factor=1])
     LazyProduct(op1, op2...)
@@ -19,15 +38,14 @@ mutable struct LazyProduct{BL,BR,F,T,KTL,BTR} <: LazyOperator{BL,BR}
     ket_l::KTL
     bra_r::BTR
     function LazyProduct{BL,BR,F,T,KTL,BTR}(operators::T, ket_l::KTL, bra_r::BTR, factor::F=1) where {BL,BR,F,T,KTL,BTR}
-        foreach(check_multiplicable, Base.front(operators), Base.tail(operators))
+        _lazyproduct_check_multiplicable(operators)
         new(operators[1].basis_l, operators[end].basis_r, factor, operators,ket_l,bra_r)
     end
 end
 function LazyProduct(operators::T, factor::F=1) where {T,F}
     BL = typeof(operators[1].basis_l)
     BR = typeof(operators[end].basis_r)
-    ket_l=map(operator -> Ket(operator.basis_l), Base.tail(operators))
-    bra_r=map(operator -> Bra(operator.basis_r), Base.front(operators))
+    ket_l, bra_r = _lazyproduct_buffers(operators)
     KTL = typeof(ket_l)
     BTR = typeof(bra_r)
     LazyProduct{BL,BR,F,T,KTL,BTR}(operators, ket_l, bra_r, factor)

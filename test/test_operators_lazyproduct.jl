@@ -26,6 +26,23 @@ b_r = b1b⊗b2b⊗b3b
 @test_throws QuantumOpticsBase.IncompatibleBases LazyProduct(randoperator(b_l, b_r), randoperator(b_l, b_r))
 @test_throws QuantumOpticsBase.IncompatibleBases LazyProduct(randoperator(b_l, b_r), sparse(randoperator(b_l, b_r)))
 
+# Generic indexed containers retain their storage and behavior.
+operator_lm = randoperator(b_l, b_r)
+operator_ml = randoperator(b_r, b_l)
+operators_any = Any[operator_lm, operator_ml]
+operators_view = @view [operator_lm, operator_ml][:]
+product_any = LazyProduct(operators_any)
+product_view = LazyProduct(operators_view)
+@test product_any.operators === operators_any
+@test product_view.operators === operators_view
+@test dense(product_any) == operator_lm*operator_ml
+@test dense(product_view) == operator_lm*operator_ml
+@test dense(LazyProduct(Any[operator_lm])) == dense(operator_lm)
+
+incompatible_any = Any[operator_lm, operator_lm]
+@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct(incompatible_any)
+@test_throws QuantumOpticsBase.IncompatibleBases LazyProduct(@view incompatible_any[:])
+
 # Test copy
 op1 = 2*LazyProduct(randoperator(b_l, b_r), sparse(randoperator(b_r, b_l)))
 op2 = copy(op1)
