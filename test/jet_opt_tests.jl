@@ -129,36 +129,33 @@ end
     JET.@test_opt target_modules=(QuantumOpticsBase,) fock_liouvillian * fock_density
 end
 
-# These are debt markers, not regression guards or report-count assertions. Each
-# requires at least one package-owned JET finding to remain. An unexpectedly clean
-# result fails so the marker can be promoted to a strict check.
-@testset "Known inference debt" begin
+@testset "Inference-sensitive composite operations" begin
     @testset "Composite state construction" begin
-        JET.@test_opt target_modules=(QuantumOpticsBase,) broken=true basisstate(
+        JET.@test_opt target_modules=(QuantumOpticsBase,) basisstate(
             composite_basis, [1, 1]
         )
-        JET.@test_opt target_modules=(QuantumOpticsBase,) broken=true tensor(
+        JET.@test_opt target_modules=(QuantumOpticsBase,) tensor(
             spin_up, fock_one_photon, spin_down
         )
     end
 
     @testset "Partial trace and indexed expectation" begin
-        JET.@test_opt target_modules=(QuantumOpticsBase,) broken=true ptrace(
+        JET.@test_opt target_modules=(QuantumOpticsBase,) ptrace(
             composite_state, 1
         )
-        JET.@test_opt target_modules=(QuantumOpticsBase,) broken=true ptrace(
+        JET.@test_opt target_modules=(QuantumOpticsBase,) ptrace(
             composite_density, 1
         )
-        JET.@test_opt target_modules=(QuantumOpticsBase,) broken=true expect(
+        JET.@test_opt target_modules=(QuantumOpticsBase,) expect(
             1, sx_sparse, composite_state
         )
     end
 
     @testset "System permutations" begin
-        JET.@test_opt target_modules=(QuantumOpticsBase,) broken=true permutesystems(
+        JET.@test_opt target_modules=(QuantumOpticsBase,) permutesystems(
             composite_state, [2, 1]
         )
-        JET.@test_opt target_modules=(QuantumOpticsBase,) broken=true permutesystems(
+        JET.@test_opt target_modules=(QuantumOpticsBase,) permutesystems(
             composite_density, [2, 1]
         )
     end
