@@ -198,13 +198,18 @@ The `indices` argument can be a single integer or a collection of integers.
 function ptranspose(rho::DenseOpType{B,B}, indices=1) where B<:CompositeBasis
     # adapted from qutip.partial_transpose (https://qutip.org/docs/4.0.2/modules/qutip/partial_transpose.html)
     # works as long as QuantumOptics.jl doesn't change the implementation of `tensor`, i.e. tensor(a,b).data = kron(b.data,a.data)
-    nsys = length(rho.basis_l.shape)
+    nsys = length(rho.basis_l.bases)
     mask = ones(Int, nsys)
     mask[collect(indices)] .+= 1
     pt_dims = reshape(1:2*nsys, (nsys,2)) # indices of the operator viewed as a tensor with 2nsys legs
     pt_idx = [[pt_dims[i,mask[i]] for i = 1 : nsys]; [pt_dims[i,3-mask[i]] for i = 1 : nsys] ] # permute the legs on the subsystem of `indices`
     # reshape the operator data into a 2nsys-legged tensor and shape it back with the legs permuted
-    data = reshape(permutedims(reshape(rho.data, Tuple([rho.basis_l.shape; rho.basis_r.shape])), pt_idx), size(rho.data))
+    shape_l = rho.basis_l.shape
+    shape_r = rho.basis_r.shape
+    tensor_shape = ntuple(2*nsys) do i
+        i <= nsys ? shape_l[i] : shape_r[i-nsys]
+    end
+    data = reshape(permutedims(reshape(rho.data, tensor_shape), pt_idx), size(rho.data))
 
     return DenseOperator(rho.basis_l,data)
     
