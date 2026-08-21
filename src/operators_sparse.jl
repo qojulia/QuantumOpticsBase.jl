@@ -44,8 +44,19 @@ function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1,B
     result
 end
 
+_rebase_local_op(basis::B, data) where B = Operator(basis, basis, data)
+
 function expect(index::Integer, op::SparseOpPureType{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis}
-    expect(LazyTensor(state.basis, index, op), state)
+    check_indices(length(state.basis.bases), index)
+    local_basis = state.basis.bases[index]
+    check_samebases(op.basis_l, local_basis)
+    check_samebases(op.basis_r, local_basis)
+    local_op = _rebase_local_op(local_basis, op.data)
+    lazy_op = LazyTensor(state.basis, index, local_op)
+    T = promote_type(eltype(op), eltype(state))
+    result = Ket(state.basis, similar(state.data, T, length(state.basis)))
+    mul!(result, lazy_op, state, one(T), zero(T))
+    dot(state.data, result.data)
 end
 
 """

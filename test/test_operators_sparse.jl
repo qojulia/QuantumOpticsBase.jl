@@ -197,6 +197,29 @@ state = randoperator(b_l)
     @test !ishermitian(op2)
     @test expect(1, op1, state) ≈ expect(embed(state.basis, 1, op1), state)
     @test expect(2, op2, state) ≈ expect(embed(state.basis, 2, op2), state)
+    @test_throws ArgumentError expect(0, op1, state)
+    @test_throws ArgumentError expect(3, op1, state)
+
+    float64_state = Ket(state.basis, Float64.(1:length(state.basis)))
+    complex_result = expect(1, op1, float64_state)
+    @test complex_result ≈ expect([1], op1, float64_state)
+    @test complex_result isa ComplexF64
+
+    float32_state = Ket(state.basis, Float32.(1:length(state.basis)))
+    float64_op = SparseOperator(b1, sparse(Float64[0 1; 2 0]))
+    float64_result = expect(1, float64_op, float32_state)
+    @test float64_result ≈ expect([1], float64_op, float32_state)
+    @test float64_result isa Float64
+    @test expect(1, float64_op, sparse(float32_state)) ≈ float64_result
+
+    mismatched_basis = GenericBasis([1, 2])
+    mismatched_op = SparseOperator(mismatched_basis, op1.data)
+    right_mismatched_op = SparseOperator(b1, mismatched_basis, op1.data)
+    rebased_op = SparseOperator(b1, op1.data)
+    @test_throws QuantumOpticsBase.IncompatibleBases expect(1, mismatched_op, state)
+    @test_throws QuantumOpticsBase.IncompatibleBases expect(1, right_mismatched_op, state)
+    @test (@samebases expect(1, mismatched_op, state)) ≈ expect(1, rebased_op, state)
+    @test (@samebases expect(1, right_mismatched_op, state)) ≈ expect(1, rebased_op, state)
 end
 
 # Tensor product
