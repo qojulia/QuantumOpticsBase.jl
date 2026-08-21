@@ -218,6 +218,30 @@ psi123 = psi1 ⊗ psi2 ⊗ psi3
 
 @test reduced(psi123, [3]).data == ptrace(psi123, [1, 2]).data
 
+@testset "Bipartite partial trace" begin
+    b1 = NLevelBasis(2)
+    b2 = FockBasis(2)
+    psi1 = normalize(basisstate(b1, 1) + im * basisstate(b1, 2))
+    psi2 = normalize(basisstate(b2, 1) - basisstate(b2, 3))
+    psi12 = psi1 ⊗ psi2
+    rho12 = dm(psi12)
+
+    @test ptrace(psi12, 1) ≈ dm(psi2)
+    @test ptrace(psi12, 2) ≈ dm(psi1)
+    @test ptrace(dagger(psi12), 1) ≈ dm(psi2)
+    @test ptrace(dagger(psi12), 2) ≈ dm(psi1)
+    @test ptrace(rho12, 1) ≈ dm(psi2)
+    @test ptrace(rho12, 2) ≈ dm(psi1)
+
+    square_basis = GenericBasis(2)
+    square_op = DenseOperator(square_basis, ComplexF64[1 2; 3 4])
+    rectangular_op = DenseOperator(
+        NLevelBasis(2), FockBasis(2), reshape(ComplexF64.(1:6), 2, 3)
+    )
+    @test ptrace(square_op ⊗ rectangular_op, 1) ≈ tr(square_op) * rectangular_op
+    @test ptrace(rectangular_op ⊗ square_op, 2) ≈ tr(square_op) * rectangular_op
+end
+
 # Test partial tr of operators
 b1 = GenericBasis(3)
 b2 = GenericBasis(5)

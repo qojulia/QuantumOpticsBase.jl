@@ -44,6 +44,10 @@ function expect(op::SparseOpPureType{B1,B2}, state::Operator{B2,B2}) where {B1,B
     result
 end
 
+function expect(index::Integer, op::SparseOpPureType{B,B}, state::Ket{BC}) where {B,BC<:CompositeBasis}
+    expect(LazyTensor(state.basis, index, op), state)
+end
+
 """
     exp(op::SparseOpType; opts...)
 

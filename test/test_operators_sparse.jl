@@ -186,6 +186,19 @@ state = randoperator(b_l)
 
 @test_throws QuantumOpticsBase.IncompatibleBases expect(op1, op2)
 
+@testset "Indexed sparse expectations" begin
+    b1 = GenericBasis(2)
+    b2 = GenericBasis(3)
+    state = randstate(b1 ⊗ b2)
+    op1 = SparseOperator(b1, sparse(ComplexF64[0 1; 2im 0]))
+    op2 = SparseOperator(b2, sparse(ComplexF64[0 1 0; 0 0 2im; 3 0 0]))
+
+    @test !ishermitian(op1)
+    @test !ishermitian(op2)
+    @test expect(1, op1, state) ≈ expect(embed(state.basis, 1, op1), state)
+    @test expect(2, op2, state) ≈ expect(embed(state.basis, 2, op2), state)
+end
+
 # Tensor product
 # ==============
 b1a = GenericBasis(2)
@@ -248,7 +261,9 @@ op3 = sprandop(b3a, b3b)
 op123 = op1⊗op2⊗op3
 
 op132 = op1⊗op3⊗op2
-@test 1e-14 > D(permutesystems(op123, [1, 3, 2]), op132)
+permuted132 = permutesystems(op123, [1, 3, 2])
+@test 1e-14 > D(permuted132, op132)
+@test permuted132.data isa SparseMatrixCSC
 
 op213 = op2⊗op1⊗op3
 @test 1e-14 > D(permutesystems(op123, [2, 1, 3]), op213)
@@ -261,6 +276,12 @@ op312 = op3⊗op1⊗op2
 
 op321 = op3⊗op2⊗op1
 @test 1e-14 > D(permutesystems(op123, [3, 2, 1]), op321)
+
+op12 = op1 ⊗ op2
+@test permutesystems(op12, [1, 2]) == op12
+permuted21 = permutesystems(op12, [2, 1])
+@test 1e-14 > D(permuted21, op2 ⊗ op1)
+@test permuted21.data isa SparseMatrixCSC
 
 # Test diagonaloperator
 b = GenericBasis(4)
