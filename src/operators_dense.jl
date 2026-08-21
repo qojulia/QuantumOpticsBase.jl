@@ -190,7 +190,7 @@ tr(op::Operator{B,B}) where B = tr(op.data)
 
 function ptrace(a::DataOperator, indices)
     check_ptrace_arguments(a, indices)
-    rank = length(a.basis_l.shape)
+    rank = length(a.basis_l.bases)
     result = _ptrace(Val{rank}, a.data, a.basis_l.shape, a.basis_r.shape, indices)
     return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
@@ -200,7 +200,7 @@ function ptrace(psi::Ket, indices)
     check_ptrace_arguments(psi, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
-    rank = length(b.shape)
+    rank = length(b.bases)
     result = _ptrace_ket(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
@@ -209,7 +209,7 @@ function ptrace(psi::Bra, indices)
     check_ptrace_arguments(psi, indices)
     b = basis(psi)
     b_ = ptrace(b, indices)
-    rank = length(b.shape)
+    rank = length(b.bases)
     result = _ptrace_bra(Val{rank}, psi.data, b.shape, indices)::Matrix{eltype(psi)}
     return Operator(b_, b_, result)
 end
@@ -240,6 +240,15 @@ consider using much faster implicit methods that do not calculate the entire exp
 """
 function exp(op::T) where {B,T<:DenseOpType{B,B}}
     return DenseOperator(op.basis_l, op.basis_r, exp(op.data))
+end
+
+function permutesystems(a::Operator{B1,B2,<:Matrix}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
+    @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
+    @assert isperm(perm)
+    data = reshape(a.data, (length.(a.basis_l.bases)..., length.(a.basis_r.bases)...))
+    data = permutedims(data, [perm; perm .+ length(perm)])
+    data = reshape(data, (length(a.basis_l), length(a.basis_r)))
+    Operator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), data)
 end
 
 function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}

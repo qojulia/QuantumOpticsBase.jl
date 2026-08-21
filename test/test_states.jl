@@ -72,9 +72,21 @@ ket_b3 = randstate(b3)
 @test 1e-14 > D((bra_b1 ⊗ bra_b2)*(ket_b1 ⊗ ket_b2), (bra_b1*ket_b1)*(bra_b2*ket_b2))
 
 # Tensor product
-@test tensor(ket_b1) == ket_b1
+@test tensor(ket_b1) === ket_b1
+@test tensor(bra_b1) === bra_b1
 @test 1e-14 > D((ket_b1 ⊗ ket_b2) ⊗ ket_b3, ket_b1 ⊗ (ket_b2 ⊗ ket_b3))
 @test 1e-14 > D((bra_b1 ⊗ bra_b2) ⊗ bra_b3, bra_b1 ⊗ (bra_b2 ⊗ bra_b3))
+
+mixed_ket = tensor(ket_b1, sparse(ket_b2), ket_b3, ket_b1)
+mixed_bra = tensor(bra_b1, sparse(bra_b2), bra_b3, bra_b1)
+@test mixed_ket == ((ket_b1 ⊗ sparse(ket_b2)) ⊗ ket_b3) ⊗ ket_b1
+@test mixed_bra == ((bra_b1 ⊗ sparse(bra_b2)) ⊗ bra_b3) ⊗ bra_b1
+@test mixed_ket.data isa SparseVector
+@test mixed_bra.data isa SparseVector
+
+composite_first = tensor(ket_b1 ⊗ ket_b2, ket_b3, ket_b1)
+@test composite_first == ((ket_b1 ⊗ ket_b2) ⊗ ket_b3) ⊗ ket_b1
+@test composite_first.basis.bases == (b1, b2, b3, b1)
 
 ket_b1b2 = ket_b1 ⊗ ket_b2
 shape = (ket_b1b2.basis.shape...,)
@@ -121,6 +133,22 @@ x2 = basisstate(b2, 1)
 @test x1.data[2] == 1
 @test basisstate(b, [2, 1]) == x1 ⊗ x2
 
+dense_basis_state = basisstate(Float32, b, [2, 1])
+sparse_basis_state = sparsebasisstate(Float32, b, [2, 1])
+@test dense_basis_state.data isa Vector{Float32}
+@test sparse_basis_state.data isa SparseVector{Float32}
+@test dense_basis_state.data == sparse_basis_state.data
+@test_throws BoundsError basisstate(b, [3, 1])
+@test_throws BoundsError sparsebasisstate(b, [2, 4])
+@test_throws AssertionError basisstate(b, [1])
+@test_throws AssertionError sparsebasisstate(b, [1])
+
+b3 = GenericBasis(4)
+b123 = b1 ⊗ b2 ⊗ b3
+x3 = basisstate(b3, 4)
+@test basisstate(b123, [2, 1, 4]) == x1 ⊗ x2 ⊗ x3
+@test sparsebasisstate(b123, [2, 1, 4]) == sparse(x1) ⊗ sparse(x2) ⊗ sparse(x3)
+
 # Conversion to sparse
 @test length(sparse(x1).data.nzval)==1
 @test sparse(x1').data isa SparseVector
@@ -133,6 +161,15 @@ b3 = FockBasis(3)
 psi1 = randstate(b1)
 psi2 = randstate(b2)
 psi3 = randstate(b3)
+
+psi13 = psi1 ⊗ psi3
+rho13 = dm(psi13)
+@test permutesystems(psi13, [1, 2]) == psi13
+@test permutesystems(psi13, [2, 1]) == psi3 ⊗ psi1
+@test permutesystems(dagger(psi13), [1, 2]) == dagger(psi13)
+@test permutesystems(dagger(psi13), [2, 1]) == dagger(psi3 ⊗ psi1)
+@test permutesystems(rho13, [1, 2]) == rho13
+@test permutesystems(rho13, [2, 1]) == dm(psi3 ⊗ psi1)
 
 psi123 = psi1 ⊗ psi2 ⊗ psi3
 psi132 = psi1 ⊗ psi3 ⊗ psi2

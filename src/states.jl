@@ -104,13 +104,23 @@ Tensor product ``|x⟩⊗|y⟩⊗|z⟩⊗…`` of the given states.
 """
 tensor(a::Ket, b::Ket) = Ket(tensor(a.basis, b.basis), kron(b.data, a.data))
 tensor(a::Bra, b::Bra) = Bra(tensor(a.basis, b.basis), kron(b.data, a.data))
-tensor(states::Ket...) = reduce(tensor, states)
-tensor(states::Bra...) = reduce(tensor, states)
+tensor(state::Ket) = state
+tensor(state::Bra) = state
+function tensor(states::Ket...)
+    bases = map(state -> state.basis, states)
+    data = map(state -> state.data, states)
+    Ket(tensor(bases...), foldr(kron, reverse(data)))
+end
+function tensor(states::Bra...)
+    bases = map(state -> state.basis, states)
+    data = map(state -> state.data, states)
+    Bra(tensor(bases...), foldr(kron, reverse(data)))
+end
 
 function permutesystems(state::T, perm) where T<:Ket
     @assert length(state.basis.bases) == length(perm)
     @assert isperm(perm)
-    data = reshape(state.data, state.basis.shape...)
+    data = reshape(state.data, length.(state.basis.bases))
     data = permutedims(data, perm)
     data = reshape(data, length(data))
     Ket(permutesystems(state.basis, perm), data)
@@ -118,10 +128,23 @@ end
 function permutesystems(state::T, perm) where T<:Bra
     @assert length(state.basis.bases) == length(perm)
     @assert isperm(perm)
-    data = reshape(state.data, state.basis.shape...)
+    data = reshape(state.data, length.(state.basis.bases))
     data = permutedims(data, perm)
     data = reshape(data, length(data))
     Bra(permutesystems(state.basis, perm), data)
+end
+
+function _basisstate_index(b::Basis, indices)
+    @assert length(b.shape) == length(indices)
+    linear_index = 1
+    stride = 1
+    for (dimension, index) in zip(b.shape, indices)
+        checkbounds(Bool, Base.OneTo(dimension), index) ||
+            throw(BoundsError(b, indices))
+        linear_index += (index - 1) * stride
+        stride *= dimension
+    end
+    linear_index
 end
 
 # Creation of basis states.
@@ -134,10 +157,10 @@ For a composite system `index` can be a vector which then creates a tensor
 product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
 """
 function basisstate(::Type{T}, b::Basis, indices) where T
-    @assert length(b.shape) == length(indices)
-    x = zeros(T, length(b))
-    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
-    Ket(b, x)
+    index = _basisstate_index(b, indices)
+    data = zeros(T, length(b))
+    data[index] = one(T)
+    Ket(b, data)
 end
 function basisstate(::Type{T}, b::Basis, index::Integer) where T
     data = zeros(T, length(b))
@@ -152,10 +175,10 @@ basisstate(b::Basis, indices) = basisstate(ComplexF64, b, indices)
 Sparse version of [`basisstate`](@ref).
 """
 function sparsebasisstate(::Type{T}, b::Basis, indices) where T
-    @assert length(b.shape) == length(indices)
-    x = spzeros(T, length(b))
-    x[LinearIndices(tuple(b.shape...))[indices...]] = one(T)
-    Ket(b, x)
+    index = _basisstate_index(b, indices)
+    data = spzeros(T, length(b))
+    data[index] = one(T)
+    Ket(b, data)
 end
 function sparsebasisstate(::Type{T}, b::Basis, index::Integer) where T
     data = spzeros(T, length(b))
