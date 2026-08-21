@@ -134,15 +134,6 @@ function permutesystems(state::T, perm) where T<:Bra
     Bra(permutesystems(state.basis, perm), data)
 end
 
-# Creation of basis states.
-"""
-    basisstate([T=ComplexF64, ]b, index)
-
-Basis vector specified by `index` as ket state.
-
-For a composite system `index` can be a vector which then creates a tensor
-product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
-"""
 function _basisstate_index(b::Basis, indices)
     @assert length(b.shape) == length(indices)
     linear_index = 1
@@ -156,6 +147,15 @@ function _basisstate_index(b::Basis, indices)
     linear_index
 end
 
+# Creation of basis states.
+"""
+    basisstate([T=ComplexF64, ]b, index)
+
+Basis vector specified by `index` as ket state.
+
+For a composite system `index` can be a vector which then creates a tensor
+product state ``|i_1⟩⊗|i_2⟩⊗…⊗|i_n⟩`` of the corresponding basis states.
+"""
 function basisstate(::Type{T}, b::Basis, indices) where T
     index = _basisstate_index(b, indices)
     data = zeros(T, length(b))
