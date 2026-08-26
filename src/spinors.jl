@@ -130,7 +130,7 @@ Embed a list of operators on subspaces specified by the `indices` into a
 [`SumBasis`](@ref).
 """
 function embed(basis_l::SumBasis, basis_r::SumBasis,
-               indices, ops::Union{Tuple{Vararg{<:DataOperator}},Vector{<:DataOperator}})
+               indices, ops::Union{Tuple{Vararg{DataOperator}},Vector{<:DataOperator}})
     @assert length(basis_r.bases) == length(basis_l.bases)
 
     T = mapreduce(eltype, promote_type, ops)
