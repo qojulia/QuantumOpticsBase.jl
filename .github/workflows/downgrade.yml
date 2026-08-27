@@ -37,9 +37,12 @@ jobs:
           mode: 'forcedeps'
           julia_version: 'min'
       - uses: julia-actions/julia-buildpkg@v1
-      - name: Instantiate the locked test environment
-        run: julia --color=yes --project=test -e 'import Pkg; Pkg.instantiate()'
-      - name: Run tests without re-resolving
-        env:
-          JULIA_LOAD_PATH: ${{ github.workspace }}/test:${{ github.workspace }}:@stdlib
-        run: julia --color=yes --check-bounds=yes --project=test test/runtests.jl
+      - name: Run tests
+        run: |
+          julia --project=test --color=yes -e '
+            import Pkg
+            Pkg.develop(Pkg.PackageSpec(path=pwd()))
+            Pkg.instantiate()
+            Pkg.status(; mode=Pkg.PKGMODE_MANIFEST)
+            include("test/runtests.jl")
+          '
