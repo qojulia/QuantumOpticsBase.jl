@@ -220,6 +220,12 @@ variance
 embed
 ```
 
+
+```@docs
+embed_lazy
+
+```
+
 ```@docs
 permutesystems
 ```
