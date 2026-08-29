@@ -164,3 +164,8 @@ end
 
 # GPU adaptation  
 Adapt.adapt_structure(to, x::LazyProduct) = LazyProduct([Adapt.adapt(to, op) for op in x.operators], x.factor)
+
+embed_lazy(::CompositeBasis, ::CompositeBasis, ::Any, ::LazyProduct) =
+    throw(ArgumentError("embed_lazy is not supported for LazyProduct"))
+embed_lazy(::CompositeBasis, ::Any, ::LazyProduct) =
+    throw(ArgumentError("embed_lazy is not supported for LazyProduct"))
