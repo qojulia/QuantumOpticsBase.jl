@@ -97,15 +97,15 @@ Hermitian conjugate.
 dagger(x::Bra) = Ket(x.basis, conj(x.data))
 dagger(x::Ket) = Bra(x.basis, conj(x.data))
 
-"""
-    tensor(x::Ket, y::Ket, z::Ket...)
-
-Tensor product ``|x⟩⊗|y⟩⊗|z⟩⊗…`` of the given states.
-"""
 tensor(a::Ket, b::Ket) = Ket(tensor(a.basis, b.basis), kron(b.data, a.data))
 tensor(a::Bra, b::Bra) = Bra(tensor(a.basis, b.basis), kron(b.data, a.data))
 tensor(state::Ket) = state
 tensor(state::Bra) = state
+"""
+    tensor(state::Ket, states::Ket...)
+
+Tensor product ``|x⟩⊗|y⟩⊗|z⟩⊗…`` of the given states.
+"""
 function tensor(state::Ket, states::Ket...)
     states = (state, states...)
     bases = map(state -> state.basis, states)
@@ -169,6 +169,11 @@ function basisstate(::Type{T}, b::Basis, index::Integer) where T
     data[index] = one(T)
     Ket(b, data)
 end
+"""
+    basisstate(b::Basis, indices)
+
+Create a basis state with `ComplexF64` coefficients.
+"""
 basisstate(b::Basis, indices) = basisstate(ComplexF64, b, indices)
 
 """

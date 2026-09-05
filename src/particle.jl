@@ -144,6 +144,11 @@ function potentialoperator(::Type{T}, b::PositionBasis, V) where T
     x = convert.(T, samplepoints(b))
     diagonaloperator(b, V.(x))
 end
+"""
+    potentialoperator(b::PositionBasis, V)
+
+Create a real-space potential operator with `Float64` elements.
+"""
 potentialoperator(b::PositionBasis, V) = potentialoperator(Float64, b, V)
 
 """
@@ -155,6 +160,11 @@ function potentialoperator(::Type{T}, b::MomentumBasis, V) where T
     b_pos = PositionBasis(b)
     transform(b, b_pos)*dense(potentialoperator(T, b_pos, V))*transform(b_pos, b)
 end
+"""
+    potentialoperator(b::Basis, V)
+
+Create a potential operator with `ComplexF64` elements.
+"""
 potentialoperator(b::Basis, V) = potentialoperator(ComplexF64, b, V)
 
 """
