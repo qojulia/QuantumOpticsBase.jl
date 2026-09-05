@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterCodeBlocks
 using AnythingLLMDocs
 using QuantumInterface
 using QuantumOpticsBase
@@ -24,6 +25,7 @@ makedocs(
     sitename = "QuantumOpticsBase.jl",
     modules = doc_modules,
     pages = pages,
+    plugins = [CodeBlocks()],
     format = Documenter.HTML(assets = anythingllm_assets),
     checkdocs=:exports
     )
