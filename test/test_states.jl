@@ -1,6 +1,7 @@
 @testitem "test_states" begin
 using Test
 using QuantumOpticsBase
+using QuantumInterface
 using LinearAlgebra, Random
 using SparseArrays
 
@@ -72,6 +73,7 @@ ket_b3 = randstate(b3)
 @test 1e-14 > D((bra_b1 ⊗ bra_b2)*(ket_b1 ⊗ ket_b2), (bra_b1*ket_b1)*(bra_b2*ket_b2))
 
 # Tensor product
+pkgversion(QuantumInterface) >= v"0.4.4" && @test !applicable(tensor)
 @test tensor(ket_b1) === ket_b1
 @test tensor(bra_b1) === bra_b1
 @test 1e-14 > D((ket_b1 ⊗ ket_b2) ⊗ ket_b3, ket_b1 ⊗ (ket_b2 ⊗ ket_b3))
