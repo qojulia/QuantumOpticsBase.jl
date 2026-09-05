@@ -16,6 +16,11 @@ function transition(::Type{T}, b::NLevelBasis, to::Integer, from::Integer) where
     op.data[to, from] = 1.
     op
 end
+"""
+    transition(b::NLevelBasis, to::Integer, from::Integer)
+
+Create a transition operator with `ComplexF64` elements.
+"""
 transition(b::NLevelBasis,to::Integer,from::Integer) = transition(ComplexF64,b,to,from)
 
 

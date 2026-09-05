@@ -166,6 +166,11 @@ function transition(::Type{T}, mb::ManyBodyBasis, to, from) where {T}
     end
     return SparseOperator(mb, sparse(Is, Js, Vs, length(mb), length(mb)))
 end
+"""
+    transition(mb::ManyBodyBasis, to, from)
+
+Create a transition operator with `ComplexF64` elements.
+"""
 transition(mb::ManyBodyBasis, to, from) = transition(ComplexF64, mb, to, from)
 
 # Calculate many-Body operator from one-body operator

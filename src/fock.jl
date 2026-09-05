@@ -143,6 +143,11 @@ function displace_analytical(::Type{T}, b::FockBasis, alpha::Number) where T
     displace_analytical!(DenseOperator(T, b), alpha)
 end
 
+"""
+    displace_analytical(b::FockBasis, alpha::Number)
+
+Create the analytical displacement operator with `ComplexF64` elements.
+"""
 displace_analytical(b::FockBasis, alpha::Number) = displace_analytical(ComplexF64, b::FockBasis, alpha::Number)
 
 

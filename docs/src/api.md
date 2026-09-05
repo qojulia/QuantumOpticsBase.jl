@@ -357,6 +357,7 @@ NLevelBasis
 
 ```@docs
 transition(::Type{T}, ::NLevelBasis, ::Integer, ::Integer) where T
+transition(::NLevelBasis, ::Integer, ::Integer)
 ```
 
 ```@docs
@@ -509,6 +510,7 @@ create(::Type{T}, ::ManyBodyBasis, index) where T
 
 ```@docs
 transition(::Type{T}, ::ManyBodyBasis, i, j) where T
+transition(::ManyBodyBasis, i, j)
 ```
 
 ```@docs
