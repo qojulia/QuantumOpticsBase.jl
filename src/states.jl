@@ -106,12 +106,14 @@ tensor(a::Ket, b::Ket) = Ket(tensor(a.basis, b.basis), kron(b.data, a.data))
 tensor(a::Bra, b::Bra) = Bra(tensor(a.basis, b.basis), kron(b.data, a.data))
 tensor(state::Ket) = state
 tensor(state::Bra) = state
-function tensor(states::Ket...)
+function tensor(state::Ket, states::Ket...)
+    states = (state, states...)
     bases = map(state -> state.basis, states)
     data = map(state -> state.data, states)
     Ket(tensor(bases...), foldr(kron, reverse(data)))
 end
-function tensor(states::Bra...)
+function tensor(state::Bra, states::Bra...)
+    states = (state, states...)
     bases = map(state -> state.basis, states)
     data = map(state -> state.data, states)
     Bra(tensor(bases...), foldr(kron, reverse(data)))
