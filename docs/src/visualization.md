@@ -250,7 +250,7 @@ nothing #hide
 ### Momentum probability density
 
 ```@example visualization
-bx = PositionBasis(-8, 8, 256)
+bx = PositionBasis(-32, 32, 512)
 bp = MomentumBasis(bx)
 psi = transform(bp, bx) * gaussianstate(bx, 0, 2, 1)
 fig, ax, plot = wavefunctionplot(psi;
