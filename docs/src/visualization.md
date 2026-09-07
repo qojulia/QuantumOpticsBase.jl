@@ -17,7 +17,7 @@ using CairoMakie
 
 | Function | Input | Makie plot attributes |
 |:--|:--|:--|
-| [`blochsphereplot`](@ref) | Two-level ket or density operator | `Arrows3D`, plus `spherecolor` and `spherevisible` |
+| [`blochsphereplot`](@ref) | Two-level ket or density operator | `Arrows3D`, plus sphere and wireframe attributes |
 | [`fockdistributionplot`](@ref) | Fock-basis ket or density operator | `BarPlot` |
 | [`wignerplot`](@ref) | Fock-basis ket or density operator, with two coordinate vectors | `Heatmap` |
 | [`wavefunctionplot`](@ref) | Position- or momentum-basis ket | `Lines`, plus `component` |
@@ -27,15 +27,25 @@ function adds a plot to an existing axis. Use ordinary Makie attributes for axes
 labels, legends, colorbars, and plot styling. Inputs are not normalized automatically.
 
 The earlier `blochsphereplot_axis` helper is deprecated. Use `blochsphereplot`
-with `axis=(...)` instead. The former surface, pole labels, and extra coordinate
-lines are replaced by three great circles and an ordinary `Axis3`; use `color`
-for the arrow. The new recipes do not add `_axis` helpers.
+with `axis=(...)` instead. Use an ordinary `Axis3` for coordinate labels and
+`color` for the arrow. The new recipes do not add `_axis` helpers.
 
 ## Bloch sphere
 
 The arrow shows the expectation values of the Pauli matrices. A normalized pure
-state reaches the sphere; a mixed state lies inside it. The sphere consists of
-three great circles. `blochsphereplot` creates an `Axis3` automatically.
+state reaches the sphere; a mixed state lies inside it. A translucent gray surface
+and a latitude/longitude wireframe mark the unit sphere. `blochsphereplot` creates
+an `Axis3` automatically.
+
+The following attributes work as keywords or in a `Theme(BlochSpherePlot=(...))`:
+
+| Attribute | Default | Effect |
+|:--|:--|:--|
+| `spherecolor` | `(:gray, 0.15)` | Surface color and opacity |
+| `wireframecolor` | `(:gray, 0.6)` | Mesh line color and opacity |
+| `wireframewidth` | `1` | Mesh line width in screen units |
+| `sphereresolution` | `(24, 12)` | Azimuthal and polar subdivisions; increase for a denser mesh |
+| `spherevisible` | `true` | Show or hide both the surface and its wireframe |
 
 ### Pure state
 
@@ -70,11 +80,14 @@ nothing #hide
 
 Recipe themes use the names `BlochSpherePlot`, `FockDistributionPlot`, `WignerPlot`,
 and `WaveFunctionPlot`, following [Makie's theming conventions](https://docs.makie.org/stable/explanations/theming/themes.html).
-The sphere attributes can be themed independently of the arrow. Set
-`spherevisible=false` when adding an arrow to an existing sphere.
+The sphere attributes can be themed independently of the arrow. This example
+uses a coarser mesh and lighter colors. Set `spherevisible=false` when adding an
+arrow to an existing sphere.
 
 ```@example visualization
-fig = with_theme(theme_dark(); BlochSpherePlot=(spherecolor=:gray65, color=:white)) do
+fig = with_theme(theme_dark(); BlochSpherePlot=(spherecolor=(:gray65, 0.2),
+        wireframecolor=(:gray80, 0.6), wireframewidth=1.5,
+        sphereresolution=(16, 8), color=:white)) do
     b = SpinBasis(1//2)
     psi = (spinup(b) + im * spindown(b)) / sqrt(2)
     fig, ax, plot = blochsphereplot(psi;
@@ -147,8 +160,12 @@ nothing #hide
 
 Pass explicit position and momentum coordinates. The convention is
 ``\alpha=(x+ip)/\sqrt{2}``; the vacuum has ``W(0,0)=1/\pi``.
-The recipe uses Makie's default heatmap colormap and automatic color range.
-Add a `Colorbar` with the returned plot to show that range.
+The default colormap is `:RdBu`, with red for negative values and blue for positive
+values. Automatic limits are `(-m, m)`, where `m` is the largest absolute value on
+the plotted grid. Zero therefore stays at the center of the color scale, including
+for states with an entirely positive Wigner function. All-zero data use `(-1, 1)`.
+Add a `Colorbar` with the returned plot to show that range. The limits update when
+the state or grid changes; an explicit `colorrange` takes precedence.
 
 ### Coherent state with defaults
 
@@ -168,11 +185,11 @@ nothing #hide
 
 ### Negative values and a fixed color range
 
-A diverging colormap and symmetric limits make negative regions easy to identify.
-Use the same limits when comparing different states.
+The default diverging colormap and symmetric limits make negative regions easy to
+identify. Use a fixed `colorrange` in a theme when comparing different states.
 
 ```@example visualization
-fig = with_theme(Theme(WignerPlot=(colormap=:RdBu, colorrange=(-1/pi, 1/pi)))) do
+fig = with_theme(Theme(WignerPlot=(colorrange=(-1/pi, 1/pi),))) do
     b = FockBasis(10)
     x = p = range(-4, 4; length=151)
     fig, ax, plot = wignerplot(fockstate(b, 1), x, p;
@@ -196,7 +213,7 @@ x = range(-5, 5; length=201)
 p = range(-3, 3; length=151)
 fig = Figure(size=(640, 440))
 ax = Axis(fig[1, 1]; title="Even cat state", xlabel="Position x", ylabel="Momentum p", aspect=DataAspect())
-plot = wignerplot!(ax, dm(psi), x, p; colormap=:RdBu, colorrange=(-1/pi, 1/pi))
+plot = wignerplot!(ax, dm(psi), x, p; colorrange=(-1/pi, 1/pi))
 Colorbar(fig[1, 2], plot; label="W(x, p)")
 save("wigner-cat.png", fig) #hide
 nothing #hide
