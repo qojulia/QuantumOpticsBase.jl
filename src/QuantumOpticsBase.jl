@@ -13,7 +13,7 @@ import QuantumInterface: entropy_vn, fidelity, logarithmic_negativity
 # index helpers
 import QuantumInterface: complement, remove, shiftremove, reducedindices!, check_indices, check_sortedindices, check_embed_indices
 
-export Basis, GenericBasis, CompositeBasis, basis,
+export Basis, GenericBasis, CompositeBasis, basis, embed_lazy,
         tensor, ⊗, permutesystems, @samebases,
         #states
                 StateVector, Bra, Ket, basisstate, sparsebasisstate, norm,
@@ -88,6 +88,7 @@ include("operators_lazysum.jl")
 include("operators_lazyproduct.jl")
 include("operators_lazytensor.jl")
 include("time_dependent_operator.jl")
+include("embed_lazy.jl")
 include("states_lazyket.jl")
 include("superoperators.jl")
 include("spin.jl")
