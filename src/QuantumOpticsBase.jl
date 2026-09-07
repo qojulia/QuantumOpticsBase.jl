@@ -3,6 +3,8 @@ module QuantumOpticsBase
 using SparseArrays, LinearAlgebra, LRUCache, Strided, FillArrays
 import LinearAlgebra: mul!, rmul!
 import RecursiveArrayTools
+using WeakDepHelpers: @declare_struct_is_in_extension, WeakDepCache,
+    register_method_error_hint, register_weakdep_cache
 
 import QuantumInterface: dagger, directsum, ⊕, dm, embed, nsubsystems, expect, identityoperator, identitysuperoperator,
         permutesystems, projector, ptrace, reduced, tensor, ⊗, variance, apply!, basis, AbstractSuperOperator
@@ -75,7 +77,9 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 apply!,
 
         #visualizations
-                blochsphereplot, blochsphereplot!, blochsphereplot_axis
+                blochsphereplot, blochsphereplot!, blochsphereplot_axis,
+                wignerplot, wignerplot!, fockdistributionplot, fockdistributionplot!,
+                wavefunctionplot, wavefunctionplot!
 
 
 include("bases.jl")
@@ -108,5 +112,9 @@ include("apply.jl")
 include("visualization.jl")
 include("precompile.jl")
 include("precompile_statements.jl")
+
+function __init__()
+    register_weakdep_cache(WEAKDEP_METHOD_ERROR_HINTS)
+end
 
 end # module
