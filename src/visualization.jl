@@ -3,13 +3,18 @@
     blochsphereplot(state; kwargs...)
 
 Draw a two-level `Ket` or density `Operator` as a Bloch vector inside a translucent
-gray sphere with a wireframe. The first basis state is +z, the second is -z. States are used as given;
+gray sphere with a wireframe. Mixed states shorten the arrow without changing its
+shaft or tip radius; the maximally mixed state has no arrow. Arrow colors use
+Makie's palette. The first basis state is +z, the second is -z. States are used as given;
 use a normalized ket or a density operator with unit trace.
 
 Load a Makie backend, for example `using CairoMakie`, before plotting. Returns
 Makie's `FigureAxisPlot` with an `Axis3`. Accepts Makie `Arrows3D` attributes and
 the themeable attributes `spherecolor`, `wireframecolor`, `wireframewidth`,
-`sphereresolution=(24, 12)` (azimuthal and polar subdivisions), and `spherevisible`.
+`sphereresolution=(12, 6)` (azimuthal and polar subdivisions), and `spherevisible`.
+The arrow defaults to `markerscale=1`, `minshaftlength=0`, `shaftradius=0.01`,
+`tipradius=0.035`, and `tiplength=0.1`. The tip length is capped at half the arrow
+length so short vectors keep their width and a visible shaft.
 Use `(color, alpha)` tuples for transparency. Configure the axis and figure with
 Makie's `axis` and `figure` keywords.
 """

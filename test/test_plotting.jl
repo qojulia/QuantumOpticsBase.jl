@@ -12,7 +12,8 @@
         ax = Axis3(fig[1, 1])
         for state in vcat(states, dm.(states), [0.5dm(up) + 0.5dm(down)])
             plot = blochsphereplot!(ax, state)
-            @test only(plot.directions[]) ≈ real.([expect(op, state) for op in (sigmax(b), sigmay(b), sigmaz(b))]) atol=1e-7
+            expected = real.([expect(op, state) for op in (sigmax(b), sigmay(b), sigmaz(b))])
+            @test iszero(expected) ? isempty(plot.directions[]) : isapprox(only(plot.directions[]), expected; atol=1e-7)
         end
         state = Observable(up)
         fig, ax, plot = blochsphereplot(state)
@@ -20,13 +21,14 @@
         state[] = down
         @test only(plot.directions[]) ≈ [0, 0, -1]
         surface, wireframe, arrow = plot.plots
-        @test surface isa Makie.Surface
-        @test wireframe isa Makie.Wireframe
-        @test size(surface[3][]) == (25, 13)
-        Makie.update!(plot; sphereresolution=(12, 6), spherecolor=(:gray, 0.25),
+        @test surface isa Makie.Mesh
+        @test wireframe isa Makie.Lines
+        @test count(p -> any(isnan, p), wireframe[1][]) == 17
+        @test all(p -> any(isnan, p) || norm(p) ≈ 1, wireframe[1][])
+        Makie.update!(plot; sphereresolution=(8, 4), spherecolor=(:gray, 0.25),
             wireframecolor=:red, wireframewidth=2)
-        @test size(surface[3][]) == size(surface.color[]) == (13, 7)
-        @test all(==(Makie.to_color((:gray, 0.25))), surface.color[])
+        @test count(p -> any(isnan, p), wireframe[1][]) == 11
+        @test Makie.to_color(surface.color[]) == Makie.to_color((:gray, 0.25))
         @test Makie.to_color(wireframe.color[]) == Makie.to_color(:red)
         @test wireframe.linewidth[] == 2
         Makie.update!(plot; spherevisible=false)
@@ -34,6 +36,31 @@
         @test arrow.visible[]
         @test_throws "sphereresolution must be at least" blochsphereplot(up; sphereresolution=(2, 1))
         @test_throws "blochsphereplot requires a two-level state" blochsphereplot(spinup(SpinBasis(1)))
+    end
+
+    @testset "Mixed states shorten arrows without thinning them" begin
+        b = SpinBasis(1//2)
+        up, down = dm(spinup(b)), dm(spindown(b))
+        state = Observable(up)
+        fig, ax, plot = blochsphereplot(state)
+        arrow = plot.plots[end]
+        shaft, tip = arrow.plots[2:3]
+        shaftsize, tipsize = only(shaft.markersize[]), only(tip.markersize[])
+        fulllength = norm(only(arrow.endpoints[]) - only(arrow.startpoints[]))
+        for r in (0.4, 0.04, 0.001, 0.0, 1.0)
+            state[] = (1+r)/2 * up + (1-r)/2 * down
+            if iszero(r)
+                @test isempty(shaft.markersize[]) && isempty(tip.markersize[])
+                @test !isempty(Makie.colorbuffer(fig))
+            else
+                @test only(shaft.markersize[])[1:2] ≈ shaftsize[1:2]
+                @test only(tip.markersize[])[1:2] ≈ tipsize[1:2]
+                @test norm(only(arrow.endpoints[]) - only(arrow.startpoints[])) ≈ r * fulllength rtol=1e-6
+            end
+        end
+        Makie.update!(plot; shaftradius=0.02, tipradius=0.07)
+        @test only(shaft.markersize[])[1:2] ≈ 2shaftsize[1:2]
+        @test only(tip.markersize[])[1:2] ≈ 2tipsize[1:2]
     end
 
     @testset "Fock probabilities respect the basis offset" begin
@@ -106,7 +133,7 @@
     @testset "Native styles, cycles, legends, and rendering" begin
         with_theme(Theme(palette=(color=[:red, :blue], patchcolor=[:orange, :purple]),
                 BlochSpherePlot=(spherecolor=(:gray, 0.25), wireframecolor=:blue,
-                    wireframewidth=2, sphereresolution=(16, 8), color=:green),
+                    wireframewidth=2, sphereresolution=(16, 8), color=:green, cycle=[]),
                 FockDistributionPlot=(gap=0.4,),
                 WaveFunctionPlot=(linewidth=4,),
                 WignerPlot=(colormap=:viridis, colorrange=(-0.2, 0.4)))) do
@@ -129,11 +156,15 @@
             axislegend(ax)
             ax = Axis3(fig[2, 1])
             bloch = blochsphereplot!(ax, dm(spinup(SpinBasis(1//2))))
-            @test all(==(Makie.to_color((:gray, 0.25))), bloch.plots[1].color[])
-            @test size(bloch.plots[1][3][]) == (17, 9)
+            @test Makie.to_color(bloch.plots[1].color[]) == Makie.to_color((:gray, 0.25))
+            @test count(p -> any(isnan, p), bloch.plots[2][1][]) == 23
             @test Makie.to_color(bloch.plots[2].color[]) == Makie.to_color(:blue)
             @test bloch.plots[2].linewidth[] == 2
             @test Makie.to_color(bloch.plots[end].color[]) == Makie.to_color(:green)
+            for color in (:red, :blue)
+                overlay = blochsphereplot!(ax, spinup(SpinBasis(1//2)); spherevisible=false, cycle=[:color])
+                @test Makie.to_color(overlay.plots[end].color[]) == Makie.to_color(color)
+            end
             ax = Axis(fig[2, 2])
             w = wignerplot!(ax, fockstate(b, 1), range(-3, 3; length=21), range(-3, 3; length=21))
             @test Makie.to_colormap(w.plots[1].colormap[]) == Makie.to_colormap(:viridis)
