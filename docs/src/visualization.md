@@ -33,19 +33,29 @@ with `axis=(...)` instead. Use an ordinary `Axis3` for coordinate labels and
 ## Bloch sphere
 
 The arrow shows the expectation values of the Pauli matrices. A normalized pure
-state reaches the sphere; a mixed state lies inside it. A translucent gray surface
-and a latitude/longitude wireframe mark the unit sphere. `blochsphereplot` creates
-an `Axis3` automatically.
+state reaches the sphere; a mixed state lies inside it. A light translucent gray
+surface and smooth latitude/longitude lines mark the unit sphere, with styling
+inspired by [QuTiP's Bloch sphere](https://qutip.org/docs/4.0.2/guide/guide-bloch.html).
+The arrow has a thin shaft and a small cone tip. Mixing shortens it without
+changing its shaft or tip radius. The tip length is capped at half the vector
+length for very short arrows; the maximally mixed state has no arrow.
+`blochsphereplot` creates an `Axis3` automatically and uses Makie's color palette.
 
 The following attributes work as keywords or in a `Theme(BlochSpherePlot=(...))`:
 
 | Attribute | Default | Effect |
 |:--|:--|:--|
-| `spherecolor` | `(:gray, 0.15)` | Surface color and opacity |
-| `wireframecolor` | `(:gray, 0.6)` | Mesh line color and opacity |
+| `spherecolor` | `(:gray, 0.03)` | Surface color and opacity |
+| `wireframecolor` | `(:gray, 0.35)` | Mesh line color and opacity |
 | `wireframewidth` | `1` | Mesh line width in screen units |
-| `sphereresolution` | `(24, 12)` | Azimuthal and polar subdivisions; increase for a denser mesh |
+| `sphereresolution` | `(12, 6)` | Azimuthal and polar subdivisions; increase for a denser wireframe |
 | `spherevisible` | `true` | Show or hide both the surface and its wireframe |
+| `shaftradius` | `0.01` | Arrow shaft radius |
+| `tipradius` | `0.035` | Arrowhead radius |
+| `tiplength` | `0.1` | Arrowhead length, capped for short vectors |
+
+Arrow sizes use Makie's `markerscale=1` and `minshaftlength=0` so radii stay
+fixed as the state changes. These native attributes can also be themed or overridden.
 
 ### Pure state
 
@@ -63,31 +73,39 @@ nothing #hide
 
 ### Mixed state
 
+All arrows below point along +z. Their lengths are 1, 0.4, and 0.04, but their
+shaft and tip radii are the same. Axis decorations are hidden with ordinary Makie
+commands to make this comparison easier to see.
+
 ```@example visualization
 b = SpinBasis(1//2)
-rho = 0.7dm(spinup(b)) + 0.3dm(spindown(b))
-fig = Figure(size=(640, 480))
-ax = Axis3(fig[1, 1]; title="70% spin up, 30% spin down",
-    xlabel="⟨σx⟩", ylabel="⟨σy⟩", zlabel="⟨σz⟩", aspect=:equal)
-blochsphereplot!(ax, rho)
+fig = Figure(size=(960, 360))
+for (i, r) in enumerate((1.0, 0.4, 0.04))
+    rho = (1+r)/2 * dm(spinup(b)) + (1-r)/2 * dm(spindown(b))
+    ax = Axis3(fig[1, i]; title="Bloch length = $r", aspect=:data)
+    blochsphereplot!(ax, rho)
+    hidedecorations!(ax)
+    hidespines!(ax)
+end
 save("bloch-mixed.png", fig) #hide
 nothing #hide
 ```
 
-![Mixed state inside the Bloch sphere](bloch-mixed.png)
+![Pure and mixed states with equal arrow thickness](bloch-mixed.png)
 
 ### Dark theme and overlays
 
 Recipe themes use the names `BlochSpherePlot`, `FockDistributionPlot`, `WignerPlot`,
 and `WaveFunctionPlot`, following [Makie's theming conventions](https://docs.makie.org/stable/explanations/theming/themes.html).
 The sphere attributes can be themed independently of the arrow. This example
-uses a coarser mesh and lighter colors. Set `spherevisible=false` when adding an
+uses a coarser mesh and lighter colors, with `cycle=[]` to give all arrows the
+theme's fixed color. Set `spherevisible=false` when adding an
 arrow to an existing sphere.
 
 ```@example visualization
-fig = with_theme(theme_dark(); BlochSpherePlot=(spherecolor=(:gray65, 0.2),
-        wireframecolor=(:gray80, 0.6), wireframewidth=1.5,
-        sphereresolution=(16, 8), color=:white)) do
+fig = with_theme(theme_dark(); BlochSpherePlot=(spherecolor=(:gray65, 0.03),
+        wireframecolor=(:gray80, 0.35), wireframewidth=1,
+        sphereresolution=(8, 4), color=:white, cycle=[])) do
     b = SpinBasis(1//2)
     psi = (spinup(b) + im * spindown(b)) / sqrt(2)
     fig, ax, plot = blochsphereplot(psi;
