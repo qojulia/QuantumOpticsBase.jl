@@ -19,12 +19,17 @@ using CairoMakie
 |:--|:--|:--|
 | [`blochsphereplot`](@ref) | Two-level ket or density operator | `Arrows3D`, plus `spherecolor` and `spherevisible` |
 | [`fockdistributionplot`](@ref) | Fock-basis ket or density operator | `BarPlot` |
-| [`wignerplot`](@ref) | State supported by `wigner`, with two coordinate vectors | `Heatmap` |
+| [`wignerplot`](@ref) | Fock-basis ket or density operator, with two coordinate vectors | `Heatmap` |
 | [`wavefunctionplot`](@ref) | Position- or momentum-basis ket | `Lines`, plus `component` |
 
 Each function returns Makie's figure, axis, and plot objects. The corresponding `!`
 function adds a plot to an existing axis. Use ordinary Makie attributes for axes,
 labels, legends, colorbars, and plot styling. Inputs are not normalized automatically.
+
+The earlier `blochsphereplot_axis` helper is deprecated. Use `blochsphereplot`
+with `axis=(...)` instead. The former surface, pole labels, and extra coordinate
+lines are replaced by three great circles and an ordinary `Axis3`; use `color`
+for the arrow. The new recipes do not add `_axis` helpers.
 
 ## Bloch sphere
 
@@ -69,13 +74,13 @@ The sphere attributes can be themed independently of the arrow. Set
 `spherevisible=false` when adding an arrow to an existing sphere.
 
 ```@example visualization
-fig = with_theme(theme_dark(); BlochSpherePlot=(spherecolor=:gray65,)) do
+fig = with_theme(theme_dark(); BlochSpherePlot=(spherecolor=:gray65, color=:white)) do
     b = SpinBasis(1//2)
     psi = (spinup(b) + im * spindown(b)) / sqrt(2)
     fig, ax, plot = blochsphereplot(psi;
         axis=(title="Pure spins along y and z", xlabel="⟨σx⟩", ylabel="⟨σy⟩", zlabel="⟨σz⟩"),
         figure=(size=(640, 480),))
-    blochsphereplot!(ax, spinup(b); spherevisible=false)
+    blochsphereplot!(ax, spinup(b); spherevisible=false, color=:orange)
     fig
 end
 save("bloch-dark.png", fig) #hide
