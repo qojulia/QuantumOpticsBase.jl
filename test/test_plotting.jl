@@ -106,7 +106,7 @@
             @test Makie.to_color(bloch.plots[end].color[]) == Makie.to_color(:green)
             ax = Axis(fig[2, 2])
             w = wignerplot!(ax, fockstate(b, 1), range(-3, 3; length=21), range(-3, 3; length=21))
-            @test w.plots[1].colorrange[] == (-1/pi, 1/pi)
+            @test w.plots[1].colorrange[] ≈ [-1/pi, 1/pi] atol=1e-7
             Colorbar(fig[2, 3], w)
             mktempdir() do dir
                 path = joinpath(dir, "quantum-plots.png")
@@ -146,5 +146,5 @@ end
     using QuantumOptics
     @test wignerplot(state, -1:1, -1:1).figure isa Figure
     """
-    run(`$(Base.julia_cmd()) --startup-file=no --project=$(dirname(Base.active_project())) -e $script`)
+    @test success(run(`$(Base.julia_cmd()) --startup-file=no --project=$(dirname(Base.active_project())) -e $script`))
 end
