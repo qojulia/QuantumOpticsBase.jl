@@ -7,9 +7,15 @@ import Makie
 using Makie: @recipe, Point2d, Point3f, Vec3f
 
 @recipe BlochSpherePlot (state,) begin
-    "Color of the three great circles."
-    spherecolor = @inherit linecolor
-    "Whether to draw the three great circles."
+    "Surface color; use a (color, alpha) tuple to set its opacity."
+    spherecolor = (:gray, 0.15)
+    "Color of the latitude and longitude wireframe."
+    wireframecolor = (:gray, 0.6)
+    "Width of the wireframe lines in screen units."
+    wireframewidth = 1
+    "Number of azimuthal and polar subdivisions of the sphere mesh."
+    sphereresolution = (24, 12)
+    "Whether to draw the sphere surface and wireframe."
     spherevisible = true
     Makie.documented_attributes(Makie.Arrows3D)...
 end
@@ -24,17 +30,25 @@ function Makie.plot!(plot::BlochSpherePlot)
     Makie.map!(plot, :state, :directions) do state
         [blochvector(state)]
     end
-    Makie.map!(plot, [:visible, :spherevisible], :circlesvisible) do visible, spherevisible
+    Makie.map!(plot, [:visible, :spherevisible], :sphere_visible) do visible, spherevisible
         visible && spherevisible
     end
-    θ = range(0, 2π; length=101)
-    for points in (
-        Point3f.(cos.(θ), sin.(θ), 0),
-        Point3f.(cos.(θ), 0, sin.(θ)),
-        Point3f.(0, cos.(θ), sin.(θ)),
-    )
-        Makie.lines!(plot, points; color=plot.spherecolor, visible=plot.circlesvisible)
+    Makie.map!(plot, :sphereresolution, [:sphere_x, :sphere_y, :sphere_z]) do resolution
+        nθ, nφ = resolution
+        nθ >= 3 && nφ >= 2 || throw(ArgumentError("sphereresolution must be at least (3, 2)"))
+        θ = range(0, 2π; length=nθ+1)
+        φ = range(0, π; length=nφ+1)
+        ([cos(t)*sin(q) for t in θ, q in φ],
+         [sin(t)*sin(q) for t in θ, q in φ],
+         [cos(q) for t in θ, q in φ])
     end
+    Makie.map!(plot, [:sphere_x, :spherecolor], :sphere_colors) do x, color
+        fill(Makie.to_color(color), size(x))
+    end
+    Makie.surface!(plot, plot.sphere_x, plot.sphere_y, plot.sphere_z;
+        color=plot.sphere_colors, alpha=plot.alpha, transparency=true, visible=plot.sphere_visible)
+    Makie.wireframe!(plot, plot.sphere_x, plot.sphere_y, plot.sphere_z;
+        color=plot.wireframecolor, linewidth=plot.wireframewidth, alpha=plot.alpha, visible=plot.sphere_visible)
     Makie.arrows3d!(plot, Makie.shared_attributes(plot, Makie.Arrows3D), [Point3f(0)], plot.directions)
     return plot
 end
@@ -53,7 +67,9 @@ function blochsphereplot_axis(ax::Makie.AbstractAxis, state; kwargs...)
 end
 
 @recipe WignerPlot (state, x, p) begin
-    Makie.documented_attributes(Makie.Heatmap)...
+    "Diverging colormap for negative and positive Wigner values."
+    colormap = :RdBu
+    Makie.filtered_attributes(Makie.Heatmap; exclude=(:colormap,))...
 end
 
 function Makie.plot!(plot::WignerPlot)
@@ -61,7 +77,14 @@ function Makie.plot!(plot::WignerPlot)
         basis(state) isa FockBasis || throw(ArgumentError("wignerplot requires a FockBasis state"))
         wigner(state, x, p)
     end
-    Makie.heatmap!(plot, Makie.shared_attributes(plot, Makie.Heatmap), plot.x, plot.p, plot.values)
+    Makie.map!(plot, [:values, :colorrange], :wigner_colorrange) do values, colorrange
+        colorrange === Makie.automatic || return colorrange
+        limit = maximum(abs, values)
+        iszero(limit) && (limit = one(limit))
+        (-limit, limit)
+    end
+    Makie.heatmap!(plot, Makie.shared_attributes(plot, Makie.Heatmap; drop=[:colorrange]),
+        plot.x, plot.p, plot.values; colorrange=plot.wigner_colorrange)
     return plot
 end
 

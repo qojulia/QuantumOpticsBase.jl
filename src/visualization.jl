@@ -2,14 +2,16 @@
 @declare_struct_is_in_extension QuantumOpticsBase blochsphereplot :QuantumOpticsBaseMakieExt (:Makie,) """
     blochsphereplot(state; kwargs...)
 
-Draw a two-level `Ket` or density `Operator` as a Bloch vector and three great
-circles. The first basis state is +z, the second is -z. States are used as given;
+Draw a two-level `Ket` or density `Operator` as a Bloch vector inside a translucent
+gray sphere with a wireframe. The first basis state is +z, the second is -z. States are used as given;
 use a normalized ket or a density operator with unit trace.
 
 Load a Makie backend, for example `using CairoMakie`, before plotting. Returns
 Makie's `FigureAxisPlot` with an `Axis3`. Accepts Makie `Arrows3D` attributes and
-the themeable attributes `spherecolor` and `spherevisible`. Configure the axis
-and figure with Makie's `axis` and `figure` keywords.
+the themeable attributes `spherecolor`, `wireframecolor`, `wireframewidth`,
+`sphereresolution=(24, 12)` (azimuthal and polar subdivisions), and `spherevisible`.
+Use `(color, alpha)` tuples for transparency. Configure the axis and figure with
+Makie's `axis` and `figure` keywords.
 """
 
 @declare_struct_is_in_extension QuantumOpticsBase blochsphereplot! :QuantumOpticsBaseMakieExt (:Makie,) """
@@ -31,7 +33,10 @@ when an axis is supplied. Use standard Makie axis and plot attributes.
 Plot the Wigner function of a Fock-basis ket or density operator on coordinate
 vectors `x` and `p`. Requires `using QuantumOptics` for `wigner` and a
 Makie backend such as CairoMakie for plotting. Accepts Makie `Heatmap` attributes,
-including `colormap` and `colorrange`. Add a Makie `Colorbar` when needed.
+including `colormap` and `colorrange`. The default colormap is `:RdBu`.
+Automatic color limits are symmetric about zero and cover the largest absolute
+Wigner value, using `(-1, 1)` for all-zero data. An explicit `colorrange` overrides
+these limits. Add a Makie `Colorbar` when needed.
 """
 
 @declare_struct_is_in_extension QuantumOpticsBase wignerplot! :QuantumOpticsBaseMakieExt (:Makie,) """

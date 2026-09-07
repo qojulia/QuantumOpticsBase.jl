@@ -19,8 +19,20 @@
         @test ax isa Axis3
         state[] = down
         @test only(plot.directions[]) ≈ [0, 0, -1]
+        surface, wireframe, arrow = plot.plots
+        @test surface isa Makie.Surface
+        @test wireframe isa Makie.Wireframe
+        @test size(surface[3][]) == (25, 13)
+        Makie.update!(plot; sphereresolution=(12, 6), spherecolor=(:gray, 0.25),
+            wireframecolor=:red, wireframewidth=2)
+        @test size(surface[3][]) == size(surface.color[]) == (13, 7)
+        @test all(==(Makie.to_color((:gray, 0.25))), surface.color[])
+        @test Makie.to_color(wireframe.color[]) == Makie.to_color(:red)
+        @test wireframe.linewidth[] == 2
         Makie.update!(plot; spherevisible=false)
-        @test !plot.plots[1].visible[]
+        @test !surface.visible[] && !wireframe.visible[]
+        @test arrow.visible[]
+        @test_throws "sphereresolution must be at least" blochsphereplot(up; sphereresolution=(2, 1))
         @test_throws "blochsphereplot requires a two-level state" blochsphereplot(spinup(SpinBasis(1)))
     end
 
@@ -67,22 +79,37 @@
         x, p = range(-4, 4; length=41), range(-3, 3; length=31)
         state = Observable(fockstate(b, 1))
         fig, ax, plot = wignerplot(state, x, p)
+        heatmap = only(plot.plots)
+        colorbar = Colorbar(fig[1, 2], plot)
+        @test Makie.to_colormap(heatmap.colormap[]) == Makie.to_colormap(:RdBu)
         @test size(plot.values[]) == (41, 31)
         @test plot.values[][21, 16] ≈ -1/pi
+        @test heatmap.colorrange[] ≈ [-1/pi, 1/pi] atol=1e-7
         state[] = fockstate(b, 0)
         @test plot.values[][21, 16] ≈ 1/pi
+        @test heatmap.colorrange[] ≈ [-1/pi, 1/pi] atol=1e-7
+        state[] = 0.5fockstate(b, 0)
+        @test heatmap.colorrange[] ≈ [-0.25/pi, 0.25/pi] atol=1e-7
+        @test collect(colorbar.limits[]) ≈ [-0.25/pi, 0.25/pi] atol=1e-7
+        state[] = 0fockstate(b, 0)
+        @test heatmap.colorrange[] == [-1, 1]
+        Makie.update!(plot; colorrange=(-0.2, 0.5))
+        state[] = fockstate(b, 1)
+        @test heatmap.colorrange[] ≈ [-0.2, 0.5] atol=1e-7
+        Makie.update!(plot; colorrange=Makie.automatic)
+        @test heatmap.colorrange[] ≈ [-1/pi, 1/pi] atol=1e-7
         Makie.update!(plot; arg2=range(-4, 4; length=51), arg3=range(-3, 3; length=21))
         @test size(plot.plots[1][3][]) == (51, 21)
-        Colorbar(fig[1, 2], plot)
         @test_throws "wignerplot requires a FockBasis state" wignerplot(spinup(SpinBasis(1//2)), x, p)
     end
 
     @testset "Native styles, cycles, legends, and rendering" begin
         with_theme(Theme(palette=(color=[:red, :blue], patchcolor=[:orange, :purple]),
-                BlochSpherePlot=(spherecolor=:gray, color=:green),
+                BlochSpherePlot=(spherecolor=(:gray, 0.25), wireframecolor=:blue,
+                    wireframewidth=2, sphereresolution=(16, 8), color=:green),
                 FockDistributionPlot=(gap=0.4,),
                 WaveFunctionPlot=(linewidth=4,),
-                WignerPlot=(colormap=:RdBu, colorrange=(-1/pi, 1/pi)))) do
+                WignerPlot=(colormap=:viridis, colorrange=(-0.2, 0.4)))) do
             fig = Figure()
             b = FockBasis(10)
             ax = Axis(fig[1, 1])
@@ -102,11 +129,15 @@
             axislegend(ax)
             ax = Axis3(fig[2, 1])
             bloch = blochsphereplot!(ax, dm(spinup(SpinBasis(1//2))))
-            @test Makie.to_color(bloch.plots[1].color[]) == Makie.to_color(:gray)
+            @test all(==(Makie.to_color((:gray, 0.25))), bloch.plots[1].color[])
+            @test size(bloch.plots[1][3][]) == (17, 9)
+            @test Makie.to_color(bloch.plots[2].color[]) == Makie.to_color(:blue)
+            @test bloch.plots[2].linewidth[] == 2
             @test Makie.to_color(bloch.plots[end].color[]) == Makie.to_color(:green)
             ax = Axis(fig[2, 2])
             w = wignerplot!(ax, fockstate(b, 1), range(-3, 3; length=21), range(-3, 3; length=21))
-            @test w.plots[1].colorrange[] ≈ [-1/pi, 1/pi] atol=1e-7
+            @test Makie.to_colormap(w.plots[1].colormap[]) == Makie.to_colormap(:viridis)
+            @test w.plots[1].colorrange[] ≈ [-0.2, 0.4] atol=1e-7
             Colorbar(fig[2, 3], w)
             mktempdir() do dir
                 path = joinpath(dir, "quantum-plots.png")
