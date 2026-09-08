@@ -25,13 +25,6 @@ Makie's `axis` and `figure` keywords.
 Draw [`blochsphereplot`](@ref) on an existing Makie axis and return the plot.
 """
 
-@declare_struct_is_in_extension QuantumOpticsBase blochsphereplot_axis :QuantumOpticsBaseMakieExt (:Makie,) """
-    blochsphereplot_axis([ax,] state; kwargs...)
-
-Deprecated alias for [`blochsphereplot`](@ref), or [`blochsphereplot!`](@ref)
-when an axis is supplied. Use standard Makie axis and plot attributes.
-"""
-
 @declare_struct_is_in_extension QuantumOpticsBase wignerplot :QuantumOpticsBaseMakieExt (:Makie,) """
     wignerplot(state, x, p; kwargs...)
 

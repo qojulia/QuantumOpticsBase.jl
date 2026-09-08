@@ -77,7 +77,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
                 apply!,
 
         #visualizations
-                blochsphereplot, blochsphereplot!, blochsphereplot_axis,
+                blochsphereplot, blochsphereplot!,
                 wignerplot, wignerplot!, fockdistributionplot, fockdistributionplot!,
                 wavefunctionplot, wavefunctionplot!
 

@@ -26,10 +26,6 @@ Each function returns Makie's figure, axis, and plot objects. The corresponding 
 function adds a plot to an existing axis. Use ordinary Makie attributes for axes,
 labels, legends, colorbars, and plot styling. Inputs are not normalized automatically.
 
-The earlier `blochsphereplot_axis` helper is deprecated. Use `blochsphereplot`
-with `axis=(...)` instead. Use an ordinary `Axis3` for coordinate labels and
-`color` for the arrow. The new recipes do not add `_axis` helpers.
-
 ## Bloch sphere
 
 The arrow shows the expectation values of the Pauli matrices. A normalized pure

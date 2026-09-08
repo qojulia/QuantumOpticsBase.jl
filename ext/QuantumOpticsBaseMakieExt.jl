@@ -82,16 +82,6 @@ end
 Makie.preferred_axis_type(::BlochSpherePlot) = Makie.Axis3
 Makie.preferred_axis_attributes(::Type{Makie.Axis3}, ::BlochSpherePlot) = (; aspect=:data)
 
-function blochsphereplot_axis(args...; kwargs...)
-    Base.depwarn("Use blochsphereplot or blochsphereplot! with Makie's axis keyword instead.", :blochsphereplot_axis)
-    return blochsphereplot(args...; kwargs...)
-end
-
-function blochsphereplot_axis(ax::Makie.AbstractAxis, state; kwargs...)
-    Base.depwarn("Use blochsphereplot!(ax, state) instead.", :blochsphereplot_axis)
-    return blochsphereplot!(ax, state; kwargs...)
-end
-
 @recipe WignerPlot (state, x, p) begin
     "Diverging colormap for negative and positive Wigner values."
     colormap = :RdBu

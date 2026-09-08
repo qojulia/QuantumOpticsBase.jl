@@ -184,7 +184,7 @@ end
     script = raw"""
     using Test, QuantumOpticsBase
     @test Base.get_extension(QuantumOpticsBase, :QuantumOpticsBaseMakieExt) === nothing
-    for plot in (blochsphereplot, blochsphereplot!, blochsphereplot_axis,
+    for plot in (blochsphereplot, blochsphereplot!,
             wignerplot, wignerplot!, fockdistributionplot, fockdistributionplot!,
             wavefunctionplot, wavefunctionplot!)
         for kwargs in ((;), (; color=:red))
