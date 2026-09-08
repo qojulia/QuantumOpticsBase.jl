@@ -15,8 +15,9 @@ the themeable attributes `spherecolor`, `wireframecolor`, `wireframewidth`,
 The arrow defaults to `markerscale=1`, `minshaftlength=0`, `shaftradius=0.01`,
 `tipradius=0.035`, and `tiplength=0.1`. The tip length is capped at half the arrow
 length so short vectors keep their width and a visible shaft.
-Use `(color, alpha)` tuples for transparency. Configure the axis and figure with
-Makie's `axis` and `figure` keywords.
+Use `(color, alpha)` tuples for transparency. Configure new axes and figures with
+Makie's standard [`axis` and `figure` keywords](https://docs.makie.org/stable/explanations/plot_method_signatures.html#Special-Keyword-Arguments),
+for example `axis=(title="Spin",)` and `figure=(size=(640, 480),)`.
 """
 
 @declare_struct_is_in_extension QuantumOpticsBase blochsphereplot! :QuantumOpticsBaseMakieExt (:Makie,) """

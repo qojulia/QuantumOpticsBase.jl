@@ -26,6 +26,29 @@ Each function returns Makie's figure, axis, and plot objects. The corresponding 
 function adds a plot to an existing axis. Use ordinary Makie attributes for axes,
 labels, legends, colorbars, and plot styling. Inputs are not normalized automatically.
 
+## Axes and figures
+
+All four recipes use the same standard Makie plotting interface as `lines` and
+`scatter`. The `axis` and `figure` keywords follow Makie's
+[special keyword argument convention](https://docs.makie.org/stable/explanations/plot_method_signatures.html#Special-Keyword-Arguments):
+
+- `axis=(title="Spin",)` passes attributes to the newly created
+  [`Axis`](https://docs.makie.org/stable/reference/blocks/axis.html) or
+  [`Axis3`](https://docs.makie.org/stable/reference/blocks/axis3.html).
+- `figure=(size=(640, 480),)` passes attributes to the newly created
+  [`Figure`](https://docs.makie.org/stable/explanations/figure.html#Creating-a-Figure).
+- Other keywords, such as `color`, set attributes of the plot itself.
+
+These values are named tuples; keep the trailing comma when there is only one
+entry. The examples below use this idiomatic Makie syntax.
+
+A call such as `blochsphereplot(state; axis=(...), figure=(...))` returns
+`fig, ax, plot`. To create an axis in an existing figure, use
+`blochsphereplot(fig[1, 1], state; axis=(...))`, which returns `ax, plot`.
+To draw on an existing axis, use `blochsphereplot!(ax, state; color=:red)` and
+configure that axis directly. The `axis` and `figure` keywords apply when those
+objects are created; they do not configure an existing axis in a `!` call.
+
 ## Bloch sphere
 
 The arrow shows the expectation values of the Pauli matrices. A normalized pure
