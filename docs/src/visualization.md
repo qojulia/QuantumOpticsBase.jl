@@ -52,12 +52,7 @@ objects are created; they do not configure an existing axis in a `!` call.
 ## Bloch sphere
 
 The arrow shows the expectation values of the Pauli matrices. A normalized pure
-state reaches the sphere; a mixed state lies inside it. A light translucent gray
-surface and smooth latitude/longitude lines mark the unit sphere, with styling
-inspired by [QuTiP's Bloch sphere](https://qutip.org/docs/4.0.2/guide/guide-bloch.html).
-The arrow has a thin shaft and a small cone tip. Mixing shortens it without
-changing its shaft or tip radius. The tip length is capped at half the vector
-length for very short arrows; the maximally mixed state has no arrow.
+state reaches the sphere; a mixed state lies inside it.
 `blochsphereplot` creates an `Axis3` automatically and uses Makie's color palette.
 
 The following attributes work as keywords or in a `Theme(BlochSpherePlot=(...))`:
