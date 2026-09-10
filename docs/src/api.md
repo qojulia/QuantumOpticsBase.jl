@@ -651,10 +651,17 @@ DenseChiMatrix
 
 ## [Visualization](@id API: Visualization)
 
+See [Visualizations](@ref visualizations) for rendered examples and Makie usage.
+
 ```@docs
 blochsphereplot
 blochsphereplot!
-blochsphereplot_axis
+fockdistributionplot
+fockdistributionplot!
+wignerplot
+wignerplot!
+wavefunctionplot
+wavefunctionplot!
 ```
 
 ## [Printing](@id API: Printing)

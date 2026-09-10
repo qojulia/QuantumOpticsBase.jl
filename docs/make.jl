@@ -6,6 +6,7 @@ using QuantumOpticsBase
 
 pages = [
         "index.md",
+        "Visualizations" => "visualization.md",
         "api.md"
     ]
 
