@@ -151,6 +151,9 @@ x3 = basisstate(b3, 4)
 @test basisstate(b123, [2, 1, 4]) == x1 ⊗ x2 ⊗ x3
 @test sparsebasisstate(b123, [2, 1, 4]) == sparse(x1) ⊗ sparse(x2) ⊗ sparse(x3)
 
+mixed_indices = (Int8(2), UInt8(1), Int32(4), Int64(3))
+@test basisstate(b123 ⊗ b2, mixed_indices) == x1 ⊗ x2 ⊗ x3 ⊗ basisstate(b2, 3)
+
 # Conversion to sparse
 @test length(sparse(x1).data.nzval)==1
 @test sparse(x1').data isa SparseVector
