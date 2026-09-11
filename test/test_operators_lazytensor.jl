@@ -77,6 +77,7 @@ end
 # Test suboperators
 @test QuantumOpticsBase.suboperator(x, 1) == op1
 @test QuantumOpticsBase.suboperator(x, 3) == sparse(op3)
+@test_throws ArgumentError QuantumOpticsBase.suboperator(x, 2)
 @test QuantumOpticsBase.suboperators(x, [1, 3]) == [op1, sparse(op3)]
 
 # Test embed

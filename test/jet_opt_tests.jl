@@ -186,7 +186,8 @@ shaped_basis = GenericBasis([2, 3, 4, 5])
     JET.@test_opt target_modules=(QuantumOpticsBase,) basisstate(
         ComplexF32, basis_1234, (1, 2, 3, 4)
     )
-    JET.@test_opt target_modules=(QuantumOpticsBase,) basisstate(
+    # Julia 1.10 widens heterogeneous tuple elements during iteration.
+    JET.@test_opt broken=(VERSION < v"1.11") target_modules=(QuantumOpticsBase,) basisstate(
         basis_1234, (Int8(1), UInt8(2), Int32(3), Int64(4))
     )
     JET.@test_opt target_modules=(QuantumOpticsBase,) basisstate(
