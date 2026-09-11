@@ -142,8 +142,9 @@ Lop1 = LazyTensor(b1^2, b2^2, 2, sparse(randoperator(b1, b2)))
 @test all(size(Lop1, k) == size(dense(Lop1), k) for k=1:4)
 @test_throws ErrorException size(Lop1,  0)
 @test_throws ErrorException size(Lop1, -1)
-@test_throws ErrorException size(dense(Lop1),  0) # check for consistency
-@test_throws ErrorException size(dense(Lop1), -1)
+# Julia 1.13 changed invalid Array dimensions from ErrorException to BoundsError.
+@test_throws Union{ErrorException,BoundsError} size(dense(Lop1),  0)
+@test_throws Union{ErrorException,BoundsError} size(dense(Lop1), -1)
 
 # issue 106 | https://github.com/qojulia/QuantumOpticsBase.jl/issues/106
 a = destroy(FockBasis(5))
