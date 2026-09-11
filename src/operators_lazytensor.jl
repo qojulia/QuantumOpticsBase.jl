@@ -74,10 +74,10 @@ end
 """
     suboperator(op::LazyTensor, index)
 
-Return the suboperator corresponding to the subsystem specified by `index`. Fails
-if there is no corresponding operator (i.e. it would be an identity operater).
+Return the suboperator corresponding to the subsystem specified by `index`. Throws
+`ArgumentError` if there is no corresponding operator (i.e. it would be an identity operator).
 """
-suboperator(op::LazyTensor, index::Integer) = op.operators[findfirst(isequal(index), op.indices)]
+suboperator(op::LazyTensor, index::Integer) = op.operators[something(findfirst(isequal(index), op.indices))]
 
 """
     suboperators(op::LazyTensor, indices)
