@@ -7,9 +7,9 @@ secrets:
 steps:
   - label: "QuantumOpticsBase Tests - {{matrix.LABEL}}"
     plugins:
-      - QuantumSavory/julia#v1.14:
+      - QuantumSavory/julia#v1:
           version: "1"
-      - QuantumSavory/julia-xvfb#v1.2:
+      - QuantumSavory/julia-xvfb#v1:
       - JuliaCI/julia-test#v1:
       - JuliaCI/julia-coverage#v1: ~
     env:
@@ -59,9 +59,9 @@ steps:
 
   - label: "Downstream Tests - {{matrix.PACKAGE}}"
     plugins:
-      - QuantumSavory/julia#v1.14:
+      - QuantumSavory/julia#v1:
           version: "1"
-      - QuantumSavory/julia-xvfb#v1.2:
+      - QuantumSavory/julia-xvfb#v1:
     command:
       - echo "Julia depot path $${JULIA_DEPOT_PATH}"
       - julia --project=$(mktemp -d) -e '
