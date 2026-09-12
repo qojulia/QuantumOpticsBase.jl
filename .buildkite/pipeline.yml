@@ -7,7 +7,7 @@ secrets:
 steps:
   - label: "QuantumOpticsBase Tests - {{matrix.LABEL}}"
     plugins:
-      - JuliaCI/julia#v1:
+      - QuantumSavory/julia#v1:
           version: "1"
       - QuantumSavory/julia-xvfb#v1:
       - JuliaCI/julia-test#v1:
@@ -59,7 +59,7 @@ steps:
 
   - label: "Downstream Tests - {{matrix.PACKAGE}}"
     plugins:
-      - JuliaCI/julia#v1:
+      - QuantumSavory/julia#v1:
           version: "1"
       - QuantumSavory/julia-xvfb#v1:
     command:
