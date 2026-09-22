@@ -210,6 +210,20 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis, indices, o::Tim
     TimeDependentSum(coefficients(o), embed(basis_l, basis_r, indices, static_operator(o)), o.current_time)
 end
 
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Integer, o::TimeDependentSum)
+    TimeDependentSum(coefficients(o), embed_lazy(basis_l, basis_r, index, static_operator(o)), current_time(o))
+end
+
+function embed_lazy(basis_l::CompositeBasis, basis_r::CompositeBasis,
+                    indices::AbstractVector, o::TimeDependentSum)
+    TimeDependentSum(coefficients(o), embed_lazy(basis_l, basis_r, indices, static_operator(o)), current_time(o))
+end
+
+embed_lazy(basis::CompositeBasis, index::Integer, o::TimeDependentSum) =
+    embed_lazy(basis, basis, index, o)
+embed_lazy(basis::CompositeBasis, indices::AbstractVector, o::TimeDependentSum) =
+    embed_lazy(basis, basis, indices, o)
+
 function +(A::TimeDependentSum, B::TimeDependentSum)
     _check_same_time(A, B)
     TimeDependentSum(
