@@ -219,6 +219,26 @@ end
 
 identityoperator(::Type{<:LazyTensor}, ::Type{T}, b1::Basis, b2::Basis) where {T<:Number} = LazyTensor(b1, b2, Int[], Tuple{}(), one(T))
 
+"""
+    embed_lazy(b::Basis, i, op::AbstractOperator)
+
+Embed an operator in a larger hilbert space, at site(s) `i` of basis `b`, using a
+lazy representation of the tensor product and preserving LazySum.
+
+This has different meaning to `LazyTensor()` and `embed()`. The former
+always constructs a `LazyTensor` operator and the latter will not embed dense
+and sparse operators lazily. This function need not return a `LazyTensor`
+(it sometimes returns a `LazySum` of `LazyTensor`) and it will always prefer a
+lazy representation.
+"""
+embed_lazy(b::Basis, i, op::AbstractOperator) = LazyTensor(b, i, op)
+function embed_lazy(b::Basis, i, op::LazySum)
+    _embed_ops(b, i, ops::Tuple) = ((embed_lazy(b, i, o) for o in ops)...,)
+    _embed_ops(b, i, ops) = [embed_lazy(b, i, o) for o in ops]
+    LazySum(b, b, op.factors, _embed_ops(b, i, op.operators))
+end
+embed_lazy(b::Basis, indices, op::LazyTensor) = LazyTensor(b, b, indices, op.operators, op.factor)
+
 ## LazyTensor global cache
 
 function lazytensor_default_cache_size()
