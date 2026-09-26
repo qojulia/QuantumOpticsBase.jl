@@ -173,6 +173,33 @@ end
 entropy_renyi(psi::StateVector, args...) = entropy_renyi(dm(psi), args...)
 
 """
+    fidelity(psi, phi)
+
+Fidelity of two state vectors.
+
+The fidelity of two state vectors ``ψ`` and ``ϕ`` is defined by
+
+```math
+F(ρ, ψ) = \\vert⟨ψ|ϕ⟩\\vert^2,
+```
+"""
+fidelity(psi::Ket{B}, phi::Ket{B}) where {B} = abs( dagger(psi) * phi )^2.0
+
+"""
+    fidelity(rho, psi)
+
+Fidelity of a density operator and a state vector.
+
+The fidelity of a density operator ``ρ`` and a state vector ``ψ`` is defined by
+
+```math
+F(ρ, ψ) = \\vert⟨ψ|ρ|ψ⟩\\vert,
+```
+"""
+fidelity(rho::AbstractOperator{B,B}, psi::Ket{B}) where {B} = abs( dagger(psi) * ( rho * psi ) )
+fidelity(psi::Ket{B}, rho::AbstractOperator{B,B}) where {B} = fidelity(rho, psi)
+
+"""
     fidelity(rho, sigma)
 
 Fidelity of two density operators.
@@ -186,7 +213,6 @@ F(ρ, σ) = Tr\\left(\\sqrt{\\sqrt{ρ}σ\\sqrt{ρ}}\\right),
 where ``\\sqrt{ρ}=\\sum_n\\sqrt{λ_n}|ψ⟩⟨ψ|``.
 """
 fidelity(rho::DenseOpType{B,B}, sigma::DenseOpType{B,B}) where {B} = tr(sqrt(sqrt(rho.data)*sigma.data*sqrt(rho.data)))
-
 
 """
     ptranspose(rho, indices)
