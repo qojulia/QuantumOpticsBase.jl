@@ -1,0 +1,60 @@
+fock.jl:    @assert b.offset <= n <= b.N
+manybody.jl:    @assert op.basis_l == op.basis_r
+manybody.jl:    @assert bas isa ManyBodyBasis
+manybody.jl:    @assert op.basis_l == op.basis_r
+metrics.jl:    @assert all(partition .<= length(psi.basis.bases))
+operators.jl:    @assert length(basis_r.bases) == N
+operators.jl:    @assert N==length(basis_r.bases)
+operators_dense.jl:    @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
+operators_dense.jl:    @assert isperm(perm)
+operators_dense.jl:    @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
+operators_dense.jl:    @assert isperm(perm)
+operators_lazytensor.jl:        @assert N==length(br.bases)
+operators_lazytensor.jl:        @assert length(indices) == length(ops)
+operators_lazytensor.jl:        @assert issorted(indices)
+operators_lazytensor.jl:            @assert isa(ops[n], AbstractOperator)
+operators_lazytensor.jl:            @assert ops[n].basis_l == bl.bases[indices[n]]
+operators_lazytensor.jl:            @assert ops[n].basis_r == br.bases[indices[n]]
+operators_lazytensor.jl:        @assert maxsize >= 0
+operators_sparse.jl:    @assert length(basis_r.bases) == N
+operators_sparse.jl:  @assert 1 <= length(diag) <= length(b)
+particle.jl:        @assert isa(base, PositionBasis)
+particle.jl:        @assert isa(base, MomentumBasis)
+particle.jl:    @assert length(basis_l.bases) == length(basis_r.bases)
+particle.jl:        @assert all(isa.(basis_r.bases[index], MomentumBasis))
+particle.jl:        @assert all(isa.(basis_r.bases[index], PositionBasis))
+precompile.jl:        @assert isapprox(amplitude, alpha; atol=1e-10)
+precompile.jl:        @assert isapprox(photon_number, abs2(alpha); atol=1e-9)
+precompile.jl:        @assert isapprox(tr(density), 1; atol=1e-12)
+precompile.jl:        @assert isfinite(norm(derivative))
+precompile.jl:        @assert basis(derivative) == composite_basis
+precompile.jl:        @assert isapprox(tr(reduced_field), 1; atol=1e-12)
+precompile.jl:        @assert isfinite(norm(derivative))
+precompile.jl:        @assert isapprox(tr(reduced_spin), 1; atol=1e-12)
+precompile.jl:        @assert isapprox(entropy, log(2); atol=1e-12)
+precompile.jl:        @assert isapprox(state_negativity, 0.5; atol=1e-12)
+precompile.jl:        @assert isapprox(self_fidelity, 1; atol=1e-12)
+precompile.jl:        @assert isapprox(tr(derivative), 0; atol=1e-11)
+precompile.jl:        @assert isfinite(norm(derivative))
+precompile.jl:        @assert current_time(operator) == sample_time
+precompile.jl:        @assert norm(result - expected) < 1e-12
+precompile.jl:        @assert isapprox(energy, 2; atol=1e-12)
+precompile.jl:        @assert norm(transferred - expected) < 1e-12
+printing.jl:    @assert length(x) == length(dims)
+printing.jl:    @assert textwidth(hdots) == textwidth(ddots)
+spinors.jl:    @assert length(basis_r.bases) == length(basis_l.bases)
+spinors.jl:    @assert length(basis_r.bases) == length(basis_l.bases)
+spinors.jl:    @assert length(basis_r.bases) == length(basis_l.bases)
+spinors.jl:    @assert length(bases_l)==N
+states.jl:    @assert length(state.basis.bases) == length(perm)
+states.jl:    @assert isperm(perm)
+states.jl:    @assert length(state.basis.bases) == length(perm)
+states.jl:    @assert isperm(perm)
+states.jl:    @assert length(b.shape) == length(indices)
+states_lazyket.jl:            @assert isa(kets[n], Ket)
+states_lazyket.jl:            @assert kets[n].basis == b.bases[n]
+superoperators.jl:        @assert isa(j, AbstractOperator{B1,B2})
+superoperators.jl:        @assert isa(j, AbstractOperator{B1,B2})
+superoperators.jl:    @assert length(J)==length(Jdagger)
+superoperators.jl:        @assert size(rates, 1) == size(rates, 2) == length(J)
+superoperators.jl:        @assert length(rates) == length(J)

@@ -243,8 +243,18 @@ function exp(op::T) where {B,T<:DenseOpType{B,B}}
 end
 
 function permutesystems(a::Operator{B1,B2,<:Matrix}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
-    @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
-    @assert isperm(perm)
+
+    if a.basis_l.bases != a.basis_r.bases
+        throw(ArgumentError("Left and right bases must have the same number of subsystems, got $nl and $nr"))
+    end
+    if length(perm) != a.basis_l.bases
+        throw(ArgumentError("perm must have one entry per subsystem ($nl), got length $(length(perm))"))
+    end
+
+    if !isperm(perm)
+        throw(ArgumentError("perm must be a permutation of 1:$nl, got $perm"))
+    end
+
     data = reshape(a.data, (length.(a.basis_l.bases)..., length.(a.basis_r.bases)...))
     data = permutedims(data, [perm; perm .+ length(perm)])
     data = reshape(data, (length(a.basis_l), length(a.basis_r)))
@@ -252,8 +262,18 @@ function permutesystems(a::Operator{B1,B2,<:Matrix}, perm) where {B1<:CompositeB
 end
 
 function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
-    @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
-    @assert isperm(perm)
+    
+     if a.basis_l.bases != a.basis_r.bases
+        throw(ArgumentError("Left and right bases must have the same number of subsystems, got $nl and $nr"))
+    end
+    if length(perm) != a.basis_l.bases
+        throw(ArgumentError("perm must have one entry per subsystem ($nl), got length $(length(perm))"))
+    end
+    
+    if !isperm(perm)
+        throw(ArgumentError("perm must be a permutation of 1:$nl, got $perm"))
+    end
+
     data = Base.ReshapedArray(a.data, (a.basis_l.shape..., a.basis_r.shape...), ())
     data = PermutedDimsArray(data, [perm; perm .+ length(perm)])
     data = Base.ReshapedArray(data, (length(a.basis_l), length(a.basis_r)), ())

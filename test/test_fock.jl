@@ -97,7 +97,7 @@ rho = dm(psi)
 
 # Test FockBasis with offset
 b_off = FockBasis(100,4)
-@test_throws AssertionError fockstate(b_off, 0)
+@test_throws ArgumentError fockstate(b_off, 0)
 n = 55
 psi = fockstate(b_off, n)
 @test expect(number(b_off), psi)==n==expect(create(b_off)*destroy(b_off), psi)

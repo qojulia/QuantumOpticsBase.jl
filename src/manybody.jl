@@ -200,7 +200,11 @@ where ``X`` is the N-particle operator, ``x`` is the one-body operator and
 different modes of the N-particle basis.
 """
 function manybodyoperator(mb::ManyBodyBasis, op)
-    @assert op.basis_l == op.basis_r
+
+    if  op.basis_l != op.basis_r
+        throw(ArgumentError("The left and right bases of the operator must be equal."))
+    end    
+
     if op.basis_l == mb.onebodybasis
         result = manybodyoperator_1(mb, op)
     elseif op.basis_l == mb.onebodybasis ⊗ mb.onebodybasis
@@ -303,9 +307,14 @@ end
 Expectation value of the one-body operator `op` in respect to the many-body `state`.
 """
 function onebodyexpect(op::AbstractOperator, state::Union{Ket,AbstractOperator})
-    bas = basis(state)
-    @assert bas isa ManyBodyBasis
-    @assert op.basis_l == op.basis_r
+     bas = basis(state)
+    if !(bas isa ManyBodyBasis)
+        throw(ArgumentError("The state must be defined on a ManyBodyBasis, got $(typeof(bas))."))
+    end
+    if op.basis_l != op.basis_r
+        throw(ArgumentError("The left and right bases of the operator must be equal."))
+    end
+    
     if bas.onebodybasis == op.basis_l
         return onebodyexpect_1(op, state)
     elseif bas.onebodybasis ⊗ bas.onebodybasis == op.basis_l
@@ -315,6 +324,7 @@ function onebodyexpect(op::AbstractOperator, state::Union{Ket,AbstractOperator})
         throw(ArgumentError("The basis of the given operator has to either be equal to b or b ⊗ b where b is the 1st quantization basis associated to the nparticle basis of the state."))
     end
 end
+
 
 onebodyexpect(op::AbstractOperator, states::Vector) = [onebodyexpect(op, state) for state = states]
 

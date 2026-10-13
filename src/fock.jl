@@ -157,7 +157,9 @@ displace_analytical(b::FockBasis, alpha::Number) = displace_analytical(ComplexF6
 Fock state ``|n⟩`` for the specified Fock space.
 """
 function fockstate(::Type{T}, b::FockBasis, n::Integer) where T
-    @assert b.offset <= n <= b.N
+    if (b.offset > n || b.offset>b.N)
+        throw(ArgumentError("Fock state n=$n is outside the basis range $(b.offset):$(b.N)"))
+    end
     basisstate(T, b, n+1-b.offset)
 end
 fockstate(b, n) = fockstate(ComplexF64, b, n)
