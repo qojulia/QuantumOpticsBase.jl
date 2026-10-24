@@ -304,6 +304,12 @@ op2 = randoperator(b2a, b2b)
 op3 = randoperator(b3a, b3b)
 op123 = op1⊗op2⊗op3
 
+for storage in (dense, sparse)
+    @test_throws ArgumentError permutesystems(storage(op123), [1, 2])
+    @test_throws ArgumentError permutesystems(storage(op123), [1, 1, 3])
+    @test_throws ArgumentError permutesystems(storage(DenseOperator(b1a ⊗ b2a, b1b ⊗ b2b ⊗ b3b)), [1, 2])
+end
+
 op132 = op1⊗op3⊗op2
 @test 1e-14 > D(permutesystems(op123, [1, 3, 2]), op132)
 

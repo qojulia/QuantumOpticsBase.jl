@@ -243,10 +243,10 @@ function exp(op::T) where {B,T<:DenseOpType{B,B}}
 end
 
 function permutesystems(a::Operator{B1,B2,<:Matrix}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
-    if a.basis_l.bases != a.basis_r.bases
+    if length(a.basis_l.bases) != length(a.basis_r.bases)
         throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $(length(a.basis_l.bases)) and $(length(a.basis_r.bases))."))
     end
-    if length(perm) != a.basis_l.bases
+    if length(perm) != length(a.basis_l.bases)
         throw(ArgumentError(lazy"perm must have one entry per subsystem ($(length(a.basis_l.bases))); got $(length(perm)) entries."))
     end
     if !isperm(perm)
@@ -260,10 +260,10 @@ function permutesystems(a::Operator{B1,B2,<:Matrix}, perm) where {B1<:CompositeB
 end
 
 function permutesystems(a::Operator{B1,B2}, perm) where {B1<:CompositeBasis,B2<:CompositeBasis}
-    if a.basis_l.bases != a.basis_r.bases
+    if length(a.basis_l.bases) != length(a.basis_r.bases)
         throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $(length(a.basis_l.bases)) and $(length(a.basis_r.bases))."))
     end
-    if length(perm) != a.basis_l.bases
+    if length(perm) != length(a.basis_l.bases)
         throw(ArgumentError(lazy"perm must have one entry per subsystem ($(length(a.basis_l.bases))); got $(length(perm)) entries."))
     end
     if !isperm(perm)

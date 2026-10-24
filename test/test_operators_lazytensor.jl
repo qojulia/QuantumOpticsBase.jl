@@ -235,6 +235,8 @@ op_ = 0.1*subop1 ⊗ I2 ⊗ subop3
 @test 1e-14 > D(permutesystems(op, [3, 1, 2]), permutesystems(op_, [3, 1, 2]))
 @test 1e-14 > D(permutesystems(op, [3, 2, 1]), permutesystems(op_, [3, 2, 1]))
 
+@test_throws ArgumentError lazytensor_enable_cache(; maxsize=-2)
+
 for _mod_state in (identity, sparse)  # sparse state for testing no-cache, no-strided path
     # Test gemv, mixing precisions
     subop1 = randoperator(ComplexF32, b1a, b1b)
