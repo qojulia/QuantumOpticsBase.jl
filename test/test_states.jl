@@ -142,8 +142,8 @@ sparse_basis_state = sparsebasisstate(Float32, b, [2, 1])
 @test dense_basis_state.data == sparse_basis_state.data
 @test_throws BoundsError basisstate(b, [3, 1])
 @test_throws BoundsError sparsebasisstate(b, [2, 4])
-@test_throws AssertionError basisstate(b, [1])
-@test_throws AssertionError sparsebasisstate(b, [1])
+@test_throws ArgumentError basisstate(b, [1])
+@test_throws ArgumentError sparsebasisstate(b, [1])
 
 b3 = GenericBasis(4)
 b123 = b1 ⊗ b2 ⊗ b3
@@ -173,6 +173,10 @@ rho13 = dm(psi13)
 @test permutesystems(psi13, [2, 1]) == psi3 ⊗ psi1
 @test permutesystems(dagger(psi13), [1, 2]) == dagger(psi13)
 @test permutesystems(dagger(psi13), [2, 1]) == dagger(psi3 ⊗ psi1)
+for state in (psi13, dagger(psi13))
+    @test_throws ArgumentError permutesystems(state, [1])
+    @test_throws ArgumentError permutesystems(state, [1, 1])
+end
 @test permutesystems(rho13, [1, 2]) == rho13
 @test permutesystems(rho13, [2, 1]) == dm(psi3 ⊗ psi1)
 
@@ -230,6 +234,8 @@ b = b1⊗b2
 ψ1 = spindown(b1)
 ψ2 = spinup(b2)
 ψ = LazyKet(b, (ψ1,ψ2))
+@test_throws ArgumentError LazyKet(b, (ψ1, dagger(ψ2)))
+@test_throws QuantumOpticsBase.IncompatibleBases LazyKet(b, (ψ2, ψ1))
 sz = LazyTensor(b,(1, 2),(sigmaz(b1), sigmaz(b2)))
 @test expect(sz, ψ) == expect(sigmaz(b1)⊗sigmaz(b2), ψ1⊗ψ2)
 
