@@ -151,7 +151,7 @@ y = op1 ⊗ I2 ⊗ op3
     )
     @test_throws ArgumentError embed(full_basis, [1, 1], op1_real ⊗ op1_real)
     @test_throws ArgumentError embed(full_basis, [1, 5], op1_real ⊗ op1_real)
-    @test_throws AssertionError embed(full_basis, b1 ⊗ b2 ⊗ b3, [1], op1_real)
+    @test_throws ArgumentError embed(full_basis, b1 ⊗ b2 ⊗ b3, [1], op1_real)
 end
 
 @testset "rectangular multi-index embedding" begin
