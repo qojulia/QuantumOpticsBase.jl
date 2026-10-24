@@ -280,8 +280,8 @@ function can be provided (for example to compute the entanglement-renyi entropy)
 """
 function entanglement_entropy(psi::Ket{B}, partition, entropy_fun=entropy_vn) where B<:CompositeBasis
     # check that sites are within the range
-     if any(partition .> length(psi.basis.bases))
-        throw(ArgumentError("partition indices must be at most $(length(psi.basis.bases)), got $partition"))
+    if any(partition .> length(psi.basis.bases))
+        throw(ArgumentError(lazy"Partition indices must be at most $(length(psi.basis.bases)); got $partition."))
     end
 
     rho = ptrace(psi, partition)

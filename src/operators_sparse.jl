@@ -129,9 +129,8 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
                indices::AbstractVector{<:Integer}, op::T) where T<:_EmbedOpType
     N = length(basis_l.bases)
     if N != length(basis_r.bases)
-        throw(ArgumentError("Number of subsystems must match: left basis has $N, right basis has $(length(basis_r.bases))"))
+        throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $N and $(length(basis_r.bases))."))
     end
-
     check_indices(N, indices)
 
     indices_int = Int[index for index in indices]
@@ -196,12 +195,12 @@ Create a diagonal operator of type [`SparseOperator`](@ref).
 function diagonaloperator(b::Basis, diag)
     n = length(diag)
     if n < 1
-        throw(ArgumentError("diag must have at least one entry, got length $n"))
+        throw(ArgumentError(lazy"diag must have at least one entry; got $n."))
     end
     if n > length(b)
-        throw(ArgumentError("diag has $n entries but the basis only has $(length(b)) states"))
+        throw(ArgumentError(lazy"diag has $n entries, but the basis has only $(length(b)) states."))
     end
-    
+
     SparseOperator(b, spdiagm(0=>diag))
 end
 
