@@ -93,7 +93,8 @@ a [`SumBasis`](@ref).
 """
 function embed(basis_l::SumBasis, basis_r::SumBasis,
                index::Integer, op::T) where T<:DataOperator
-    @assert length(basis_r.bases) == length(basis_l.bases)
+    length(basis_r.bases) == length(basis_l.bases) ||
+        throw(ArgumentError(lazy"Left and right bases must have the same number of component bases; got $(length(basis_l.bases)) and $(length(basis_r.bases))."))
 
     basis_l.bases[index] == op.basis_l || throw(IncompatibleBases())
     basis_r.bases[index] == op.basis_r || throw(IncompatibleBases())
@@ -112,7 +113,8 @@ a [`SumBasis`](@ref).
 """
 function embed(basis_l::SumBasis, basis_r::SumBasis,
                indices, op::T) where T<:DataOperator
-    @assert length(basis_r.bases) == length(basis_l.bases)
+    length(basis_r.bases) == length(basis_l.bases) ||
+        throw(ArgumentError(lazy"Left and right bases must have the same number of component bases; got $(length(basis_l.bases)) and $(length(basis_r.bases))."))
 
     embedded_op = SparseOperator(eltype(op), basis_l, basis_r)
     for i=1:length(indices), j=1:length(indices)
@@ -131,7 +133,8 @@ Embed a list of operators on subspaces specified by the `indices` into a
 """
 function embed(basis_l::SumBasis, basis_r::SumBasis,
                indices, ops::Union{Tuple{Vararg{DataOperator}},Vector{<:DataOperator}})
-    @assert length(basis_r.bases) == length(basis_l.bases)
+    length(basis_r.bases) == length(basis_l.bases) ||
+        throw(ArgumentError(lazy"Left and right bases must have the same number of component bases; got $(length(basis_l.bases)) and $(length(basis_r.bases))."))
 
     T = mapreduce(eltype, promote_type, ops)
     embedded_op = SparseOperator(T, basis_l, basis_r)
@@ -199,7 +202,8 @@ function embed(basis_l::SumBasis, basis_r::SumBasis, indices, op::LazyDirectSum)
     bases_l = basis_l.bases
     bases_r = basis_r.bases
     N = length(bases_r)
-    @assert length(bases_l)==N
+    length(bases_l) == N ||
+        throw(ArgumentError(lazy"Left and right bases must have the same number of component bases; got $(length(bases_l)) and $N."))
 
     T = eltype(op)
 

@@ -192,7 +192,7 @@ function potentialoperator(::Type{T}, b::CompositeBasis, V) where T
 end
 function potentialoperator_position(::Type{T}, b::CompositeBasis, V) where T
     for base=b.bases
-        @assert isa(base, PositionBasis)
+        isa(base, PositionBasis) || throw(ArgumentError(lazy"All component bases must be PositionBasis instances; got $(typeof(base))."))
     end
 
     points = [samplepoints(b1) for b1=b.bases]
@@ -210,7 +210,7 @@ end
 function potentialoperator_momentum(::Type{T}, b::CompositeBasis, V) where T
     bases_pos = []
     for base=b.bases
-        @assert isa(base, MomentumBasis)
+        isa(base, MomentumBasis) || throw(ArgumentError(lazy"All component bases must be MomentumBasis instances; got $(typeof(base))."))
         push!(bases_pos, PositionBasis(base))
     end
     b_pos = tensor(bases_pos...)
@@ -324,7 +324,8 @@ function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only=fals
 end
 
 function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only=false, index=Int[])
-    @assert length(basis_l.bases) == length(basis_r.bases)
+    length(basis_l.bases) == length(basis_r.bases) ||
+        throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $(length(basis_l.bases)) and $(length(basis_r.bases))."))
     if length(index) == 0
         check_pos = [isa.(basis_l.bases, PositionBasis)...]
         check_mom = [isa.(basis_l.bases, MomentumBasis)...]
@@ -337,10 +338,12 @@ function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only=fa
         end
     end
     if all(isa.(basis_l.bases[index], PositionBasis))
-        @assert all(isa.(basis_r.bases[index], MomentumBasis))
+        all(isa.(basis_r.bases[index], MomentumBasis)) ||
+            throw(ArgumentError(lazy"Expected MomentumBasis at transform indices $index on the right; got $(typeof.(basis_r.bases[index]))."))
         transform_xp(basis_l, basis_r, index; ket_only=ket_only)
     elseif all(isa.(basis_l.bases[index], MomentumBasis))
-        @assert all(isa.(basis_r.bases[index], PositionBasis))
+        all(isa.(basis_r.bases[index], PositionBasis)) ||
+            throw(ArgumentError(lazy"Expected PositionBasis at transform indices $index on the right; got $(typeof.(basis_r.bases[index]))."))
         transform_px(basis_l, basis_r, index; ket_only=ket_only)
     else
         throw(IncompatibleBases())

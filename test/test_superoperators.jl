@@ -216,7 +216,12 @@ end
 @test L/2.0 == 0.5*L == L*0.5
 @test -L == SparseSuperOperator(L.basis_l, L.basis_r, -L.data)
 
-@test_throws AssertionError liouvillian(H, J; rates=zeros(4, 4))
+@test_throws ArgumentError liouvillian(H, J; rates=zeros(4, 4))
+@test_throws ArgumentError liouvillian(H, J; rates=zeros(2, 3))
+@test_throws ArgumentError liouvillian(H, J; rates=zeros(3))
+@test_throws ArgumentError liouvillian(H, J; Jdagger=[dagger(Ja)])
+@test_throws ArgumentError liouvillian(H, [sm])
+@test_throws ArgumentError liouvillian(H, J; Jdagger=[sp, dagger(Jc)])
 
 rates = diagm(0 => [1.0, 1.0])
 @test liouvillian(H, J; rates=rates) == L

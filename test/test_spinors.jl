@@ -54,6 +54,12 @@ L = LazyDirectSum(op1a,op2a)
 @test embed(b_l,b_r,1,op1a) == op1a ⊕ SparseOperator(b2a,b2b) ⊕ SparseOperator(b3a,b3b)
 @test embed(b_l,b_r,[1,3],op1a ⊕ op3a) == embed(b_l,b_r,[1,3],(op1a,op3a)) == op1a ⊕ SparseOperator(b2a,b2b) ⊕ op3a
 
+b_r_short = b1b ⊕ b2b
+@test_throws ArgumentError embed(b_l, b_r_short, 1, op1a)
+@test_throws ArgumentError embed(b_l, b_r_short, [1, 2], op1a ⊕ op2a)
+@test_throws ArgumentError embed(b_l, b_r_short, [1, 2], (op1a, op2a))
+@test_throws ArgumentError embed(b_l, b_r_short, [1, 2], L)
+
 # Test with off-diagonal blocks
 op = op1a ⊕ op3a
 op_upper = randoperator(b1a,b3b)
