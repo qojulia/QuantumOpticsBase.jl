@@ -170,16 +170,21 @@ sprepost(A::AbstractOperator, B::AbstractOperator) = SuperOperator((A.basis_l, B
 
 function _check_input(H::AbstractOperator{B1,B2}, J::Vector, Jdagger::Vector, rates) where {B1,B2}
     for j=J
-        @assert isa(j, AbstractOperator{B1,B2})
+        isa(j, AbstractOperator{B1,B2}) ||
+            throw(ArgumentError(lazy"Expected jump operators of type $(AbstractOperator{B1,B2}); got $(typeof(j))."))
     end
     for j=Jdagger
-        @assert isa(j, AbstractOperator{B1,B2})
+        isa(j, AbstractOperator{B1,B2}) ||
+            throw(ArgumentError(lazy"Expected adjoint jump operators of type $(AbstractOperator{B1,B2}); got $(typeof(j))."))
     end
-    @assert length(J)==length(Jdagger)
+    length(J) == length(Jdagger) ||
+        throw(ArgumentError(lazy"J and Jdagger must contain the same number of operators; got $(length(J)) and $(length(Jdagger))."))
     if isa(rates, Matrix{<:Number})
-        @assert size(rates, 1) == size(rates, 2) == length(J)
+        size(rates, 1) == size(rates, 2) == length(J) ||
+            throw(ArgumentError(lazy"Rate matrix must have size $((length(J), length(J))); got $(size(rates))."))
     elseif isa(rates, Vector{<:Number})
-        @assert length(rates) == length(J)
+        length(rates) == length(J) ||
+            throw(ArgumentError(lazy"Rate vector must have length $(length(J)); got $(length(rates))."))
     end
 end
 

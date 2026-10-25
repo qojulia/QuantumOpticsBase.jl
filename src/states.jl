@@ -120,16 +120,24 @@ function tensor(state::Bra, states::Bra...)
 end
 
 function permutesystems(state::T, perm) where T<:Ket
-    @assert length(state.basis.bases) == length(perm)
-    @assert isperm(perm)
+    if length(perm) != length(state.basis.bases)
+        throw(ArgumentError(lazy"perm must have one entry per subsystem ($(length(state.basis.bases))); got $(length(perm)) entries."))
+    end
+    if !isperm(perm)
+        throw(ArgumentError(lazy"perm must be a permutation of 1:$(length(state.basis.bases)); got $perm."))
+    end
     data = reshape(state.data, length.(state.basis.bases))
     data = permutedims(data, perm)
     data = reshape(data, length(data))
     Ket(permutesystems(state.basis, perm), data)
 end
 function permutesystems(state::T, perm) where T<:Bra
-    @assert length(state.basis.bases) == length(perm)
-    @assert isperm(perm)
+    if length(perm) != length(state.basis.bases)
+        throw(ArgumentError(lazy"perm must have one entry per subsystem ($(length(state.basis.bases))); got $(length(perm)) entries."))
+    end
+    if !isperm(perm)
+        throw(ArgumentError(lazy"perm must be a permutation of 1:$(length(state.basis.bases)); got $perm."))
+    end
     data = reshape(state.data, length.(state.basis.bases))
     data = permutedims(data, perm)
     data = reshape(data, length(data))
@@ -137,7 +145,9 @@ function permutesystems(state::T, perm) where T<:Bra
 end
 
 function _basisstate_index(b::Basis, indices)
-    @assert length(b.shape) == length(indices)
+    if length(indices) != length(b.shape)
+        throw(ArgumentError(lazy"Expected $(length(b.shape)) basis indices; got $(length(indices))."))
+    end
     linear_index = 1
     stride = 1
     for (dimension, index) in zip(b.shape, indices)

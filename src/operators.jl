@@ -33,8 +33,9 @@ end
 function _embed_dataoperator(basis_l::CompositeBasis, basis_r::CompositeBasis,
                              indices, op::T) where T<:DataOperator
     N = length(basis_l.bases)
-    @assert length(basis_r.bases) == N
-
+    if N != length(basis_r.bases)
+        throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $N and $(length(basis_r.bases))."))
+    end
     reduce(tensor, basis_l.bases[indices]) == op.basis_l || throw(IncompatibleBases())
     reduce(tensor, basis_r.bases[indices]) == op.basis_r || throw(IncompatibleBases())
 
@@ -85,7 +86,9 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     N = length(basis_l.bases)
 
     # Check stuff
-    @assert N==length(basis_r.bases)
+    if N != length(basis_r.bases)
+        throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $N and $(length(basis_r.bases))."))
+    end
     basis_l.bases[index] == op.basis_l || throw(IncompatibleBases())
     basis_r.bases[index] == op.basis_r || throw(IncompatibleBases())
     check_indices(N, index)

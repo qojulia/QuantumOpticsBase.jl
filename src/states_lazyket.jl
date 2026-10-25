@@ -15,8 +15,10 @@ mutable struct LazyKet{B,T} <: AbstractKet{B,T}
     function LazyKet(b::B, kets::T) where {B<:CompositeBasis,T<:Tuple}
         N = length(b.bases)
         for n=1:N
-            @assert isa(kets[n], Ket)
-            @assert kets[n].basis == b.bases[n]
+            if !(kets[n] isa Ket)
+                throw(ArgumentError(lazy"kets[$n] must be a Ket; got $(typeof(kets[n]))."))
+            end
+            kets[n].basis == b.bases[n] || throw(IncompatibleBases())
         end
         new{B,T}(b, kets)
     end

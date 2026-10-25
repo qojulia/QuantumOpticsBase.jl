@@ -200,7 +200,10 @@ where ``X`` is the N-particle operator, ``x`` is the one-body operator and
 different modes of the N-particle basis.
 """
 function manybodyoperator(mb::ManyBodyBasis, op)
-    @assert op.basis_l == op.basis_r
+    if op.basis_l != op.basis_r
+        throw(ArgumentError(lazy"The left and right bases of the operator must be equal."))
+    end
+
     if op.basis_l == mb.onebodybasis
         result = manybodyoperator_1(mb, op)
     elseif op.basis_l == mb.onebodybasis ⊗ mb.onebodybasis
@@ -304,8 +307,13 @@ Expectation value of the one-body operator `op` in respect to the many-body `sta
 """
 function onebodyexpect(op::AbstractOperator, state::Union{Ket,AbstractOperator})
     bas = basis(state)
-    @assert bas isa ManyBodyBasis
-    @assert op.basis_l == op.basis_r
+    if !(bas isa ManyBodyBasis)
+        throw(ArgumentError(lazy"The state must have a ManyBodyBasis; got $(typeof(bas))."))
+    end
+    if op.basis_l != op.basis_r
+        throw(ArgumentError(lazy"The left and right bases of the operator must be equal."))
+    end
+
     if bas.onebodybasis == op.basis_l
         return onebodyexpect_1(op, state)
     elseif bas.onebodybasis ⊗ bas.onebodybasis == op.basis_l

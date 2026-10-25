@@ -128,7 +128,9 @@ end
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
                indices::AbstractVector{<:Integer}, op::T) where T<:_EmbedOpType
     N = length(basis_l.bases)
-    @assert length(basis_r.bases) == N
+    if N != length(basis_r.bases)
+        throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $N and $(length(basis_r.bases))."))
+    end
     check_indices(N, indices)
 
     indices_int = Int[index for index in indices]
@@ -191,8 +193,15 @@ identityoperator(::Type{T}, b::Basis) where T<:Number = identityoperator(DataOpe
 Create a diagonal operator of type [`SparseOperator`](@ref).
 """
 function diagonaloperator(b::Basis, diag)
-  @assert 1 <= length(diag) <= length(b)
-  SparseOperator(b, spdiagm(0=>diag))
+    n = length(diag)
+    if n < 1
+        throw(ArgumentError(lazy"diag must have at least one entry; got $n."))
+    end
+    if n > length(b)
+        throw(ArgumentError(lazy"diag has $n entries, but the basis has only $(length(b)) states."))
+    end
+
+    SparseOperator(b, spdiagm(0=>diag))
 end
 
 # Fast in-place multiplication implementations

@@ -277,7 +277,7 @@ psi_x_fft2 = tensor((dagger.(psi0_p).*Tpx_sub)...)
 
 difference = (dense(Txp) - identityoperator(DenseOpType, Txp.basis_l)*Txp).data
 @test isapprox(difference, zero(difference); atol=1e-12)
-@test_throws AssertionError transform(tensor(basis_position...), tensor(basis_position...))
+@test_throws ArgumentError transform(tensor(basis_position...), tensor(basis_position...))
 @test_throws QuantumOpticsBase.IncompatibleBases transform(SpinBasis(1//2)^2, SpinBasis(1//2)^2)
 
 @test dense(Txp) == dense(Txp_sub[1] ⊗ Txp_sub[2])
@@ -385,6 +385,10 @@ V_op2 = potentialoperator(bcomp_pos, V)
 # Test error messages
 b1 = PositionBasis(-1, 1, 50)
 b2 = MomentumBasis(-1, 1, 30)
+@test_throws ArgumentError potentialoperator(b1 ⊗ b2, V)
+@test_throws ArgumentError potentialoperator(b2 ⊗ b1, V)
+@test_throws ArgumentError transform(b1 ⊗ b1, b2 ⊗ b2 ⊗ b2)
+@test_throws ArgumentError transform(b2 ⊗ b2, b2 ⊗ b2)
 @test_throws QuantumOpticsBase.IncompatibleBases transform(b1, b2)
 @test_throws QuantumOpticsBase.IncompatibleBases transform(b2, b1)
 

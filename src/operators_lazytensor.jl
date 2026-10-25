@@ -20,15 +20,23 @@ mutable struct LazyTensor{BL,BR,F,I,T} <: LazyOperator{BL,BR}
     operators::T
     function LazyTensor(bl::BL, br::BR, indices::I, ops::T, factor::F=_default_factor(ops)) where {BL<:CompositeBasis,BR<:CompositeBasis,F,I,T<:Tuple}
         N = length(bl.bases)
-        @assert N==length(br.bases)
-        check_indices(N, indices)
-        @assert length(indices) == length(ops)
-        @assert issorted(indices)
-        for n=1:length(indices)
-            @assert isa(ops[n], AbstractOperator)
-            @assert ops[n].basis_l == bl.bases[indices[n]]
-            @assert ops[n].basis_r == br.bases[indices[n]]
+        if N != length(br.bases)
+            throw(ArgumentError(lazy"Left and right bases must have the same number of subsystems; got $N and $(length(br.bases))."))
         end
+        check_indices(N, indices)
+        if length(indices) != length(ops)
+            throw(ArgumentError(lazy"The number of indices ($(length(indices))) must match the number of operators ($(length(ops)))."))
+        end
+        if !issorted(indices)
+            throw(ArgumentError(lazy"indices must be sorted in increasing order; got $indices."))
+        end
+        if any(n -> !isa(ops[n], AbstractOperator), 1:length(indices))
+            throw(ArgumentError(lazy"All elements of ops must be AbstractOperator instances."))
+        end
+        if any(n -> ops[n].basis_l != bl.bases[indices[n]] || ops[n].basis_r != br.bases[indices[n]], 1:length(indices))
+            throw(IncompatibleBases())
+        end
+
         F_ = promote_type(F, mapreduce(eltype, promote_type, ops; init=F))
         factor_ = convert(F_, factor)
         new{BL,BR,F_,I,T}(bl, br, factor_, indices, ops)
@@ -273,8 +281,8 @@ function lazytensor_enable_cache(; maxsize::Int = -1, maxrelsize::Real = 0.0)
         maxsize = lazytensor_default_cache_size()
     elseif maxrelsize > 0
         maxsize = max(maxsize, floor(Int, maxrelsize*Sys.total_memory()))
-    else
-        @assert maxsize >= 0
+    elseif maxsize < 0
+        throw(ArgumentError(lazy"maxsize must be nonnegative; got $maxsize."))
     end
     _lazytensor_use_cache[] = true
     resize!(lazytensor_cache; maxsize = maxsize)
